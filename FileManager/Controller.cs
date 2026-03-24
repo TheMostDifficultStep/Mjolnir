@@ -1,4 +1,5 @@
-﻿using Play.Interfaces.Embedding;
+﻿using System.Xml;
+using Play.Interfaces.Embedding;
 
 namespace Play.FileManager {
     public class ControllerFactory : 
@@ -29,7 +30,7 @@ namespace Play.FileManager {
         public override PgDocDescr Suitability(string strExtension) {
             if( strExtension.CompareTo( ".fman" ) == 0 ) {
                 return new PgDocDescr( ".fman", 
-                                       typeof( IPgLoad<TextReader> ), 
+                                       typeof( IPgLoad<XmlNode> ), 
                                        255, 
                                        this );
             }

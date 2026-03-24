@@ -89,8 +89,8 @@ namespace Play.Clock {
         }
 
         public override IEnumerator<IPgViewType> GetEnumerator() {
-            yield return new ViewType( "Time Zones",   ViewDigitalClock    .Guid );
-            yield return new ViewType( "Analog Clock", ViewAnalogClock.Guid );
+            yield return new ViewType( "Time Zones",   ViewDigitalClock.Guid );
+            yield return new ViewType( "Analog Clock", ViewAnalogClock .Guid );
         }
     }
 

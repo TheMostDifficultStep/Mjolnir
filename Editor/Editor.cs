@@ -7,6 +7,7 @@ using System.Text;
 using Play.Parse;
 using Play.Parse.Impl;
 using Play.Interfaces.Embedding;
+using System.Xml;
 
 // These classes could be part of an editor sub namespace perhaps. Then the 
 // Line definitions could be part of a lighter module. Just trying to sort out
@@ -111,6 +112,7 @@ namespace Play.Edit {
 		IPgParent,
         IPgSave<TextWriter>,
         IPgLoad<TextReader>,
+        IPgSave<XmlNode>,
 		IPgLoad<string>,
         IPgLoad<IEnumerable<string>>,
         IEnumerable<Line>,
@@ -1113,6 +1115,17 @@ namespace Play.Edit {
             }
 
             return( fReturn );
+        }
+        
+        public bool Save( XmlNode oNode ) {
+            using TextWriter oWriter = new StringWriter();
+
+            if( Save( oWriter ) ) {
+                oNode.InnerText = oWriter.ToString();
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>

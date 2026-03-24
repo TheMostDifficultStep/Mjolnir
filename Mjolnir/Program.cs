@@ -1,3 +1,9 @@
+using Play.Edit;
+using Play.Integration;
+using Play.Interfaces.Embedding; 
+using Play.Parse.Impl;
+using Play.Sound;
+using SkiaSharp;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -9,14 +15,7 @@ using System.Text;
 using System.Windows.Forms;
 using System.Xml;
 using System.Xml.XPath;
-
-using SkiaSharp;
-
-using Play.Edit;
-using Play.Integration;
-using Play.Interfaces.Embedding; 
-using Play.Parse.Impl;
-using Play.Sound;
+using static Play.ImageViewer.DocImageEdit;
 
 namespace Mjolnir {
     public delegate void UpdateAllTitlesFor( IDocSlot oSlot );
@@ -244,23 +243,23 @@ namespace Mjolnir {
 
         // The textslots and xmlslots we could make cache the editor pointers on load
         // so we spot load errors sooner instead of later after the program boots.
-        protected InternalSlot      _oDocSlot_Scraps;
-        protected TextSlot          _oDocSlot_Alerts;
-        protected XmlSlot           _oDocSlot_Recents;
-        protected InternalSlot      _oDocSlot_Fonts;
-        protected XmlSlot           _oDocSlot_SearchKey;
-        protected ComplexXmlSlot    _oDocSlot_Find;
-        protected Program.TextSlot  _oDocSite_Session; // Hosting ourself, so don't be confused! ^_^;
+        protected InternalSlot          _oDocSlot_Scraps;
+        protected TextSlot              _oDocSlot_Alerts;
+        protected XmlSlotFixedRefCount  _oDocSlot_Recents;
+        protected InternalSlot          _oDocSlot_Fonts;
+        protected XmlSlotFixedRefCount  _oDocSlot_SearchKey;
+        protected ComplexXmlSlot        _oDocSlot_Find;
+        protected Program.TextSlot      _oDocSite_Session; // Hosting ourself, so don't be confused! ^_^;
           
         /// <summery>Views can use this to create views on the scrapbook</summery>
-        public InternalSlot ScrapBookSlot => _oDocSlot_Scraps;
-        public XmlSlot      RecentsSlot   => _oDocSlot_Recents;
-        public TextSlot     SessionSlot   => _oDocSite_Session;
-		public XmlSlot      SearchSlot    => _oDocSlot_SearchKey;
-        public IDocSlot     FindSlot      => _oDocSlot_Find;
-        public IDocSlot     AlertSlot     => _oDocSlot_Alerts;
-        public TextSlot     ClockSlot  { get; set; }
-        public DirSlot      HomeSlot   { get; protected set; }
+        public InternalSlot             ScrapBookSlot => _oDocSlot_Scraps;
+        public XmlSlotFixedRefCount     RecentsSlot   => _oDocSlot_Recents;
+        public TextSlot                 SessionSlot   => _oDocSite_Session;
+		public XmlSlotFixedRefCount     SearchSlot    => _oDocSlot_SearchKey;
+        public IDocSlot                 FindSlot      => _oDocSlot_Find;
+        public IDocSlot                 AlertSlot     => _oDocSlot_Alerts;
+        public XmlSlotFixedRefCount     ClockSlot  { get; protected set; }
+        public XmlSlotFixedRefCount     HomeSlot   { get; protected set; }
 
         // BUG: I'm dithering on FontMenu living on the program or just the main window.
 		public Font         FontMenu      { get; } = new Font( "Segoe UI Symbol", 11 ); // Segoe UI Symbol, So we can show our play/pause stuff.
@@ -579,18 +578,6 @@ namespace Mjolnir {
         }
 
 		/// <summary>
-		/// In this case these would be global documents you might want to show all the time.
-		/// Or use for some kind of "first load" document display. Not currently called.
-		/// </summary>
-        protected void InitializeDocuments( XmlDocument xmlDocument ) {
-            XmlNodeList lstDocs = xmlDocument.SelectNodes("config/mainwindow/documents/document");
-
-            foreach( XmlElement xeDoc in lstDocs ) {
-                MainWindow.DocumentShow( xeDoc.GetAttribute("path") );
-            }
-        }
-
-		/// <summary>
 		/// TODO, 1/2/2018 : Hmmm... I see we're loading the assemblies, but we need to grab any controllers
 		/// out of it to really be useful. This looks like a great next step to work on.
 		/// </summary>
@@ -763,7 +750,7 @@ namespace Mjolnir {
                 if( oDescr.StgReqmnt != typeof( IPgLoad<TextReader> ) )
                     throw new InvalidProgramException();
 
-                _oDocSlot_Recents = new XmlSlot(this, oDescr, "Recent" );
+                _oDocSlot_Recents = new XmlSlotFixedRefCount(this, oDescr, "Recent" );
                 _oDocSlot_Recents.CreateDocument();
                 _oDocSlot_Recents.InitNew();
                 _oDoc_Recents = (Editor)_oDocSlot_Recents.Document;
@@ -799,7 +786,7 @@ namespace Mjolnir {
                 if( oDescr.StgReqmnt != typeof( IPgLoad<TextReader> ) )
                     throw new InvalidProgramException();
 
-			    _oDocSlot_SearchKey = new XmlSlot( this, oDescr, "Find String" );
+			    _oDocSlot_SearchKey = new XmlSlotFixedRefCount( this, oDescr, "Find String" );
                 _oDocSlot_SearchKey.CreateDocument();
 			    _oDocSlot_SearchKey.InitNew(); 
                 if( _oDocSlot_SearchKey.Document is Editor oEdit ) {
@@ -814,23 +801,25 @@ namespace Mjolnir {
                 _oDocSlot_Find = new ComplexXmlSlot( this, oDocDesc, "Find Dialog" );
                 _oDocSlot_Find.CreateDocument();
                 _oDocSlot_Find.InitNew();
-
+            }
+            {
                 // Always want clock since we have a solo clock window that needs it.
-                ClockSlot = new TextSlot( this, new Play.Clock.ControllerForClock() );
-                ClockSlot.CreateDocument();
-                ClockSlot.InitNew();
+                PgDocDescr oDocDesc = GetController( ".clock" );
+                ClockSlot = new XmlSlotFixedRefCount( this, oDocDesc );
+                //ClockSlot.CreateDocument();
+                //ClockSlot.InitNew();
                 ClockSlot.IsInternal = true;
-                _rgDocSites.Add( ClockSlot );
+                //_rgDocSites.Add( ClockSlot );
             }
             {
                 // Always want to save the last file open for the session so 
                 // I want to just keep the fileman document open at all times.
-                PgDocDescr oDescr = GetController( ".fileman" );
-                HomeSlot = new DirSlot( this, oDescr.Controller );
-                HomeSlot.CreateDocument();
-                HomeSlot.InitNew();
+                PgDocDescr oDescr = GetController( ".fman" );
+                HomeSlot = new XmlSlotFixedRefCount( this, oDescr );
+                //HomeSlot.CreateDocument();
+                //HomeSlot.InitNew();
                 HomeSlot.IsInternal = true;
-                _rgDocSites.Add( HomeSlot );
+                //_rgDocSites.Add( HomeSlot );
             }
         }
 
@@ -936,6 +925,16 @@ namespace Mjolnir {
         }
 
         public bool InitNew() {
+            ClockSlot.CreateDocument();
+            ClockSlot.InitNew();
+            ClockSlot.IsInternal = true;
+            _rgDocSites.Add(ClockSlot);
+
+            HomeSlot.CreateDocument();
+            HomeSlot.InitNew();
+            HomeSlot.IsInternal = true;
+            _rgDocSites.Add(HomeSlot);
+
 			if( !MainWindow.InitNew() ) {
                 LogError( "program initnew", "Couldn't initialize main window." );
 				return false;
@@ -973,46 +972,47 @@ namespace Mjolnir {
 			try {
 				// Load up the documents.
                 if( rgSessionDocs != null ) {
-				    foreach( XmlElement xmlDoc in rgSessionDocs ) {
-                        string strType = xmlDoc.GetAttribute( "internal" );
+				    foreach( XmlElement xmlFileNode in rgSessionDocs ) {
+                        string strEmbedding = xmlFileNode.GetAttribute( "internal" );
 
-					    if( string.IsNullOrEmpty(xmlDoc.InnerText) && string.IsNullOrEmpty( strType ) )
-						    throw new InvalidOperationException( "filename innertext failure");
-
-					    int    iDocID  = int.Parse(xmlDoc.GetAttribute("docid") );
-                        string strExtn = xmlDoc.GetAttribute( "extn" );
-                        string strPath = xmlDoc.InnerText;
-
-                        // If path only then try adding the persisted extn
-                        // so the system can figure out what document to load.
-                        if( string.IsNullOrEmpty( Path.GetExtension(strPath) ) ) {
-                            strPath += strExtn;
-                        }
-
-                        // BUG: Need to add some code to validate Doc ID.
+					    int    iDocID  = int.Parse(xmlFileNode.GetAttribute("docid") );
+                        string strExtn = xmlFileNode.GetAttribute( "extn" );
                         IDocSlot oDocSite = null;
                         
-                        if( string.IsNullOrEmpty( strType ) ) {
+                        if( string.IsNullOrEmpty( strEmbedding ) ) {
+                            string strPath = xmlFileNode.InnerText;
+
+                            // If path only then try adding the persisted extn
+                            // so the system can figure out what document to load.
+                            if( string.IsNullOrEmpty( Path.GetExtension(strPath) ) ) {
+                                strPath += strExtn;
+                            }
+
+                            // BUG: Need to add some code to validate Doc ID.
                             oDocSite = DocumentCreate( strPath, iDocID );
                         } else {
-                            switch( strExtn ) {
-                                case ".clock" :
-                                    oDocSite = ClockSlot;
-                                    break;
-                                case ".fileman" :
-                                    oDocSite = HomeSlot;
-                                    break;
-                            }
-                            if( oDocSite != null ) {
-                                oDocSite.ID = iDocID;
-                            }
+                            oDocSite = DocumentLoad  ( xmlFileNode, strExtn, iDocID );
                         }
 
 					    // If oDocSite is null, I should create a place holder document that you can use
 					    // to edit the link or try again some time.
 					    if( oDocSite == null )
 						    throw new InvalidOperationException( "Couldn't create document" );
-				    }
+				    } // end for
+                    // Yes, it's clunky. But if we didn't persist our home and clock then
+                    // we need to get them running manually.
+                }
+                if( ClockSlot.Document is null ) {
+                    ClockSlot.CreateDocument();
+                    ClockSlot.InitNew();
+                    ClockSlot.IsInternal = true;
+                    _rgDocSites.Add(ClockSlot);
+                }
+                if( HomeSlot.Document is null ) {
+                    HomeSlot.CreateDocument();
+                    HomeSlot.InitNew();
+                    HomeSlot.IsInternal = true;
+                    _rgDocSites.Add( HomeSlot );
                 }
 			} catch( Exception oEx ) {
 				TryLogXmlError( oEx, "Trouble reading documents from session file" );
@@ -1050,19 +1050,18 @@ namespace Mjolnir {
                 oSearchKey.LineAppend( string.Empty, fUndoable:false );
             }
 
-            // BUG: We can improve our fault tolerance by improving the chance that InitNew get's called
-            //      in the event of an xmlexception or failed load.
+            // It's pretty brutal, but we just completely bail out if we can't
+            // load the window session. You can always open a new instance and
+            // attempt to edit the pvs file.
 			try {
                 XmlElement xmlMainWindow = xmlSession.SelectSingleNode( "Session/Windows/Window[@name='MainWindow']" ) as XmlElement;
-				if( MainWindow is IPgLoad<XmlElement> oWinLoad ) {
-					if( !oWinLoad.Load( xmlMainWindow ) ) {
-						LogError( "MainWindow", "Failed to load successfully" );
-                    }
-				} else {
-					MainWindow.InitNew();
+				if( !MainWindow.Load( xmlMainWindow ) ) {
+					LogError( "MainWindow", "Failed to load successfully" );
+                    return false;
 				}
 			} catch( Exception oEx ) {
                 TryLogXmlError( oEx, "Couldn't load main window session state." );
+                return false;
 			}
 
             // TODO: See SessionSetDirty() for notes about this. It should not be dirty right from initialization
@@ -1112,9 +1111,6 @@ namespace Mjolnir {
 
 					xmlFile.SetAttribute( "docid", oDocSite.ID.ToString() );
 
-                    if( !string.IsNullOrEmpty( oDocSite.FilePath ) ) {
-                        xmlFile.InnerText = oDocSite.FilePath;
-                    }
                     // ImageViewer and FileManager are path only so...
                     string strExtn = Path.GetExtension(  oDocSite.FileName );
                     if( string.IsNullOrEmpty( strExtn ) ) {
@@ -1122,6 +1118,11 @@ namespace Mjolnir {
                     }
                     if( oDocSite.IsInternal ) {
                         xmlFile.SetAttribute( "internal", "yes" );
+                        if( oDocSite is IXmlSlot oXmlSlot ) {
+                            oXmlSlot.Save( xmlFile );
+                        }
+                    } else {
+                        xmlFile.InnerText = oDocSite.FilePath;
                     }
 
                     xmlDocs.AppendChild( xmlFile );
@@ -1261,6 +1262,53 @@ namespace Mjolnir {
             return oDocDesc;
         }
 
+        public IDocSlot DocumentLoad( XmlElement xmlFileTop, string strExtn, int iID = -1 ) {
+			try {
+				_iDocCount++; // BUG: Deal with overflow. Make the collection a dictionary.
+				if( _iDocCount <= iID )
+					_iDocCount = iID + 1;
+			} catch( OverflowException ) {
+				LogError( "embedding", "Internal document count error" );
+				return null;
+			}
+
+            try {
+                IXmlSlot oNewSite;
+
+                switch( strExtn ) {
+                    case ".clock" :
+                        oNewSite = ClockSlot;
+                        break;
+                    case ".fman" :
+                        oNewSite = HomeSlot;
+                        break;
+                    default:
+                        PgDocDescr oDocDesc = GetController( strExtn, fSendMessage:true );
+                        oNewSite = new Program.XmlSlotRefCount( this, oDocDesc );
+                        break;
+                }
+           
+                oNewSite.SetID( iID );
+                oNewSite.CreateDocument();
+                oNewSite.Load( xmlFileTop );
+
+                // Note: If the view doesn't get loaded we can't unload the site! But that's ok, 
+			    //       we want to save the reference in any .pvs file.
+                _rgDocSites.Add( (IDocSlot)oNewSite );
+
+                return (IDocSlot)oNewSite;
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( ArgumentException ),
+                                    typeof( ArgumentNullException ),
+                                    typeof( InvalidCastException ) };
+                LogError( null, "hosting", "Error attempting to load embedding." );
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+            }
+            return null;
+        }
+
         /// <summary>
         /// Create a new document from file name. We try supported file types first then browsable second.
         /// but we don't rank in either catagory. Need to look into that.
@@ -1288,8 +1336,9 @@ namespace Mjolnir {
                     case var r when ( r == typeof( IPgLoad<TextReader> ) ):
                         oNewSite = new Program.TextSlot( this, oDocDesc.Controller, strFileExtn, iID);
                         break;
-                    case var r when ( r == typeof( IPgLoadUrl ) ):
-                        oNewSite = new Program.DirSlot( this, oDocDesc.Controller, strFileExtn, iID);
+                    // Keep this for backwards compat.
+                    case var r when( r == typeof(IPgLoadUrl) ):
+                        oNewSite = new Program.DirSlot(this, oDocDesc.Controller, strFileExtn, iID);
                         break;
                     case var r when ( r == typeof( IPgLoad<BinaryReader> ) ):
                         oNewSite = new Program.BinarySlot( this, oDocDesc.Controller, strFileExtn, iID);

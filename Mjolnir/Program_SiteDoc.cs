@@ -1,12 +1,12 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Windows.Forms;
-using System.IO;
-using System.Security;
-
 using Play.Interfaces.Embedding; 
 using Play.Parse.Impl;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Security;
+using System.Text;
+using System.Windows.Forms;
+using System.Xml;
 
 namespace Mjolnir {
     /// <summary>
@@ -206,16 +206,16 @@ namespace Mjolnir {
                 try {
                     GuestSet( oDoc );
                 } catch( Exception oEx  ) { 
-                        Type[] rgErrors = { typeof( InvalidCastException ),
-                                            typeof( ArgumentException ),
-                                            typeof( NullReferenceException ),
-											typeof( ArgumentNullException ) };
-                        LogError( "hosting", "Guest does not support required interfaces.");
+                    Type[] rgErrors = { typeof( InvalidCastException ),
+                                        typeof( ArgumentException ),
+                                        typeof( NullReferenceException ),
+										typeof( ArgumentNullException ) };
+                    LogError( "hosting", "Guest does not support required interfaces.");
 
-                        if( rgErrors.IsUnhandled( oEx ) )
-                            throw;
+                    if( rgErrors.IsUnhandled( oEx ) )
+                        throw;
 
-                        return false;
+                    return false;
                 }
 
                 return true;
@@ -805,9 +805,112 @@ namespace Mjolnir {
 		//	}
 		//}
 
+        interface IXmlSlot {
+            void SetID( int iId );
+            bool Load( XmlNode oNode );
+            bool Save( XmlNode oNode );
+            bool CreateDocument();
+        }
+
+        /// <summary>
+        /// Kind of a drag to inherit from IDocSlot, since Load( filename ) 
+        /// needs to be implemented. Look at this later.
+        /// </summary>
+        public class XmlSlotRefCount : 
+            BaseSlot, 
+            IDocSlot,
+            IXmlSlot
+        {
+            protected IPgSave<XmlNode> _oGuestSave;
+            protected IPgLoad<XmlNode> _oGuestLoad;
+
+            public XmlSlotRefCount( Program oProgram, PgDocDescr oDesc ) : 
+                base( oProgram, oDesc.Controller, oDesc.FileExtn ) 
+            {
+            }
+
+            protected override void GuestSet( IDisposable value ) {
+                base.GuestSet( value );
+
+                _oGuestSave = (IPgSave<XmlNode>)value;
+                _oGuestLoad = (IPgLoad<XmlNode>)value;
+            }
+
+            public override string LastPath {
+                get { return string.Empty; }
+            }
+
+            public bool IsInternal {get; set; } = false;
+            public void SetID( int iID ) { ID = iID; }
+
+            public override bool InitNew() {
+                return _oGuestLoad.InitNew();
+            }
+
+            public bool Save( XmlNode oXmlFileNode ) {
+                if( oXmlFileNode == null ) {
+                    LogError( "Missing file node to save into" );
+                    return false;
+                }
+
+                XmlNode xmlFrag = oXmlFileNode.OwnerDocument.CreateDocumentFragment();
+
+                if( _oGuestSave.Save( xmlFrag ) ) {
+                    oXmlFileNode.AppendChild( xmlFrag );
+                    return true;
+                }
+
+                return false;
+            }
+
+            public bool Load( XmlNode oFileNode ) {
+                if( oFileNode == null ) {
+                    LogError( "Session", "Missing session file node arg." );
+                    return false;
+                }
+                if( !_oGuestLoad.Load( oFileNode.FirstChild ) ) {
+                    LogError( "Session", "Couldn't load embedded data." );
+                    return false;
+                }
+
+                return true;
+            } 
+
+            /// <summary>
+            /// We're getting a save request from our guest. So we'll save the
+            /// entire session.
+            /// </summary>
+            /// <param name="fNew">Ignored. You cannot rename the substorage spots in the session XML.</param>
+            /// <returns>true</returns>
+            public virtual bool Save( bool fNew ) {
+                _oHost.SessionSave( false );
+                return( true );
+            }
+
+            public override bool Load( string str ) {
+                return false;
+            }
+
+            /// <summary>
+            /// I don't see why this can't be implemented on the base... :-/
+            /// </summary>
+            public override void Notify( ShellNotify eEvent ) {
+				switch( eEvent ) {
+					case ShellNotify.DocumentDirty:
+						_oHost.SessionDirtySet();
+						break;
+				}
+            }
+
+            public override bool IsDirty => _oGuestSave.IsDirty;
+        } // End class
+
 		/// <summary>
 		/// Session is special in that it controls the title for the main window. We're hosting ourself!
 		/// </summary>
+        /// <summary>
+        /// This will be the new slot for embedded xml data in the session (pvs) file.
+        /// </summary>
 		public class SessonSlot : InternalSlot {
             public SessonSlot( Program oProgram, PgDocDescr oDescr )
 		    : base( oProgram, oDescr, "Sesson" ) {
@@ -911,6 +1014,7 @@ namespace Mjolnir {
                 FilePath = _oGuestSave.Moniker;
 
                 _oHost.Raise_UpdateTitles( this );
+                _oHost.SessionSave( false );
 
                 return true;
             }

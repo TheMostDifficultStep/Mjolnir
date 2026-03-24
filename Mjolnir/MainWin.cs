@@ -2748,13 +2748,6 @@ namespace Mjolnir {
                 //oSelectorSite.ViewCreate( Program.ViewSelector );
                 //oSelectorSite.InitNew();
                 //DecorAddSolo( GlobalDecor.Views, oSelectorSite.Guest);
-
-                DecorSlot oClockSite = new DecorSlot( this, Document.ClockSlot, Shepardfind( GlobalDecor.Clock ) );
-                ViewDigitalClock oWinClock = new ViewDigitalClock( oClockSite, (DocumentClock)Document.ClockSlot.Document );
-                oClockSite.Guest = oWinClock;
-                oClockSite.GuestInit();
-                DecorAddSolo( GlobalDecor.Clock, oClockSite.Guest);
-
             } catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( ArgumentNullException ),
 									typeof( ArgumentException ),
@@ -2872,9 +2865,9 @@ namespace Mjolnir {
                     // It would be nice if I could tell if the internal docs have a view or not
                     // and add them later so as not to confuse us here.
 					if( iBirthCount == 0 && !oDocSlot.IsInternal ) {
-						if( oDocSlot.Document != null ) {
-							this.LogError( null, "mainwin session", "Couldn't find saved view for saved document, creating one default." );
-						}
+						//if( oDocSlot.Document != null ) {
+						//	this.LogError( null, "mainwin session", "Couldn't find saved view for saved document, creating one default." );
+						//}
 						// If I couldn't load anything from the saved state. Just create one new view.
 						ViewSlot oViewSite = ViewCreateBase( oDocSlot, Guid.Empty );
 						if( oViewSite.InitNew() ) {

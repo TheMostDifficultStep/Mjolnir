@@ -70,30 +70,41 @@ namespace Mjolnir {
 			}
 		} // End class
 
-        public class XmlSlot : 
+        /// <summary>
+        /// Kind of a drag to inherit from IDocSlot, since Load( filename )
+        /// needs to be implemented. Look at this later. 
+        /// </summary>
+        public class XmlSlotFixedRefCount : 
             BaseSlot, 
-            IDocSlot // Kind of a drag to inherit from IDocSlot, since Load( filename ) needs to be implemented. Look at this later.
+            IDocSlot,
+            IXmlSlot
         {
-            protected IPgSave<TextWriter> _oGuest;
+            protected IPgSave<XmlNode> _oGuest;
 
-            public XmlSlot( Program oProgram, PgDocDescr oDescriptor, string strName ) : 
+            public XmlSlotFixedRefCount( Program oProgram, PgDocDescr oDescriptor, string strName ) : 
                 base( oProgram, oDescriptor.Controller, oDescriptor.FileExtn ) 
             {
                 //CheckLocation( true ); Need do do something like this...
                 _strFilePath = strName;
             }
+            public XmlSlotFixedRefCount( Program oProgram, PgDocDescr oDescriptor ) : 
+                base( oProgram, oDescriptor.Controller, oDescriptor.FileExtn ) 
+            {
+            }
+
 
             protected override void GuestSet( IDisposable value ) {
                 base.GuestSet( value );
 
-                _oGuest = (IPgSave<TextWriter>)value;
+                _oGuest = (IPgSave<XmlNode>)value;
             }
 
             public override string LastPath {
                 get { return string.Empty; }
             }
 
-            public bool IsInternal => false;
+            public virtual bool IsInternal { get; set;} = false; // clock and fileman override.
+            public void SetID( int iID ) { ID = iID; }
 
             public override bool InitNew() {
                 IPgLoad<TextReader> oGuestReader = _oGuest as IPgLoad<TextReader>;
@@ -106,20 +117,35 @@ namespace Mjolnir {
                 return( true );
             }
 
-            public void Save( XmlElement xmlParent ) {
-                if( xmlParent == null ) {
-                    LogError( "Missing Parent XML node to save into" );
-                }
-                // I once used a MemoryStream on StreamWriter to capture the save of the guest and then
-                // write into the XML via a StreamReader. But this is way better.
-                // BUG: Except if there is markup in the stream!!
-                using( TextWriter srSave = new StringWriter() ) {
-                    _oGuest.Save( srSave );
-                    srSave.Flush();
-                    xmlParent.InnerXml = HttpUtility.HtmlEncode( srSave.ToString() );
-                }
-            }
+            //public void Save( XmlElement xmlParent ) {
+            //    if( xmlParent == null ) {
+            //        LogError( "Missing Parent XML node to save into" );
+            //    }
+            //    // I once used a MemoryStream on StreamWriter to capture the save of the guest and then
+            //    // write into the XML via a StreamReader. But this is way better.
+            //    // BUG: Except if there is markup in the stream!!
+            //    using( TextWriter srSave = new StringWriter() ) {
+            //        _oGuest.Save( srSave );
+            //        srSave.Flush();
+            //        xmlParent.InnerXml = HttpUtility.HtmlEncode( srSave.ToString() );
+            //    }
+            //}
 
+            public bool Save( XmlNode oXmlFileNode ) {
+                if( oXmlFileNode == null ) {
+                    LogError( "Missing file node to save into" );
+                    return false;
+                }
+
+                XmlNode xmlFrag = oXmlFileNode.OwnerDocument.CreateDocumentFragment();
+
+                if( _oGuest.Save( xmlFrag ) ) {
+                    oXmlFileNode.AppendChild( xmlFrag );
+                    return true;
+                }
+
+                return false;
+            }
 
             /// <summary>
             /// DocSlot want's this....
@@ -128,7 +154,7 @@ namespace Mjolnir {
                 return false;
             }
 
-            public bool Load( XmlElement xmlParent ) {
+            public bool Load( XmlNode xmlParent ) {
                 if( xmlParent == null ) {
                     LogError( "Missing Parent XML node to load from" );
                     return( false );
@@ -179,16 +205,15 @@ namespace Mjolnir {
             /// lifetime of the program.
             /// </summary>
             public new int Reference {
-                get { return( 0 ); }
+                get { return 1; }
                 set { }
             }
-
-        } // End class
-
+        }
         /// <summary>
         /// This is the start of a new xml subtree saving slot. The find dialog will likely
         /// need a complex persistance: find string, search type, match case. For example.
         /// </summary>
+        /// <seealso cref="XmlSlogNoRef"/>
         public class ComplexXmlSlot : 
             BaseSlot,
             IDocSlot 

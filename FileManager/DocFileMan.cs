@@ -3,6 +3,7 @@ using Play.Edit;
 using Play.Forms;
 using Play.Interfaces.Embedding;
 using SkiaSharp;
+using System.IO;
 using System.Reflection;
 using System.Xml;
 using System.Xml.XPath;
@@ -136,7 +137,8 @@ namespace Play.FileManager {
         EditMultiColumn,
         IPgLoadUrl,
         IPgSaveURL,
-        IPgLoad<XmlElement>,
+        IPgLoad<XmlNode>,
+        IPgSave<XmlNode>,
         IPgLoad<TextReader>
     {
         //public string HomeURL => Environment.GetFolderPath(Environment.SpecialFolder.Personal);
@@ -328,9 +330,12 @@ namespace Play.FileManager {
             try {
                 oDoc.Load( oReader );
 
-                if( oDoc.DocumentElement is XmlElement oRoot ) {
-                    Load( oRoot );
-                }
+                XmlDocumentFragment oXmlFragment = oDoc.CreateDocumentFragment( );
+
+                if( oDoc.SelectSingleNode( "fileman" ) is not XmlNode oRoot ) 
+                    return false;
+
+                Load( oRoot );
             } catch( XmlException ) {
                 return false;
             }
@@ -338,7 +343,7 @@ namespace Play.FileManager {
             return true;
         }
         
-        public bool Load(XmlElement oXmlRoot ) {
+        public bool Load(XmlNode oXmlRoot ) {
             if( !Initialize() )
                 return false;
 
@@ -518,6 +523,24 @@ namespace Play.FileManager {
 
 				LogError( "Couldn't use the directory given." ); 
             }
+        }
+
+        public bool Save(XmlNode oXmlFrag) {
+            if( oXmlFrag.OwnerDocument is not XmlDocument oXmlOwner ) 
+                return false;
+
+            XmlNode    oXmlRoot = oXmlOwner.CreateElement( "fileman" );
+            XmlElement oXmlFaves= oXmlOwner.CreateElement( "favorites" );
+            XmlElement oXmlDir  = oXmlOwner.CreateElement( "dir" );
+
+            oXmlDir.SetAttribute( "name", string.Empty );
+            oXmlDir.InnerText = Moniker;
+
+            oXmlFrag .AppendChild( oXmlRoot );
+            oXmlRoot .AppendChild( oXmlFaves );
+            oXmlFaves.AppendChild( oXmlDir );
+
+            return true;
         }
     }
 }
