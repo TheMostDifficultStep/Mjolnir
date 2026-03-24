@@ -63,7 +63,7 @@ namespace Play.SSTV {
             Std_Frequency
         }
 
-        readonly ParseFormText _oParser;
+        //readonly ParseFormText _oParser;
         readonly protected IPgRoundRobinWork _oWorkPlace; 
 
         public void CheckParse() {
@@ -429,7 +429,7 @@ namespace Play.SSTV {
         public ImageSoloDoc SignalLevel  { get; protected set; } // Don't really need bitmap, easy to use for now.
 
         // Some test stuff. 
-        private DataTester _oDataTester;
+        //private DataTester _oDataTester;
 
 		private double[] _rgFFTData; // Data input for FFT. Note: it get's destroyed in the process.
 		private CFFT     _oFFT;

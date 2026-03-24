@@ -51,7 +51,7 @@ namespace Monitor {
             return null;
         }
 
-        public bool Execute(Guid sGuid) {
+        public override bool Execute(Guid sGuid) {
             return false;
         }
 

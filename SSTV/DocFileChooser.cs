@@ -21,7 +21,7 @@ namespace Play.SSTV {
     {
         readonly IPgBaseSite _oSiteBase;
 
-        readonly static string _strIcon = @"ImageViewer.Content.icon-folder.png";
+        //readonly static string _strIcon = @"ImageViewer.Content.icon-folder.png";
 
         public bool       IsDirty   => false;
         public IPgParent  Parentage => _oSiteBase.Host;

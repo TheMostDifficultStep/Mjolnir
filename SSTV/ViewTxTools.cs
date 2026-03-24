@@ -138,7 +138,7 @@ namespace Play.SSTV {
         private readonly ComboBox _ddModeSub  = new ComboBox();
         private readonly ComboBox _ddModeMain = new ComboBox();
 
-        private bool _bProcessCheckModeList = false;
+        //private bool _bProcessCheckModeList = false;
 
         public WindowFileTools( IPgViewSite oViewSite, DocSSTV oDocSSTV ) { 
             _oViewSite = oViewSite ?? throw new ArgumentNullException( nameof( oViewSite ) );
