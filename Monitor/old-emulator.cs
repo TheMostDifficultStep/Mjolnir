@@ -155,7 +155,13 @@ namespace Monitor {
         public class ProgramFile : Editor {
             public ProgramFile( IPgBaseSite oBaseSite ) : base( oBaseSite ) { }
 
-            public override WorkerStatus PlayStatus => ( _oSiteBase.Host as Old_CPU_Emulator ).PlayStatus;
+            public override WorkerStatus PlayStatus {
+                get { if( _oSiteBase.Host is Old_CPU_Emulator oOldCpu ) {
+                          return oOldCpu.PlayStatus;
+                      }
+                      return base.PlayStatus;
+                }
+            }
         }
 
         /// <summary>
@@ -267,7 +273,7 @@ namespace Monitor {
         }
 
         protected void Add( string strName, AsmInstruction oInstr ) {
-            if( _rgInstr.TryGetValue( strName, out List<AsmInstruction> rgOps  ) ) {
+            if( _rgInstr.TryGetValue( strName, out List<AsmInstruction>? rgOps  ) ) {
                 rgOps.Add( oInstr );
             } else {
                 List<AsmInstruction> rgNewOps = new ();
@@ -358,8 +364,8 @@ namespace Monitor {
                                 }
                             }
 
-                            if( _rgInstr.TryGetValue( sInstr, out List<AsmInstruction> rgOps ) ) {
-                                AsmInstruction oInstPick = null;
+                            if( _rgInstr.TryGetValue( sInstr, out List<AsmInstruction>? rgOps ) ) {
+                                AsmInstruction? oInstPick = null;
                                 foreach( AsmInstruction oInst in rgOps ) {
                                     if( fImm == true ) {
                                         if( oInst._eMode == AddrModes.Imm ) {
@@ -406,7 +412,7 @@ namespace Monitor {
         /// <param name="iRegister"></param>
         /// <param name="strData"></param>
         /// <exception cref="InvalidOperationException"></exception>
-        protected void RegisterWrite( int iRegister, string strData ) {
+        protected void RegisterWrite( int iRegister, ReadOnlySpan<char> strData ) {
             Line oRegister = _rgRegisters[iRegister];
             oRegister.Empty();
             oRegister.TryAppend( strData );
@@ -500,8 +506,8 @@ namespace Monitor {
         }
 
         public void Inst_LoadImm() {
-            int    iRegister = int.Parse( TextCommands[++PC].ToString() );
-            string strData   = TextCommands[++PC].ToString();
+            int    iRegister = int.Parse( TextCommands[++PC].AsSpan );
+            string? strData  = TextCommands[++PC].ToString();
 
             RegisterWrite( iRegister, strData );
             ++PC;
@@ -588,22 +594,21 @@ namespace Monitor {
             RegisterWrite( 0, flResult.ToString( ) );
             ++PC;
         }
+
         /// <summary>
         /// Need to revisit this for floating point.
         /// </summary>
         public void Inst_LoadAbs() {
-            int    iRegister = int.Parse( TextCommands[++PC].ToString() );
-            string strAddr   = TextCommands[++PC].ToString();
-            if( int.TryParse( strAddr, out int iAddr ) ) {
-                string strData = TextCommands[iAddr].ToString();
-                RegisterWrite( iRegister, strData );
+            int    iRegister = int.Parse( TextCommands[++PC].AsSpan );
+            if( int.TryParse( TextCommands[++PC].AsSpan, out int iAddr ) ) {
+                RegisterWrite( iRegister, TextCommands[iAddr].AsSpan );
             }
             ++PC;
         }
 
         public void Inst_Save() {
-            int iRegister = int.Parse( TextCommands[++PC].ToString() );
-            int iAddress  = int.Parse( TextCommands[++PC].ToString() );
+            int iRegister = int.Parse( TextCommands[++PC].AsSpan );
+            int iAddress  = int.Parse( TextCommands[++PC].AsSpan );
             int iData     = RegisterRead( iRegister );
             using( Editor.Manipulator oBulk = TextCommands.CreateManipulator() ) {
                 string strData = iData.ToString();
@@ -614,12 +619,12 @@ namespace Monitor {
         }
 
         public void Inst_JumpImm() {
-            PC = int.Parse( TextCommands[++PC].ToString() );
+            PC = int.Parse( TextCommands[++PC].AsSpan );
         }
 
         public void Inst_MoveReg() {
-            int iSource = int.Parse( TextCommands[++PC].ToString() );
-            int iTarget = int.Parse( TextCommands[++PC].ToString() );
+            int iSource = int.Parse( TextCommands[++PC].AsSpan );
+            int iTarget = int.Parse( TextCommands[++PC].AsSpan );
 
             ++PC;
 
@@ -631,7 +636,7 @@ namespace Monitor {
         }
 
         public int StatusBitAsInt( StatusBits eWhichBit ) {
-            string strStatusBit = StatusBitAsString(eWhichBit);
+            string? strStatusBit = StatusBitAsString(eWhichBit);
 
             if( string.IsNullOrEmpty( strStatusBit ) )
                 return 0;
@@ -651,15 +656,13 @@ namespace Monitor {
         }
 
         public void Inst_CompAbs() {
-            int    iRegister = int.Parse( TextCommands[++PC].ToString() );
-            string strAddr   = TextCommands[++PC].ToString();
+            int    iRegister = int.Parse( TextCommands[++PC].AsSpan );
+            ReadOnlySpan<char> strAddr   = TextCommands[++PC].AsSpan;
 
             ++PC;
 
             if( int.TryParse( strAddr, out int iAddr ) ) {
-                string strData = TextCommands[iAddr].ToString();
-
-                Compare( iRegister, strData );
+                Compare( iRegister, TextCommands[iAddr].AsSpan );
                 return;
             }
             _oBaseSite.LogError( "Invalid Op", "Bad address or data at address" );
@@ -671,7 +674,7 @@ namespace Monitor {
         ///Register = Memory 	0 	1 	1
         ///Register > Memory 	0 	0 	1         
         ///</summary>
-        public void Compare( int iRegister, string strData ) {
+        public void Compare( int iRegister, ReadOnlySpan<char> strData ) {
             if( int.TryParse( strData, out int iData ) ) {
                 int iRegisterData = RegisterRead( iRegister );
                 if( iRegisterData < iData ) {
@@ -689,8 +692,8 @@ namespace Monitor {
         }
 
         public void Inst_CompImm() {
-            int    iRegister = int.Parse( TextCommands[++PC].ToString() );
-            string strData   = TextCommands[++PC].ToString();
+            int    iRegister = int.Parse( TextCommands[++PC].AsSpan );
+            ReadOnlySpan<char> strData   = TextCommands[++PC].AsSpan;
 
             ++PC;
 
@@ -709,15 +712,15 @@ namespace Monitor {
             Inst_Branch_Imm( false );
         }
         public void Inst_Branch_Imm( bool fOnTrue ) {
-            string strFlag = TextCommands[++PC].ToString(); // Which flag to use.
-            string strAddr = TextCommands[++PC].ToString();
+            ReadOnlySpan<char> strFlag = TextCommands[++PC].AsSpan; // Which flag to use.
+            ReadOnlySpan<char> strAddr = TextCommands[++PC].AsSpan;
 
             ++PC;
 
             if( int.TryParse( strAddr, out int iBranchAddr ) ) {
                 // First look for a flag label.
                 int iStatusLine = -1;
-                if( !_dctStatusNames.TryGetValue( strFlag, out iStatusLine ) ) {
+                if( !_dctStatusNames.TryGetValue( strFlag.ToString(), out iStatusLine ) ) {
                     // Next look for a bit flag, as a base 10 number.
                     // TODO: Add binary parse ... 00010000 for example.
                     if( !int.TryParse( strFlag, out int iStatusBit ) ) {
@@ -741,7 +744,7 @@ namespace Monitor {
         }
 
         public void Inst_Increment() {
-            int iRegister = int.Parse( TextCommands[++PC].ToString() );
+            int iRegister = int.Parse( TextCommands[++PC].AsSpan );
 
             ++PC;
 
@@ -750,7 +753,7 @@ namespace Monitor {
         }
 
         public void Inst_Decrement() {
-            int iRegister = int.Parse( TextCommands[++PC].ToString() );
+            int iRegister = int.Parse( TextCommands[++PC].AsSpan );
 
             ++PC;
 
@@ -771,7 +774,7 @@ namespace Monitor {
             try {
                 do {
                     Line oInst = TextCommands[PC];
-                    if( !_dctInstructions.TryGetValue( oInst.ToString(), out Action delInstruction ) ) {
+                    if( !_dctInstructions.TryGetValue( oInst.ToString(), out Action? delInstruction ) ) {
                         _oBaseSite.LogError( "Execution", "Illegal instruction" );
                         return;
                     }

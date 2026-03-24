@@ -171,7 +171,7 @@ namespace Monitor {
             return null;
         }
 
-        public bool Execute(Guid sGuid) {
+        public override bool Execute(Guid sGuid) {
             //let's not allow this until we sort out how the comments don't get lost...
             //if( sGuid == GlobalCommands.JumpParent ) {
             //    _oMonDoc.Dissassemble();
