@@ -904,6 +904,8 @@ namespace Mjolnir {
             public override bool IsDirty => _oGuestSave.IsDirty;
         } // End class
 
+
+
 		/// <summary>
 		/// Session is special in that it controls the title for the main window. We're hosting ourself!
 		/// </summary>

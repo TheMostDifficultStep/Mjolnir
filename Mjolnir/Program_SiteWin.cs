@@ -71,23 +71,22 @@ namespace Mjolnir {
 		} // End class
 
         /// <summary>
-        /// Kind of a drag to inherit from IDocSlot, since Load( filename )
-        /// needs to be implemented. Look at this later. 
+        /// Should be able to merge with XmlSlotRefCount now...
         /// </summary>
-        public class XmlSlotFixedRefCount : 
+        public class XmlSlotRefCount2 : 
             BaseSlot, 
             IDocSlot,
             IXmlSlot
         {
             protected IPgSave<XmlNode> _oGuestSave;
 
-            public XmlSlotFixedRefCount( Program oProgram, PgDocDescr oDescriptor, string strName ) : 
+            public XmlSlotRefCount2( Program oProgram, PgDocDescr oDescriptor, string strName ) : 
                 base( oProgram, oDescriptor.Controller, oDescriptor.FileExtn ) 
             {
                 //CheckLocation( true ); Need do do something like this...
                 _strFilePath = strName;
             }
-            public XmlSlotFixedRefCount( Program oProgram, PgDocDescr oDescriptor ) : 
+            public XmlSlotRefCount2( Program oProgram, PgDocDescr oDescriptor ) : 
                 base( oProgram, oDescriptor.Controller, oDescriptor.FileExtn ) 
             {
             }
@@ -116,20 +115,6 @@ namespace Mjolnir {
                 oGuestReader.InitNew();
                 return( true );
             }
-
-            //public void Save( XmlElement xmlParent ) {
-            //    if( xmlParent == null ) {
-            //        LogError( "Missing Parent XML node to save into" );
-            //    }
-            //    // I once used a MemoryStream on StreamWriter to capture the save of the guest and then
-            //    // write into the XML via a StreamReader. But this is way better.
-            //    // BUG: Except if there is markup in the stream!!
-            //    using( TextWriter srSave = new StringWriter() ) {
-            //        _oGuest.Save( srSave );
-            //        srSave.Flush();
-            //        xmlParent.InnerXml = HttpUtility.HtmlEncode( srSave.ToString() );
-            //    }
-            //}
 
             public bool Save( XmlNode oXmlFileNode ) {
                 if( oXmlFileNode == null ) {
@@ -200,16 +185,6 @@ namespace Mjolnir {
 
             public override bool IsDirty {
                 get { return( _oGuestSave.IsDirty ); }
-            }
-
-            /// <summary>
-            /// We don't track the reference counts to the associated document
-            /// since we never close is. These are permanent documents for the
-            /// lifetime of the program.
-            /// </summary>
-            public new int Reference {
-                get { return 1; }
-                set { }
             }
         }
         /// <summary>

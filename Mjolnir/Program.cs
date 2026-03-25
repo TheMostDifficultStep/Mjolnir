@@ -243,23 +243,23 @@ namespace Mjolnir {
 
         // The textslots and xmlslots we could make cache the editor pointers on load
         // so we spot load errors sooner instead of later after the program boots.
-        protected XmlSlotFixedRefCount  _oDocSlot_Scraps;
+        protected XmlSlotRefCount2  _oDocSlot_Scraps;
         protected TextSlot              _oDocSlot_Alerts;
-        protected XmlSlotFixedRefCount  _oDocSlot_Recents;
+        protected XmlSlotRefCount2  _oDocSlot_Recents;
         protected InternalSlot          _oDocSlot_Fonts;
-        protected XmlSlotFixedRefCount  _oDocSlot_SearchKey;
+        protected XmlSlotRefCount2  _oDocSlot_SearchKey;
         protected ComplexXmlSlot        _oDocSlot_Find;
         protected Program.TextSlot      _oDocSite_Session; // Hosting ourself, so don't be confused! ^_^;
           
         /// <summery>Views can use this to create views on the scrapbook</summery>
-        public XmlSlotFixedRefCount     ScrapBookSlot => _oDocSlot_Scraps;
-        public XmlSlotFixedRefCount     RecentsSlot   => _oDocSlot_Recents;
+        public XmlSlotRefCount2     ScrapBookSlot => _oDocSlot_Scraps;
+        public XmlSlotRefCount2     RecentsSlot   => _oDocSlot_Recents;
         public TextSlot                 SessionSlot   => _oDocSite_Session;
-		public XmlSlotFixedRefCount     SearchSlot    => _oDocSlot_SearchKey;
+		public XmlSlotRefCount2     SearchSlot    => _oDocSlot_SearchKey;
         public IDocSlot                 FindSlot      => _oDocSlot_Find;
         public IDocSlot                 AlertSlot     => _oDocSlot_Alerts;
-        public XmlSlotFixedRefCount     ClockSlot  { get; protected set; }
-        public XmlSlotFixedRefCount     HomeSlot   { get; protected set; }
+        public XmlSlotRefCount2     ClockSlot  { get; protected set; }
+        public XmlSlotRefCount2     HomeSlot   { get; protected set; }
 
         // BUG: I'm dithering on FontMenu living on the program or just the main window.
 		public Font         FontMenu      { get; } = new Font( "Segoe UI Symbol", 11 ); // Segoe UI Symbol, So we can show our play/pause stuff.
@@ -755,7 +755,7 @@ namespace Mjolnir {
                 if( oDescr.StgReqmnt != typeof( IPgLoad<TextReader> ) )
                     throw new InvalidProgramException();
 
-                _oDocSlot_Recents = new XmlSlotFixedRefCount(this, oDescr, "Recent" );
+                _oDocSlot_Recents = new XmlSlotRefCount2(this, oDescr, "Recent" );
                 _oDocSlot_Recents.CreateDocument();
                 _oDocSlot_Recents.InitNew();
                 _oDoc_Recents = (Editor)_oDocSlot_Recents.Document;
@@ -778,7 +778,7 @@ namespace Mjolnir {
                 if( oDescr.StgReqmnt != typeof( IPgLoad<TextReader> ) )
                     throw new InvalidProgramException();
 
-			    _oDocSlot_Scraps = new XmlSlotFixedRefCount( this, oDescr, "Scraps");
+			    _oDocSlot_Scraps = new XmlSlotRefCount2( this, oDescr, "Scraps");
                 _oDocSlot_Scraps.CreateDocument();
 			    _oDocSlot_Scraps.InitNew();
             }
@@ -791,7 +791,7 @@ namespace Mjolnir {
                 if( oDescr.StgReqmnt != typeof( IPgLoad<TextReader> ) )
                     throw new InvalidProgramException();
 
-			    _oDocSlot_SearchKey = new XmlSlotFixedRefCount( this, oDescr, "Find String" );
+			    _oDocSlot_SearchKey = new XmlSlotRefCount2( this, oDescr, "Find String" );
                 _oDocSlot_SearchKey.CreateDocument();
 			    _oDocSlot_SearchKey.InitNew(); 
                 if( _oDocSlot_SearchKey.Document is Editor oEdit ) {
@@ -810,7 +810,7 @@ namespace Mjolnir {
             {
                 // Always want clock since we have a solo clock window that needs it.
                 PgDocDescr oDocDesc = GetController( ".clock" );
-                ClockSlot = new XmlSlotFixedRefCount( this, oDocDesc );
+                ClockSlot = new XmlSlotRefCount2( this, oDocDesc );
                 //ClockSlot.CreateDocument();
                 //ClockSlot.InitNew();
                 ClockSlot.IsInternal = true;
@@ -820,7 +820,7 @@ namespace Mjolnir {
                 // Always want to save the last file open for the session so 
                 // I want to just keep the fileman document open at all times.
                 PgDocDescr oDescr = GetController( ".fman" );
-                HomeSlot = new XmlSlotFixedRefCount( this, oDescr );
+                HomeSlot = new XmlSlotRefCount2( this, oDescr );
                 //HomeSlot.CreateDocument();
                 //HomeSlot.InitNew();
                 HomeSlot.IsInternal = true;
