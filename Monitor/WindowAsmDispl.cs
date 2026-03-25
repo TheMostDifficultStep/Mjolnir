@@ -61,7 +61,7 @@ namespace Monitor {
         /// Override the normal row behavior so we can search for lines
         /// by address!! Seems to work nicely.
         /// </summary>
-        public Row this[int iIndex] {
+        public Row? this[int iIndex] {
             get {
                 foreach( Row oRow in _oMonDoc.Doc_Asm ) {
                     if( oRow is AsmRow oAsm ) {
@@ -201,7 +201,7 @@ namespace Monitor {
                 }
             }
             if( sGuid == GlobalCommands.JumpNext ) {
-                if( _oMonDoc.Doc_Asm.FindRowAtAddress( _oMonDoc.PC, out AsmRow oAsm ) ) {
+                if( _oMonDoc.Doc_Asm.FindRowAtAddress( _oMonDoc.PC, out AsmRow? oAsm ) ) {
                     _oCacheMan.CaretReset( oAsm, AsmRow.ColumnInstr );
                 }
                 _oMonDoc.CpuStep();

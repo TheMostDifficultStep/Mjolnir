@@ -97,7 +97,7 @@ namespace Monitor {
 
         public string Banner => "Nibble Monitor";
 
-        public SKImage Icon => null;
+        public SKImage? Icon => null;
 
         public Guid Catagory => Guid.Empty;
 
@@ -202,7 +202,7 @@ namespace Monitor {
             return false;
         }
 
-        public object Decorate(IPgViewSite oBaseSite, Guid sGuid) {
+        public object? Decorate(IPgViewSite oBaseSite, Guid sGuid) {
 			if( sGuid.Equals(GlobalDecor.Properties) ) {
                 return new PropertyWindow( oBaseSite, this.MonitorDoc.Properties );
             }

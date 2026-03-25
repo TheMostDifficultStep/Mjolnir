@@ -16,7 +16,7 @@ namespace Monitor {
         protected List<string> _rgTools = new List<string>();
         public Guid     Catagory => GUID;
         public string   Banner => "Basic Viewer - " + DocMain.FileName;
-        public SKImage  Icon => null;
+        public SKImage? Icon => null;
 
 
         protected override uint StdFont => StdUI.FontCacheNew( StdUI.FaceCacheNew( @"C:\Users\Frodo\AppData\Local\Microsoft\Windows\Fonts\PressStart2P-Regular.ttf"), 
@@ -162,11 +162,11 @@ namespace Monitor {
 
         public int ToolCount => _rgTools2.Count;
 
-        public Image ToolIcon( int iTool) {
+        public Image? ToolIcon( int iTool) {
             return null;
         }
 
-        public object Decorate(IPgViewSite oBaseSite, Guid sGuid) {
+        public object? Decorate(IPgViewSite oBaseSite, Guid sGuid) {
             return null;
         }
     }

@@ -774,7 +774,9 @@ namespace Monitor {
             try {
                 do {
                     Line oInst = TextCommands[PC];
-                    if( !_dctInstructions.TryGetValue( oInst.ToString(), out Action? delInstruction ) ) {
+                    string? strInst = oInst.ToString();
+                    string  strSafe = strInst is not null ? strInst : string.Empty;
+                    if( !_dctInstructions.TryGetValue( strSafe, out Action? delInstruction ) ) {
                         _oBaseSite.LogError( "Execution", "Illegal instruction" );
                         return;
                     }

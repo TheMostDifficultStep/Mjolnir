@@ -759,9 +759,8 @@ namespace Mjolnir {
                 string         strName
             ) : base( oProgram, oDescriptor.Controller, oDescriptor.FileExtn ) {
                 _strName = strName ?? throw new ArgumentNullException( nameof( strName ) );
+                IsInternal = true;
             }
-
-            public bool IsInternal => true;
         }
 
 		/// <summary>

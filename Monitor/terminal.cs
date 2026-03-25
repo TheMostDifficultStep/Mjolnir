@@ -47,7 +47,7 @@ namespace Monitor {
             return true;
         }
 
-        public object Decorate(IPgViewSite oBaseSite, Guid sGuid) {
+        public object? Decorate(IPgViewSite oBaseSite, Guid sGuid) {
             return null;
         }
 

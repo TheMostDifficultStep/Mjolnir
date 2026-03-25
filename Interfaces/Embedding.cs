@@ -212,7 +212,7 @@ namespace Play.Interfaces.Embedding {
     /// <typeparam name="T"></typeparam>
     public interface IReadableBag<T>  {
         int  ElementCount { get; } 
-        T this[int index] { get; }
+        T? this[int index] { get; }
     }
 
     /// <summary>
@@ -484,9 +484,9 @@ namespace Play.Interfaces.Embedding {
 	/// </summary>
     public interface IPgCommandView : IPgCommandBase {
         string   Banner{ get; } 
-        SKImage  Icon  { get; }
-        Guid    Catagory { get; } // This is the View Type guid. Only used in one place. See if I can factor this out.
-        object  Decorate( IPgViewSite oBaseSite, Guid sGuid );
+        SKImage? Icon  { get; }
+        Guid     Catagory { get; } // This is the View Type guid. Only used in one place. See if I can factor this out.
+        object?  Decorate( IPgViewSite oBaseSite, Guid sGuid );
     }
 
     public interface IPgPlayStatus {
@@ -501,10 +501,10 @@ namespace Play.Interfaces.Embedding {
 	/// Views that support this interface will have a tools menu in the shell. Still working on this idea.
 	/// </summary>
 	public interface IPgTools {
-		int    ToolCount { get; }
-		string ToolName( int iTool );
-		Image  ToolIcon( int iTool );
-		int    ToolSelect { get; set; }
+		int     ToolCount { get; }
+		string? ToolName( int iTool );
+		Image?  ToolIcon( int iTool );
+		int     ToolSelect { get; set; }
 	}
 
     public delegate void ToolEvent( object sender, int iIndex );
