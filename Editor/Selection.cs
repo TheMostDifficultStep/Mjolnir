@@ -82,8 +82,7 @@ namespace Play.Edit {
     /// rendering function instead of 3, one for each type of selection!
     /// </summary>
     public class TextSelector {
-        readonly IPgSelectionHelper _oView;
-
+        readonly IPgSelectionHelper          _oView;
         readonly ICollection<ILineSelection> _rgSelection; // Shortcut to the window's selection collection.
 
         readonly LineRange _oSelectStart  = new LineRange(null, 0, 0, SelectionTypes.Start );
@@ -215,15 +214,13 @@ namespace Play.Edit {
         /// <param name="rgSelection">The three possible sections, start, end, middle.</param>
         /// <returns>true if we've got anything selected.</returns>
         public static bool IsSelected( ICollection<ILineSelection> rgSelection ) {
-            int iLength = 0;
+            bool fSelected = false;
             foreach( ILineSelection oRange in rgSelection ) {
-                if( oRange.SelectionType != SelectionTypes.Middle ) {
-                    iLength += oRange.Length;
-                } else {
-                    ++iLength;
+                if( oRange.SelectionType != SelectionTypes.Empty ) {
+                   fSelected = true;
                 }
             }
-            return( iLength > 0 );
+            return fSelected;
         }
     } // end class
 } // end navigate
