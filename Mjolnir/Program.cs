@@ -243,7 +243,7 @@ namespace Mjolnir {
 
         // The textslots and xmlslots we could make cache the editor pointers on load
         // so we spot load errors sooner instead of later after the program boots.
-        protected InternalSlot          _oDocSlot_Scraps;
+        protected XmlSlotFixedRefCount  _oDocSlot_Scraps;
         protected TextSlot              _oDocSlot_Alerts;
         protected XmlSlotFixedRefCount  _oDocSlot_Recents;
         protected InternalSlot          _oDocSlot_Fonts;
@@ -252,7 +252,7 @@ namespace Mjolnir {
         protected Program.TextSlot      _oDocSite_Session; // Hosting ourself, so don't be confused! ^_^;
           
         /// <summery>Views can use this to create views on the scrapbook</summery>
-        public InternalSlot             ScrapBookSlot => _oDocSlot_Scraps;
+        public XmlSlotFixedRefCount     ScrapBookSlot => _oDocSlot_Scraps;
         public XmlSlotFixedRefCount     RecentsSlot   => _oDocSlot_Recents;
         public TextSlot                 SessionSlot   => _oDocSite_Session;
 		public XmlSlotFixedRefCount     SearchSlot    => _oDocSlot_SearchKey;
@@ -778,7 +778,7 @@ namespace Mjolnir {
                 if( oDescr.StgReqmnt != typeof( IPgLoad<TextReader> ) )
                     throw new InvalidProgramException();
 
-			    _oDocSlot_Scraps = new InternalSlot( this, oDescr, "Scraps");
+			    _oDocSlot_Scraps = new XmlSlotFixedRefCount( this, oDescr, "Scraps");
                 _oDocSlot_Scraps.CreateDocument();
 			    _oDocSlot_Scraps.InitNew();
             }
