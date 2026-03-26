@@ -171,9 +171,48 @@ namespace Play.Edit {
 
         public override int EndAt    => StartAt;
 
-        public override int RowCount => 1;
+        /// <summary>
+        /// A little non-sequitar, but this needs to be zero
+        /// so the windowmulticolumn simply uses the cursor
+        /// </summary>
+        public override int RowCount {
+            get {
+                if( !IsValid )
+                    return 0;
 
-        protected bool IsValid => Pin.Row != null;
+                try {
+                    IPgSelection.SlxnType eSlxn = IsSelection( Caret.Row );
+
+                    if( eSlxn != IPgSelection.SlxnType.Equal ) 
+                        return 0; // Technically an error.
+
+                    int iCharCount = 0;
+                    foreach( IColorRange oSlxn in _rgSelections ) {
+                        if( oSlxn != null )
+                            iCharCount += oSlxn.Length;
+                    }
+                    if( iCharCount > 0 )
+                        return 1;
+                } catch( Exception oEx ) {
+                    Type[] rgErrors = { typeof( NullReferenceException ),
+                                        typeof( ArgumentOutOfRangeException ) };
+                    if( rgErrors.IsUnhandled( oEx ) )
+                        throw;
+                }
+                return 0;
+            }
+        }
+
+        protected bool IsValid {
+            get {
+                if ( Pin.Row is null )
+                    return false;
+                if( Caret is null || Caret.Row is null )
+                    return false;
+
+                return true;
+            }
+        }
 
         public override IPgSelection.SlxnType IsSelection(Row oRow) {
             try {
