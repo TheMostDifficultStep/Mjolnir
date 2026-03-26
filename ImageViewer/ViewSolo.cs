@@ -833,15 +833,9 @@ namespace Play.ImageViewer {
 			set {
 				Tools eNextTool = (Tools)value;
 
-				if( _eToolCurrent != eNextTool && 
-					_eToolCurrent == Tools.Select ) {
-					_rcSelectionView.Hidden = true;
-					Invalidate();
-				}
-				if( eNextTool == Tools.Select ) {
-					_rcSelectionView.Hidden = false;
-					Invalidate();
-				}
+				// We show the selection if the tool is "select"
+				_rcSelectionView.Hidden = true;
+				Invalidate();
 
 				_eToolCurrent = eNextTool; 
 				_oViewSite.Notify( ShellNotify.ToolChanged );
