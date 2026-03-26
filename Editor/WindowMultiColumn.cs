@@ -571,7 +571,7 @@ namespace Play.Edit {
         /// class object like the selection. We'll work on that soon.</remarks>
         public void OnCut(object o, EventArgs e ) {
             try {
-                CacheMultiColumn.SelectionManager oSelector = _oCacheMan.Selector;
+                Selection oSelector = _oCacheMan.Selector;
                 if( oSelector.RowCount == 1 ) {
                     if( oSelector.IsSingleColumn( out int iColumn ) ) {
                         ClipboardCopyTo();
@@ -649,7 +649,7 @@ namespace Play.Edit {
                 string strPaste = oDataObject.GetData(typeof(String)) as string;
 
                 try {
-                    CacheMultiColumn.SelectionManager oSelector = _oCacheMan.Selector;
+                    Selection oSelector = _oCacheMan.Selector;
                     if( oSelector.RowCount == 1 ) {
                         if( oSelector.IsSingleColumn( out int iColumn ) ) {
                             Row          oRow   = _oDocList[_oCacheMan.CaretAt];
@@ -1045,7 +1045,7 @@ namespace Play.Edit {
                     _oCacheMan.CaretMove( Axis.Horizontal, -1 );
                     break;
                 case Keys.Back:
-                    if(  !IsReadOnly && _oCacheMan.CopyCaret() is CacheMultiColumn.CaretInfo oCaret ) {
+                    if(  !IsReadOnly && _oCacheMan.CopyCaret() is CaretInfo oCaret ) {
                         _oDocOps.TryDeleteAt( oCaret.Row, oCaret.Column, oCaret.Offset - 1, 1 );
                     }
                     break;
@@ -1078,7 +1078,7 @@ namespace Play.Edit {
                         return true;
                     case Keys.Control | Keys.Q:
                         if( !IsReadOnly ) { // Or column or elem locked...
-                            if( _oCacheMan.CopyCaret() is CacheMultiColumn.CaretInfo oCaret ) {
+                            if( _oCacheMan.CopyCaret() is CaretInfo oCaret ) {
                                 _oDocOps.RowDelete( oCaret.Row );
                             }
                         }
@@ -1088,7 +1088,7 @@ namespace Play.Edit {
                         // in a column or delete a row. 
                         if( !IsReadOnly ) {
                             if( _oCacheMan.Selector.RowCount == 0 ) {
-                                if( _oCacheMan.CopyCaret() is CacheMultiColumn.CaretInfo oCaret ) {
+                                if( _oCacheMan.CopyCaret() is CaretInfo oCaret ) {
                                     _oDocOps.TryDeleteAt(oCaret.Row, oCaret.Column, oCaret.Offset, 1);
                                 }
                             } else {
@@ -1143,10 +1143,9 @@ namespace Play.Edit {
                 if( !char.IsControl( e.KeyChar ) ) {
                     _oCacheMan.ScrollToCaret();
 
-                    ReadOnlySpan<char>   rgInsert  = stackalloc char[1] { e.KeyChar };
-                    CacheMultiColumn.
-                        SelectionManager oSelector = _oCacheMan.Selector;
-                    Row                  oRow      = _oDocList[_oCacheMan.CaretAt];
+                    ReadOnlySpan<char> rgInsert  = stackalloc char[1] { e.KeyChar };
+                    Selection          oSelector = _oCacheMan.Selector;
+                    Row                oRow      = _oDocList[_oCacheMan.CaretAt];
 
                     // TODO: I might be able to improve this by making it so I can use
                     // the selection at all times...
@@ -1207,9 +1206,9 @@ namespace Play.Edit {
             try {
                 // See if want to double click select a word.
                 if( _oCacheMan.IsInside( pntClick, out int iTextColumn ) ) {
-                    CacheMultiColumn.CaretInfo? sCaret = _oCacheMan.CopyCaret();
+                    CaretInfo? sCaret = _oCacheMan.CopyCaret();
 
-                    if( sCaret is CacheMultiColumn.CaretInfo oCaret ) {
+                    if( sCaret is CaretInfo oCaret ) {
                         int iDataCol = _rgTxtCol[iTextColumn].DataIndex;
                         if( oCaret.Row[iDataCol].FindFormattingUnderRange( oCaret ) is IMemoryRange oRange ) {
                             _oCacheMan.Selector.SetWord( oCaret, oRange );
@@ -1287,9 +1286,9 @@ namespace Play.Edit {
         /// <see cref="IPgTextView" />
         public TextPosition Caret {
             get {
-                CacheMultiColumn.CaretInfo? sCaret = _oCacheMan.CopyCaret();
+                CaretInfo? sCaret = _oCacheMan.CopyCaret();
 
-                if( sCaret is CacheMultiColumn.CaretInfo oCaretValue ) {
+                if( sCaret is CaretInfo oCaretValue ) {
                     return new TextPosition( oCaretValue.Row.At, oCaretValue.Offset );
                 }
 
