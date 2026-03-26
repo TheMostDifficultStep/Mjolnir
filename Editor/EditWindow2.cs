@@ -447,7 +447,7 @@ namespace Play.Edit {
             Wrap           = true;
 
 			// https://icons8.com/
-			Icon = SKImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), @"Editor.Content.icon8-doc.png" );
+			Icon = SKImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), @"Play.Edit.Content.icon8-doc.png" );
 
             Array.Sort<Keys>( _rgHandledKeys );
 
