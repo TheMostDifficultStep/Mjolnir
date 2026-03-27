@@ -278,6 +278,7 @@ namespace Play.Rectangles {
                         if( !Invertable ) {
                             if( ( iEdgeChkVal - m_rgiCur[iEdgeO] ) * rgSign[iEdgeCheck] >= 0 )
                                 m_rgiCur[iEdgeCheck] = iEdgeChkVal;
+                            // else throw... something!
                         } else {
                             m_rgiCur[iEdgeCheck] = iEdgeChkVal;
                         }

@@ -660,6 +660,9 @@ namespace Play.Rectangles
             this.Copy             = p_oGuest;
             _rcViewBounds         = p_rctViewBounds;
 
+            // NOTE: The top left might be way out of bounds of the ViewBounds!!
+            //       At present, I'm doing that check outside... seealso Move( x, y )
+
             // This is co-dependent on our implementation of Dragging on the guest. This means
             // we'll typically need subclasses to control the actual drag.
             _pntGuestStart = Guest.GetPoint( p_eEdges );
@@ -672,9 +675,8 @@ namespace Play.Rectangles
                 _pntOffset.Y = _pntGuestStart.Y - p_iY; 
             }
 
-			_pntLastMove   = new SKPointI( p_iX, p_iY );
-
-            _oFinished = p_oFinished;
+			_pntLastMove = new SKPointI( p_iX, p_iY );
+            _oFinished   = p_oFinished;
         }
 
         public SmartRect Guest { get; }
@@ -723,6 +725,8 @@ namespace Play.Rectangles
             _rcTemp.SetPoint(_eStretch, _eEdges, pntTarget.X, pntTarget.Y);
 
             // Would love to unify this but haven't quite figured it out yet. >_<;;
+            // NOTE: Also, maybe we don't even need to keep the rect inside! 
+            //       could clip the consumer of the guest... 
             if( !_rcViewBounds.IsInside( _rcTemp ) ) {
                 if( _eStretch == SET.RIGID ) {
                     // this is the case where we are moving the rectangle from
@@ -769,7 +773,8 @@ namespace Play.Rectangles
         }
 
         /// <summary>
-        /// We are done moving. (Typically Mouse up) 
+        /// We are done moving. (Typically Mouse up) . You might want to check if
+        /// part of the rectangle is out of bounds for the host object.
         /// </summary>
         public virtual void Dispose() {
 			_oFinished?.Invoke( Guest, _pntLastMove );
