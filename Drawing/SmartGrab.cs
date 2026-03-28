@@ -587,20 +587,23 @@ namespace Play.Rectangles
                 return;
 
             try {
-                using SKPaint      oPaintSolid = new SKPaint() { Color = BarColor, 
-                                                                 Style = SKPaintStyle.Fill };
                 float[] flInterval = { 2, 4 };
+				SmartRect oBorder = new SmartRect( this );
 
                 using SKPathEffect oDash       = SKPathEffect.CreateDash( flInterval, 0 );
-                using SKPaint      oPaintHatch = new SKPaint() { Color = SKColors.Black,
-                                                                 PathEffect = oDash,
+                using SKPaint      oPaintHatch = new SKPaint() { Color = SKColors.White,
                                                                  IsStroke = true, 
                                                                  StrokeWidth = 1 };
 
-				SmartRect oBorder = new SmartRect( this );
+                oCanvas.DrawRect( oBorder.SKRect, oPaintHatch );
+
+                oPaintHatch.Color = SKColors.Black;
+                oPaintHatch.PathEffect = oDash;
 
                 oCanvas.DrawRect( oBorder.SKRect, oPaintHatch );
 
+                using SKPaint      oPaintSolid = new SKPaint() { Color = BarColor, 
+                                                                 Style = SKPaintStyle.Fill };
                 for (int i = 0; i < 4; ++i) {
                     if( m_frgMoveable[i] ) {
                         oCanvas.DrawRect( _rgHandlesMiddle[i].SKRect, oPaintSolid );
