@@ -74,8 +74,8 @@ namespace Mjolnir {
 
         readonly Dictionary<Guid, SmartHerderBase> _rgShepards  = new Dictionary<Guid, SmartHerderBase>(); 
 
-		readonly ParentRect          _oLayout2;
         readonly LayoutStackVertical _oLayoutPrimary; // New general layout.
+        readonly LayoutFlowSquare    _oLayoutCenterAlt; 
   
 		ViewSlot _oSelectedWinSite = null;
         IDocSlot _oSelectedDocSite = null;
@@ -168,11 +168,9 @@ namespace Mjolnir {
             _rcFrame = new SmartGrab( new SmartRect( LOCUS.UPPERLEFT, 50, 50, 300, 300 ), 
                                                      (int)StdUI.Space, true, SCALAR.ALL );
 
-            // these as readonly variables. I'll leave it for now.
-            _oLayoutPrimary = new LayoutStackVertical() { Spacing = 5 };
-            // This one probably won't work anymore. And we'll certainly lose all the
-            // docking windows b/c those are docked by the layout now.
-			_oLayout2    = new LayoutFlowSquare_MainWin( this ) { Spacing = 5 };
+            // these as readonly variables. 
+            _oLayoutPrimary    = new LayoutStackVertical() { Spacing = 5 };
+			_oLayoutCenterAlt  = new LayoutFlowSquare_MainWin( this ) { Spacing = 5 };
 
             _rgDecorEnum = new MainWinDecorMenus( this );
 
@@ -423,6 +421,7 @@ namespace Mjolnir {
             _oLayoutPrimary.Add( _rgSideInfo[SideIdentify.Bottom] );
 
             _oLayoutPrimary.Padding.Bottom = 5;
+
         }
 
         //protected override void Dispose(bool disposing) {
@@ -1808,14 +1807,7 @@ namespace Mjolnir {
 											        Style = SKPaintStyle.Fill };
 			    skCanvas.DrawRect( 0, 0, ClientSize.Width, ClientSize.Height, skPaint );
 
-                switch( _eLayout ) { 
-                    case TOPLAYOUT.Solo:
-                        _oLayoutPrimary.Paint( skCanvas );
-                        break;
-                    case TOPLAYOUT.Multi:
-                        _oLayout2.Paint( skCanvas );
-                        break;
-                }
+                _oLayoutPrimary.Paint( skCanvas );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( ExternalException ),
                                     typeof( NullReferenceException ) };
@@ -2573,6 +2565,9 @@ namespace Mjolnir {
         public event ViewChanged ViewChanged;
         public event EventHandler WinHandleDestroyed;
 
+        /// <summary>
+        /// I can probably use my enum all views now...
+        /// </summary>
         private struct ViewEnumerable : IEnumerable<IPgCommandView> {
             MainWin  _oOwner;
             IDocSlot _oSiteDoc;
@@ -2607,6 +2602,36 @@ namespace Mjolnir {
             }
         }
 
+        private struct EnumerateAllViews : IEnumerable<Control> {
+            MainWin  _oOwner;
+
+            public EnumerateAllViews( MainWin oOwner ) {
+                if( oOwner == null )
+                    throw new ArgumentException( "Owner parameter must not be null" );
+
+                _oOwner = oOwner;
+            }
+
+            public IEnumerator< Control > GetEnumerator() {
+                if( _oOwner._oDoc_ViewSelector == null ) {
+                    yield break;
+                }
+
+                foreach( ViewSlot oVSlot in _oOwner._oDoc_ViewSelector ) {
+                    yield return oVSlot.Guest;
+                }
+            }
+
+            IEnumerator IEnumerable.GetEnumerator() {
+                return GetEnumerator( );
+            }
+        }
+
+        public IEnumerable<Control> EnumAllViews {
+            get {
+                return new EnumerateAllViews( this );
+            }
+        }
         internal int AddColor(string strName, string strValue)
         { 
             return( Document.AddColor( strName, strValue ) );
@@ -2958,7 +2983,11 @@ namespace Mjolnir {
             return( true );
         }
 
-		public IEnumerator<ViewSlot> ViewEnumerator() {
+        /// <summary>
+        /// Use EnumAllViews
+        /// </summary>
+        /// <see cref="EnumAllViews"/>
+		[Obsolete]public IEnumerator<ViewSlot> ViewEnumerator() {
             if( _oDoc_ViewSelector == null )
                 yield break;
 

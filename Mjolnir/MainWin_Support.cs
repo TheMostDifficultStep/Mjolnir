@@ -19,17 +19,17 @@ namespace Mjolnir {
 		/// </summary>
 		/// <seealso cref="LayoutFlowSquare"/>
 		public class LayoutFlowSquare_MainWin : LayoutFlowSquare {
-			readonly MainWin _oControl;
+			readonly MainWin _oMainWin;
 
 			public LayoutFlowSquare_MainWin( MainWin oControl ) : base( CSS.None ) {
-				_oControl = oControl ?? throw new ArgumentNullException();
+				_oMainWin = oControl ?? throw new ArgumentNullException();
 			}
 
-			public override int        Count  => _oControl._oDoc_ViewSelector.ElementCount;
+			public override int        Count  => _oMainWin._oDoc_ViewSelector.ElementCount;
 			public override void       Clear() { }
 			public override LayoutRect Item(int iIndex) {
 				try {
-					return _oControl._oDoc_ViewSelector[iIndex].Layout;
+					return _oMainWin._oDoc_ViewSelector[iIndex].Layout;
 				} catch( Exception oEx ) {
 					Type[] rgErrors = { typeof( NullReferenceException ),
 										typeof( IndexOutOfRangeException ),
@@ -37,14 +37,14 @@ namespace Mjolnir {
 					if( rgErrors.IsUnhandled( oEx ) )
 						throw;
 
-					_oControl.LogError( null, "Square Layout Flow", "Problem accessing current a view's layout: " + iIndex.ToString() );
+					_oMainWin.LogError( null, "Square Layout Flow", "Problem accessing current a view's layout: " + iIndex.ToString() );
 
 					return new LayoutRect( CSS.None );
 				}
 			}
 
 			public override IEnumerator<LayoutRect> GetEnumerator() {
-				foreach( ViewSlot oLine in _oControl._oDoc_ViewSelector ) {
+				foreach( ViewSlot oLine in _oMainWin._oDoc_ViewSelector ) {
 					yield return oLine.Layout;
 				}
 			}

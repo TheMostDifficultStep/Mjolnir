@@ -552,40 +552,31 @@ namespace Mjolnir {
         /// </summary>
         protected void LayoutFrame() {
 			try {
+                _oLayoutPrimary.SetRect( 0, 0, ClientSize.Width, ClientSize.Height );
+                _oLayoutPrimary.LayoutChildren();
+
 				switch( _eLayout ) {
                     case TOPLAYOUT.Solo:
-                        _oLayoutPrimary.SetRect( 0, 0, ClientSize.Width, ClientSize.Height );
-                        _oLayoutPrimary.LayoutChildren();
-
                         // Might have no view loaded, need to check it.
                         if( _oSelectedWinSite != null ) {
                             _oSelectedWinSite.Guest.Bounds = _rcFrame.Rect;
 						    _oSelectedWinSite.Guest.Show();
                         } else {
                             // No selected view (for some reason) So size 'em all!!
-						    IEnumerator<ViewSlot> oEnuSlots = ViewEnumerator();
-                            if( oEnuSlots != null ) {
-							    while( oEnuSlots.MoveNext() ) {
-                                    oEnuSlots.Current.Guest.Bounds = _rcFrame.Rect;
-                                }
+                            // Note: If we close and remove the view but it is NOT
+                            //       destroyed, it'll fload around uncontrollably. :-/
+                            foreach( Control oView in EnumAllViews ) {
+                                oView.Bounds = _rcFrame.Rect;
                             }
                         }
                         break;
 
 					case TOPLAYOUT.Multi:
-						using( IEnumerator<ViewSlot> oEnum = ViewEnumerator() ) {
-							while( oEnum.MoveNext() ) {
-								oEnum.Current.SetLayout( _eLayout );
-							}
-						}
+                        _oLayoutCenterAlt.CopyFrom( _rcFrame.SKRect );
+                        _oLayoutCenterAlt.LayoutChildren();
 
-						_oLayout2.Copy = _rcFrame;
-						_oLayout2.LayoutChildren();
-
-						using( IEnumerator<ViewSlot> oEnum = ViewEnumerator() ) {
-							while( oEnum.MoveNext() ) {
-								oEnum.Current.Guest.Show();
-							}
+                        foreach( Control oView in EnumAllViews ) {
+                            oView.Show();
 						}
 						break;
 				}
