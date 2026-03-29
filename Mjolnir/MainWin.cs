@@ -2566,7 +2566,8 @@ namespace Mjolnir {
         public event EventHandler WinHandleDestroyed;
 
         /// <summary>
-        /// I can probably use my enum all views now...
+        /// Would like to use my enum all but it turns out it seems like
+        /// more duplicative work in other places. So just stick with this.
         /// </summary>
         private struct ViewEnumerable : IEnumerable<IPgCommandView> {
             MainWin  _oOwner;
@@ -2581,25 +2582,21 @@ namespace Mjolnir {
             }
 
             public IEnumerator< IPgCommandView > GetEnumerator() {
-                return( _oOwner.GetViewsEnumerator( _oSiteDoc ) );
+                foreach( ViewSlot oLine in _oOwner._oDoc_ViewSelector ) {
+                    if( oLine.DocumentSite == _oSiteDoc ) {
+					    if (oLine.Guest is IPgCommandView oViewSibling)
+						    yield return oViewSibling;
+				    }
+                }
             }
 
             IEnumerator IEnumerable.GetEnumerator() {
-                return( _oOwner.GetViewsEnumerator( _oSiteDoc ) );
+                return GetEnumerator();
             }
         }
 
         public IEnumerable<IPgCommandView> EnumViews( IDocSlot oSiteDoc ) {
             return( new ViewEnumerable( this, oSiteDoc ) );
-        }
-
-        private IEnumerator<IPgCommandView> GetViewsEnumerator( IDocSlot oSiteDoc ) {
-            foreach( ViewSlot oLine in _oDoc_ViewSelector ) {
-                if( oLine.DocumentSite == oSiteDoc ) {
-					if (oLine.Guest is IPgCommandView oViewSibling)
-						yield return (oViewSibling);
-				}
-            }
         }
 
         private struct EnumerateAllViews : IEnumerable<Control> {
@@ -2612,6 +2609,9 @@ namespace Mjolnir {
                 _oOwner = oOwner;
             }
 
+            // This is getting called super early in the config stage.
+            // so check of the view selector has been created. But
+            // still a TODO item...
             public IEnumerator< Control > GetEnumerator() {
                 if( _oOwner._oDoc_ViewSelector == null ) {
                     yield break;
