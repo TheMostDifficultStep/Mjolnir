@@ -2595,7 +2595,7 @@ namespace Mjolnir {
             }
         }
 
-        public IEnumerable<IPgCommandView> EnumViews( IDocSlot oSiteDoc ) {
+        public IEnumerable<IPgCommandView> EnumViewsAt( IDocSlot oSiteDoc ) {
             return( new ViewEnumerable( this, oSiteDoc ) );
         }
 

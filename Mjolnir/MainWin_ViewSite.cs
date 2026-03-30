@@ -520,7 +520,7 @@ namespace Mjolnir {
         public object AddView(Guid guidViewType, bool fFocus) {
             // If we've got a view already of the given view type, just use that.
             // This looks like the ONLY place that uses the catagory method... Sigh. BUG.
-            foreach( IPgCommandView oSibling in _oHost.EnumViews( _oDocSite ) ) {
+            foreach( IPgCommandView oSibling in _oHost.EnumViewsAt( _oDocSite ) ) {
                 if( oSibling.Catagory == guidViewType ) {
                     _oHost.CurrentView = oSibling;
                     return oSibling;
@@ -538,7 +538,7 @@ namespace Mjolnir {
 
         public IEnumerable<IPgCommandView> EnumerateSiblings {
             get {
-                return _oHost.EnumViews( _oDocSite );
+                return _oHost.EnumViewsAt( _oDocSite );
             }
         }
 
