@@ -325,18 +325,6 @@ namespace Play.ImageViewer {
 
 					_rcSelectionView.SetRect( e.X-1, e.Y-1, e.X+1, e.Y+1 );
 
-					// Move the selection inside the viewport. TODO In the future simply intersect
-					// the selection and the viewport when using the Snip() command.
-					if( _rcSelectionView.Top < _rctViewPort.Top )
-						_rcSelectionView.SetScalar(SET.RIGID, SCALAR.TOP, _rctViewPort.Top );
-					if( _rcSelectionView.Bottom > _rctViewPort.Bottom )
-						_rcSelectionView.SetScalar(SET.RIGID, SCALAR.BOTTOM, _rctViewPort.Bottom );
-
-					if( _rcSelectionView.Left < _rctViewPort.Left )
-						_rcSelectionView.SetScalar(SET.RIGID, SCALAR.LEFT, _rctViewPort.Left );
-					if( _rcSelectionView.Right > _rctViewPort.Right )
-						_rcSelectionView.SetScalar(SET.RIGID, SCALAR.RIGHT, _rctViewPort.Right );
-
 					// If selection hidden, we choose the lower right as the drag edge to get started.
 					_oSmartDrag = _rcSelectionView.BeginAspectDrag( null, SET.STRETCH, SmartGrab.HIT.CORNER, LOCUS.LOWERRIGHT, e.X, e.Y, Aspect, _rctViewPort );
 				} else {

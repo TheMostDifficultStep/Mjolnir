@@ -319,6 +319,9 @@ namespace Play.ImageViewer {
 
 				// Copy the snip section currently selected. This is the full resolution original.
 				using SKImage oImage = SKImage.FromBitmap( _oDocument.Bitmap );
+				SmartRect rcCrop = new SmartRect( 0, 0, oImage.Width, oImage.Height );
+				rcSnipRect.Intersect( rcSnipRect, rcCrop );
+
 				if( !SnipDoc.Load( oImage, rcSnipRect.SKRect, rcSnipRect.SKRect.Size ) ) {
 					_oSiteBase.LogError( "Snip Save", "Could not create the snip copy from source." );
 					return false;

@@ -815,6 +815,7 @@ namespace Mjolnir {
         /// Kind of a drag to inherit from IDocSlot, since Load( filename ) 
         /// needs to be implemented. Look at this later.
         /// </summary>
+        /// <seealso cref="XmlSlotRefCount2" />
         public class XmlSlotRefCount : 
             BaseSlot, 
             IDocSlot,

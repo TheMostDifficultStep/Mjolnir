@@ -73,6 +73,7 @@ namespace Mjolnir {
         /// <summary>
         /// Should be able to merge with XmlSlotRefCount now...
         /// </summary>
+        /// <seealso cref="XmlSlotRefCount"/>
         public class XmlSlotRefCount2 : 
             BaseSlot, 
             IDocSlot,

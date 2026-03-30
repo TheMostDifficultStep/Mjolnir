@@ -757,9 +757,9 @@ namespace Play.Rectangles {
 
         public virtual void Intersect(SmartRect rctOne, SmartRect rctTwo)
         {
-            SKRectI skRect = rctTwo.SKRect;
-            skRect.Intersect( rctOne.SKRect );
-            SKRect = skRect;
+            SKRectI skRectTwo = rctTwo.SKRect;
+            skRectTwo.Intersect( rctOne.SKRect );
+            SKRect = skRectTwo;
         }
 
         // Another coordinate system dependent call that I'm hacking.
