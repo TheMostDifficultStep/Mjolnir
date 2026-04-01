@@ -107,14 +107,14 @@ namespace Mjolnir {
 
 			oTable.AddRow( new List<LayoutRect>() {
 			    new LayoutRect( LayoutRect.CSS.Flex ),
-			    new LayoutControl( oMatchCase, LayoutRect.CSS.Flex ),
-                new LayoutControl( AllBtn,     LayoutRect.CSS.Flex ),
+			    new LayoutControl( oSearchType, LayoutRect.CSS.Flex ),
+                new LayoutControl( NextBtn,     LayoutRect.CSS.Flex ),
                 new LayoutRect( LayoutRect.CSS.Flex ) } );
 
 			oTable.AddRow( new List<LayoutRect>() {
 			    new LayoutRect( LayoutRect.CSS.Flex ),
-			    new LayoutControl( oSearchType, LayoutRect.CSS.Flex ),
-                new LayoutControl( NextBtn,     LayoutRect.CSS.Flex ),
+			    new LayoutControl( oMatchCase, LayoutRect.CSS.Flex ),
+                new LayoutControl( AllBtn,     LayoutRect.CSS.Flex ),
                 new LayoutRect( LayoutRect.CSS.Flex ),
             } );
 
