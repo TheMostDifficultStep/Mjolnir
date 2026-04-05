@@ -243,7 +243,7 @@ namespace Mjolnir {
 
         // The textslots and xmlslots we could make cache the editor pointers on load
         // so we spot load errors sooner instead of later after the program boots.
-        protected XmlSlotRefCount2  _oDocSlot_Scraps;
+        protected InternalSlot  _oDocSlot_Scraps;
         protected TextSlot              _oDocSlot_Alerts;
         protected XmlSlotRefCount2  _oDocSlot_Recents;
         protected InternalSlot          _oDocSlot_Fonts;
@@ -252,7 +252,7 @@ namespace Mjolnir {
         protected Program.TextSlot      _oDocSite_Session; // Hosting ourself, so don't be confused! ^_^;
           
         /// <summery>Views can use this to create views on the scrapbook</summery>
-        public XmlSlotRefCount2     ScrapBookSlot => _oDocSlot_Scraps;
+        public InternalSlot     ScrapBookSlot => _oDocSlot_Scraps;
         public XmlSlotRefCount2     RecentsSlot   => _oDocSlot_Recents;
         public TextSlot                 SessionSlot   => _oDocSite_Session;
 		public XmlSlotRefCount2     SearchSlot    => _oDocSlot_SearchKey;
@@ -774,11 +774,15 @@ namespace Mjolnir {
             }
 
             {
+                // Since this object doesn't (yet) support IPgSave<XmlNode>
+                // I can't use the XmlSlotRefCount2 slot. CreateDocument() fails
+                // But the alert doesn't make it to the screen.
+                // BUG: Check for any alerts cue'd up before system alerts are ready.
                 PgDocDescr oDescr = GetController( ".scraps" );
                 if( oDescr.StgReqmnt != typeof( IPgLoad<TextReader> ) )
                     throw new InvalidProgramException();
 
-			    _oDocSlot_Scraps = new XmlSlotRefCount2( this, oDescr, "Scraps");
+			    _oDocSlot_Scraps = new InternalSlot( this, oDescr, "Scraps");
                 _oDocSlot_Scraps.CreateDocument();
 			    _oDocSlot_Scraps.InitNew();
             }
