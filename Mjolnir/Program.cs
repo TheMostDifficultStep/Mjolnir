@@ -189,6 +189,8 @@ namespace Mjolnir {
                                              };
                         if( rgErrors.IsUnhandled( oEx ) ) 
                             throw;
+
+                        // BUG: I really should have a site so I can log an error!
                     }
                 }
                 // TODO: Technically it's ok to return a NULL controller for a particular
