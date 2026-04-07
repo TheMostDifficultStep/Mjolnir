@@ -32,11 +32,11 @@ namespace Mjolnir {
 	/// An editor for view sites. This is a bit of an experiment with my non mutiple buffer
 	/// version of the editor.
 	/// </summary>
-    public class ViewsEditor : 
+    public class EditorForViews : 
         BaseEditor,
         IEnumerable<ViewSlot>
     {
-        public ViewsEditor( IPgBaseSite oSite ) : base( oSite ) {}
+        public EditorForViews( IPgBaseSite oSite ) : base( oSite ) {}
 
         /// <summary>
         /// Make the editor happy. It does not understand the concept of an empty document.

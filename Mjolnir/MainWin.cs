@@ -80,10 +80,10 @@ namespace Mjolnir {
 		ViewSlot _oSelectedWinSite = null;
         IDocSlot _oSelectedDocSite = null;
 
-        protected DocSlot     _oSlot_ViewSelectorDoc;
-        protected ViewsEditor _oDoc_ViewSelector;
-        protected bool        _fIsClosing = false;
-		internal  TOPLAYOUT   _eLayout    = TOPLAYOUT.Solo; // Once layout 1&2 are normalized I won't need this.
+        protected DocSlot        _oSlot_ViewSelectorDoc;
+        protected EditorForViews _oDoc_ViewSelector;
+        protected bool           _fIsClosing = false;
+		internal  TOPLAYOUT      _eLayout    = TOPLAYOUT.Solo; // Once layout 1&2 are normalized I won't need this.
 
 		protected bool        _fTextInvalid  = true;
 
@@ -289,8 +289,7 @@ namespace Mjolnir {
 		///<seealso cref="Program.InitNew"
 		///<seealso cref="Program.Load(TextReader)"/>
         public void Initialize( XmlDocument xmlConfig ) {
-			if( xmlConfig == null )
-				throw new ArgumentNullException();
+            ArgumentNullException.ThrowIfNull(xmlConfig);
 
             InitializeMenu    ( xmlConfig );
             InitializeEdges   ( xmlConfig );
@@ -302,7 +301,7 @@ namespace Mjolnir {
             // Looking this over, all of this stuff below could probably
             // be right in the constructor.
             _oSlot_ViewSelectorDoc = new DocSlot(this);
-            _oDoc_ViewSelector     = new ViewsEditor( _oSlot_ViewSelectorDoc );
+            _oDoc_ViewSelector     = new EditorForViews( _oSlot_ViewSelectorDoc );
             _oSlot_ViewSelectorDoc.Guest = _oDoc_ViewSelector;
             _oSlot_ViewSelectorDoc.InitNew();
 
@@ -2659,6 +2658,7 @@ namespace Mjolnir {
                                                  new Guid( "AC48BBDF-C10E-4B03-BBFF-074F0445D372" ) );
                 }
                 if( sGuid == GlobalDecor.Views ) {
+                    // See ViewSelectorSlot. I want to move that behavior into a EditWindow2 subclass.
                     EditWindow2 oEditWin = new EditWindow2(oViewSite, _oDoc_ViewSelector, fReadOnly:true, fSingleLine:false);
                         
                     oEditWin.HyperLinks.Add( "ViewSwitch", OnHyperViewSwitch );
@@ -2687,7 +2687,6 @@ namespace Mjolnir {
         ///       rather complicated. I'd rather the view on the
         ///       selector use a standard DocSlot.
         /// </summary>
-        /// <seealso cref="Decorate(IPgViewSite, Guid)"/>
         protected void InitializeViewSelectorView() {
             ViewSelectorSlot oSelectorSite =
                 new ViewSelectorSlot( this,

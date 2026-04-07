@@ -721,7 +721,7 @@ namespace Mjolnir {
 
     /// </remarks>
     [Obsolete] internal class ViewSelectorSlot : NonRefCountSlot {
-        readonly ViewsEditor _oDoc_Views;
+        readonly EditorForViews _oDoc_Views;
                  IPgTextView _oViewText; 
 
         /// <summary>4/7/2026, Slowly obsoleting this class.</summary>
@@ -731,7 +731,7 @@ namespace Mjolnir {
         public ViewSelectorSlot(MainWin oHost, IDocSlot oDocSite, SmartHerderBase oHerder ) :
             base(oHost, oDocSite, Guid.Empty )
         {
-            _oDoc_Views = oDocSite.Document as ViewsEditor ?? throw new ArgumentException( "Document must support a ViewSite Editor" );
+            _oDoc_Views = oDocSite.Document as EditorForViews ?? throw new ArgumentException( "Document must support a ViewSite Editor" );
         }
 
         /// <seealso cref="GuestInit"/>
