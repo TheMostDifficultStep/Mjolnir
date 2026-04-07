@@ -80,6 +80,7 @@ namespace Mjolnir {
 		ViewSlot _oSelectedWinSite = null;
         IDocSlot _oSelectedDocSite = null;
 
+        protected DocSlot     _oSlot_ViewSelectorDoc;
         protected ViewsEditor _oDoc_ViewSelector;
         protected bool        _fIsClosing = false;
 		internal  TOPLAYOUT   _eLayout    = TOPLAYOUT.Solo; // Once layout 1&2 are normalized I won't need this.
@@ -194,94 +195,6 @@ namespace Mjolnir {
 		public Program   Document { get; }
 		public SmartRect Frame    { get { return _rcFrame; } }
 
-        /// <summary date="4/7/2020" >
-        /// Honestly this could live right on the main window. But I'm sure the names would
-        /// collide with the existing view management code on the main window. So I'll put all this
-        /// here for now.
-        /// </summary>
-        public class ControllerForMainWindow : IPgController2, IEnumerable<IPgViewType>
-        {
-            MainWin _oMainWin;
-
-            public ControllerForMainWindow( MainWin oMainWin ) {
-                _oMainWin = oMainWin ?? throw new ArgumentNullException();
-            }
-
-            public string PrimaryExtension => string.Empty;
-
-            public IDisposable CreateDocument(IPgBaseSite oSite, string strExtension) {
-                try {
-                    if( string.Compare( strExtension, ".views" ) == 0 )
-                        return new ViewsEditor( oSite );
-                } catch( Exception oEx  ) { 
-                    Type[] rgErrors = { typeof( InvalidCastException ),
-                                        typeof( ArgumentException ),
-                                        typeof( NullReferenceException ),
-										typeof( ArgumentNullException ) };
-                    _oMainWin.LogError( oSite, "hosting", "Guest does not support required interfaces.");
-
-                    if( rgErrors.IsUnhandled( oEx ) )
-                        throw;
-                }
-                return null;
-            }
-
-            /// <summary>
-            /// This is a new use for a controller. So it's a bit confusing. The main window is
-            /// basically the controller. The Document parameter is the document within the MainWindow
-            /// we are managing. In some regard we don't know where the document came from! Currently
-            /// the view embedding interfaces don't give us access to the document site. 
-            /// </summary>
-            /// <remarks>You know, I should make the view site able to return a document or document site.</remarks>
-            public IDisposable CreateView(IPgViewSite oViewSite, object oDocument, Guid guidViewType) {
-                try {
-                    if( guidViewType == Program.ViewSelector ) {
-                        EditWindow2 oEditWin = new EditWindow2(oViewSite, (BaseEditor)oDocument, fReadOnly:true, fSingleLine:false);
-                        
-                        oEditWin.HyperLinks.Add( "ViewSwitch", OnHyperViewSwitch );
-                        oEditWin.ToolSelect = 1;
-                        oEditWin.Wrap       = false;
-
-                        return oEditWin;
-                    }
-                } catch( Exception oEx ) {
-                    Type[] rgErrors = { typeof( NullReferenceException ),
-                                        typeof( InvalidCastException ),
-                                        typeof( ArgumentNullException ) };
-                    if( rgErrors.IsUnhandled( oEx ) )
-                        throw new InvalidProgramException( "Unexpected error creating editor view.", oEx );
-
-                    _oMainWin.Document.LogError( "Main Window children", "Could not create a child window for the main window" );
-                }
-
-			    throw new ArgumentOutOfRangeException( "Don't recognize top level window requested!" );
-            }
-
-            /// <summary>
-            /// It's a little hacky to add the call back here, but let's go for it.
-            /// </summary>
-            private void OnHyperViewSwitch( Line oLine, IPgWordRange oRange ) {
-                try { 
-                    if( oLine is ViewSlot oViewLine ) {
-                        _oMainWin.ViewSelect( oViewLine, fFocus:true );
-                    }
-                } catch( NullReferenceException ) {
-                }
-            }
-
-            public IEnumerator<IPgViewType> GetEnumerator() {
- 	            yield return new ViewType( "View Select", Program.ViewSelector );
-            }
-
-            IEnumerator IEnumerable.GetEnumerator() {
-                return GetEnumerator();
-            }
-
-            public PgDocDescr Suitability(string strExtension) {
-                throw new NotImplementedException();
-            }
-        }
-
         /// <summary>
         /// The Main window didn't have it's own document embedding slot. This is different than a view
         /// slot or a program document slot. I used to want the views selection to live on the program
@@ -296,13 +209,11 @@ namespace Mjolnir {
             IDocSlot  
         {
             readonly MainWin                 _oHost;
-            readonly ControllerForMainWindow _oController;
                      IDisposable             _oGuest;
                      IPgLoad                 _oGuestLoad;
 
             public DocSlot( MainWin oMainWin ) {
-                _oHost       = oMainWin ?? throw new ArgumentNullException( "Main window reference must not be null" );
-                _oController = new ControllerForMainWindow( _oHost );
+                _oHost = oMainWin ?? throw new ArgumentNullException( "Main window reference must not be null" );
             }
 
             public IPgParent      Host       => _oHost;
@@ -313,11 +224,12 @@ namespace Mjolnir {
             public string         FilePath   => string.Empty;
             public string         FileDir    => string.Empty;
             public string         FileName   => string.Empty;
-            public IPgController2 Controller => _oController;
 
-            public IEnumerable<IPgViewType> ViewTypes => _oController;
-
-            public int    Reference { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+            //This is why this object is obsolete... :-/
+            public IPgController2           Controller => throw new NotImplementedException();
+            public IEnumerable<IPgViewType> ViewTypes  => throw new NotImplementedException();
+            public int    Reference { get => throw new NotImplementedException(); 
+                                      set => throw new NotImplementedException(); }
             public string LastPath => throw new NotImplementedException();
             public bool   IsInternal => false;
 
@@ -330,20 +242,18 @@ namespace Mjolnir {
             }
 
             public bool InitNew() {
-                try {
-                    _oGuest     = Controller.CreateDocument( this, ".views" ) ?? throw new ApplicationException("Couldn't assign document");
-                    _oGuestLoad = (IPgLoad)_oGuest;
-                } catch( Exception oEx ) {
-                    Type[] rgErrors = { typeof( ApplicationException ),
-                                        typeof( InvalidCastException ) };
-                    if( rgErrors.IsUnhandled( oEx ) )
-                        throw;
-
-                    return false;
-                }
-
                 return _oGuestLoad.InitNew();
             }
+
+            /// <exception cref="ArgumentNullException">
+            /// <exception cref="InvalidCastException"
+            public BaseEditor Guest {
+                set {
+                   _oGuest = value ?? throw new ArgumentNullException("Couldn't assign document");
+                   _oGuestLoad = (IPgLoad)_oGuest;
+                }
+            }
+
 
             public bool Load(string strFileName) {
                 throw new NotImplementedException();
@@ -391,13 +301,14 @@ namespace Mjolnir {
 
             // Looking this over, all of this stuff below could probably
             // be right in the constructor.
-            DocSlot oViewSitesSlot = new DocSlot(this);
-            oViewSitesSlot.InitNew();
-            _oDoc_ViewSelector = (ViewsEditor)oViewSitesSlot.Document;
+            _oSlot_ViewSelectorDoc = new DocSlot(this);
+            _oDoc_ViewSelector     = new ViewsEditor( _oSlot_ViewSelectorDoc );
+            _oSlot_ViewSelectorDoc.Guest = _oDoc_ViewSelector;
+            _oSlot_ViewSelectorDoc.InitNew();
 
             // This needs to follow the view selector document assignment.
             Tabs = new(new WinSlot(this), _oDoc_ViewSelector);
-            Tabs.Parent = this;
+            Tabs.Parent  = this;
             Tabs.Visible = true;
             Tabs.Layout.Padding.SetRect( 5, 5, 5, 0 );
             Tabs.InitNew();
@@ -2707,6 +2618,15 @@ namespace Mjolnir {
             return( -1 );
         }
 
+        private void OnHyperViewSwitch( Line oLine, IPgWordRange oRange ) {
+            try { 
+                if( oLine is ViewSlot oViewLine ) {
+                    ViewSelect( oViewLine, fFocus:true );
+                }
+            } catch( NullReferenceException ) {
+            }
+        }
+
         /// <summary>
         /// Turns out the solo windows really are decor on the main window.
         /// So we formalize that here. The main window should probably support
@@ -2715,6 +2635,7 @@ namespace Mjolnir {
         /// <param name="oViewSite">Site for the view. As of now a DecorSlot</param>
         /// <param name="sGuid">The decor we wish to create.</param>
         /// <seealso cref="IPgCommandView"/>
+        /// <seealso cref="InitializeViewSelectorView"/>
         protected Control Decorate( IPgViewSite oViewSite, Guid sGuid ) {
             try {
                 if( sGuid == GlobalDecor.Alerts ) {
@@ -2737,6 +2658,15 @@ namespace Mjolnir {
                                                  Document.ClockSlot.Document, 
                                                  new Guid( "AC48BBDF-C10E-4B03-BBFF-074F0445D372" ) );
                 }
+                if( sGuid == GlobalDecor.Views ) {
+                    EditWindow2 oEditWin = new EditWindow2(oViewSite, _oDoc_ViewSelector, fReadOnly:true, fSingleLine:false);
+                        
+                    oEditWin.HyperLinks.Add( "ViewSwitch", OnHyperViewSwitch );
+                    oEditWin.ToolSelect = 1;
+                    oEditWin.Wrap       = false;
+
+                    return oEditWin;
+                }
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( InvalidOperationException ),
                                     typeof( ApplicationException ),
@@ -2750,6 +2680,22 @@ namespace Mjolnir {
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// TODO: While this compiles. The ViewSelectorSlot is 
+        ///       rather complicated. I'd rather the view on the
+        ///       selector use a standard DocSlot.
+        /// </summary>
+        /// <seealso cref="Decorate(IPgViewSite, Guid)"/>
+        protected void InitializeViewSelectorView() {
+            ViewSelectorSlot oSelectorSite =
+                new ViewSelectorSlot( this,
+                                      _oSlot_ViewSelectorDoc,
+                                      Shepardfind( GlobalDecor.Views ));
+            oSelectorSite.Guest = Decorate( oSelectorSite, GlobalDecor.Views );
+            oSelectorSite.InitNew();
+            DecorAddSolo( GlobalDecor.Views, oSelectorSite.Guest );
         }
 
         /// <summary>
@@ -2784,16 +2730,7 @@ namespace Mjolnir {
 				    DecorAddSolo( sDecorGuid, oSlot.Guest );
                 }
 
-                // TODO: While this compiles. It's not right plus the ViewSelectorSlot
-                //       seems rather complicated. Probably an antiquated design.
-                //       Plus it's totally incompatible with my new initializer.
-                //ViewSelectorSlot oSelectorSite = 
-                //    new ViewSelectorSlot( this, 
-                //                          _oDoc_ViewSelector.Site as IDocSlot, 
-                //                          Shepardfind( GlobalDecor.Views ));
-                //oSelectorSite.ViewCreate( Program.ViewSelector );
-                //oSelectorSite.InitNew();
-                //DecorAddSolo( GlobalDecor.Views, oSelectorSite.Guest);
+                //InitializeViewSelectorDoc();
             } catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( ArgumentNullException ),
 									typeof( ArgumentException ),

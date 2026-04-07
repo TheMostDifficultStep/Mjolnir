@@ -206,10 +206,7 @@ namespace Mjolnir {
 
         }
 
-        //public static Guid Clock       { get; } = new Guid( "{DEA39235-7E0A-4539-88A0-2FB775E7A8CC}" );
-        //public static Guid FindDialog  { get; } = new Guid( "{231E4D61-499A-427E-A1D3-EC4A579A5E6D}" );
-        public static Guid ViewSelector{ get; } = new Guid( "{195E19DB-4BCE-4CAE-BE02-263536F00851}" );
-        public static Guid MainWin     { get; } = new Guid( "{B091DED3-33C8-4BD1-8390-CA568CA7F9FC}" );
+        public static Guid MainWin { get; } = new Guid( "{B091DED3-33C8-4BD1-8390-CA568CA7F9FC}" );
 
         string _strDefaultGrammarDir = String.Empty;
 

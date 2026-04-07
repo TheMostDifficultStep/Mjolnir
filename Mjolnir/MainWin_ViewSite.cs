@@ -575,9 +575,11 @@ namespace Mjolnir {
 		/// the DecorSite which is the restricted one.
 		/// </remarks>
 		/// <param name="oGuest"></param>
+        /// <exception cref="ArgumentNullException" />
+        /// <exception cref="InvalidCastException" />
 		protected override void GuestAssign( Control oGuest ) {
             _oViewControl = oGuest ?? throw new ArgumentNullException( "Decor view site needs a guest to be valid." );
-			_oViewCommand = oGuest as IPgCommandView ?? throw new ArgumentException( "view must support IPgCommand" );
+			_oViewCommand = (IPgCommandView)oGuest;
 		}
 
 		/// <remarks>
@@ -701,36 +703,49 @@ namespace Mjolnir {
     }
 
     /// <summary>
-    /// 4/7/2020: This object begs the question, where is the best place to put all the specialized behavior on these complex objects
-    /// utilizing my text editor. I'm thinking that I should subclass the edit win, then I can leverage my view creation system.
-    /// But I'm going to go with this for the moment...
-    /// 11/9/2024: Probably going to revamp the View for the Views. I've disabled it for now.
+    ///     This is a specialized slot for the view selector DOCUMENT.
+    ///     It belongs on the Main Window.
+    ///     We don't bring to top on views when the user navigates 
+    ///     the view window. I prefer hitting the space bar like
+    ///     a button to make the view switch.
     /// </summary>
-    /// <remarks>We don't bring to top on views when the user navigates the view window. I prefer hitting the space bar like
-    /// a button to make the view switch.</remarks>
-    internal class ViewSelectorSlot : NonRefCountSlot {
+    /// <remarks>
+    ///     4/7/2020: This object begs the question, where is the best place to put 
+    ///     all the specialized behavior on these complex objects
+    ///     utilizing my text editor. I'm thinking that I should subclass 
+    ///     the edit win, then I can leverage my view creation system.
+    ///     But I'm going to go with this for the moment...
+    ///     11/9/2024: Probably going to revamp the View for the Views. I've disabled it for now.
+    ///     4/7/2026:  Going to move this specialized behavior to a subclass of
+    ///     the EditWindow soonish.
+
+    /// </remarks>
+    [Obsolete] internal class ViewSelectorSlot : NonRefCountSlot {
         readonly ViewsEditor _oDoc_Views;
                  IPgTextView _oViewText; 
 
+        /// <summary>4/7/2026, Slowly obsoleting this class.</summary>
+        /// <param name="oDocSite">Needed for compat with ancestor, but not for this
+        /// object. </param>
+        /// <exception cref="ArgumentException"></exception>
         public ViewSelectorSlot(MainWin oHost, IDocSlot oDocSite, SmartHerderBase oHerder ) :
             base(oHost, oDocSite, Guid.Empty )
         {
             _oDoc_Views = oDocSite.Document as ViewsEditor ?? throw new ArgumentException( "Document must support a ViewSite Editor" );
         }
 
+        /// <seealso cref="GuestInit"/>
 		protected override void GuestAssign( Control oGuest ) {
             base.GuestAssign( oGuest );
 
-            _oViewText = oGuest as IPgTextView ?? throw new ArgumentException( "Control must support IPgTextView" );
+            _oViewText = (IPgTextView)oGuest;
+		}
 
-            oGuest.Cursor      = Cursors.Hand;
-            //oGuest.ContextMenu = new ContextMenu();
-
-            //oGuest.ContextMenu.MenuItems.Add( new MenuItem( "Goto",  new EventHandler( MenuGotoView ),        Shortcut.CtrlG ) );
-            //oGuest.ContextMenu.MenuItems.Add( new MenuItem( "Close", new EventHandler( MenuCloseViewCommand), Shortcut.Del ) );
+        protected void GuestInit() {
+            _oViewControl.Cursor = Cursors.Hand;
 
             _oHost.ViewChanged += OnHost_ViewChanged; // This should be on the InitNew. If we fail init we're still wired up.
-		}
+        }
 
         private void OnHost_ViewChanged( object oView ) {
             try {
