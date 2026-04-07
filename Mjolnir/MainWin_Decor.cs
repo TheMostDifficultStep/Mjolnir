@@ -413,7 +413,7 @@ namespace Mjolnir {
                     return true; // We're done. All is well.
 
 				oViewCmmd  = (IPgCommandView)oViewSite.Guest;
-				oDecorSite = new DecorSlot( this, oViewSite.DocumentSite, oShepard );
+				oDecorSite = new DecorSlot( this, oShepard );
             } catch( Exception oEx ) {
                 if( _rgDCErrors.IsUnhandled( oEx ) )
                     throw;
@@ -487,7 +487,7 @@ namespace Mjolnir {
             try {
                 oControl.Parent = this;
                 oControl.CreateControl();
-                oSolo.AdornmentAdd( null, oControl );
+                oSolo   .AdornmentAdd( null, oControl );
             } catch( Exception oEx ) {
                 if( _rgDCErrors.IsUnhandled( oEx ) )
                     throw;
@@ -498,7 +498,7 @@ namespace Mjolnir {
 
             oControl.TabStop = false;
 
-            return( true );
+            return true;
         }
 
 		public Control DecorSoloSearch( Guid gDecor ) {

@@ -396,36 +396,4 @@ namespace Mjolnir {
             return (oEditor);
         }
     }
-
-    public class ControllerForSearch :
-        Controller
-    {
-        public ControllerForSearch() {
-            _rgExtensions.Add(".search");
-        }
-
-        public override IDisposable CreateDocument( IPgBaseSite oSite, string strExtension ) {
-            return new Editor( oSite ); // Might be nice to use a simpler one line object...
-        }
-
-        public override IDisposable CreateView( IPgViewSite oViewSite, object oDocument, Guid guidViewType ) {
-            throw new NotImplementedException();
-        }
-    }
-
-    public class ControllerForResults :
-        Controller
-    {
-        public ControllerForResults() {
-            _rgExtensions.Add(".results");
-        }
-
-        public override IDisposable CreateDocument( IPgBaseSite oSite, string strExtension ) {
-            throw new NotImplementedException("Controller may not create a doc.");
-        }
-
-        public override IDisposable CreateView( IPgViewSite oViewSite, object oDocument, Guid guidViewType ) {
-            return new ViewSearchResults( oViewSite, (Editor)oDocument );
-        }
-    }
 }

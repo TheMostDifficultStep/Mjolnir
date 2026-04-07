@@ -1665,10 +1665,8 @@ namespace Mjolnir {
         /// </summary>
         /// <seealso cref="InitializePlugins"/>
         public void InitializeControllers() {
-            Controllers.Add( new ControllerForResults   () );
 			Controllers.Add( new ControllerForParsedText( this ) );
             Controllers.Add( new ControllerForHtml      ( this ));
-            Controllers.Add( new ControllerForSearch    () );
             Controllers.Add( new Play.FileManager.FileManController() );
 
             // We still have a project dependency for these items but only so

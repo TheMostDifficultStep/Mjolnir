@@ -289,8 +289,9 @@ namespace Mjolnir {
         /// instance to the ViewSelector and can sort it all out later. The main complexity is that
         /// decor views want access to an IDocSlot on the document. That sux and we need to work on that.
         /// </summary>
-        /// <remarks>1/14/2022 : Might be a bit of overkill with a controller. </remarks>
-        protected class DocSlot : 
+        /// <remarks>1/14/2022 : Might be a bit of overkill with a controller. I need to
+        /// sort out the solo's on themain window to use a controller from it.</remarks>
+        [Obsolete]protected class DocSlot : 
             IPgBaseSite, 
             IDocSlot  
         {
@@ -2707,6 +2708,51 @@ namespace Mjolnir {
         }
 
         /// <summary>
+        /// Turns out the solo windows really are decor on the main window.
+        /// So we formalize that here. The main window should probably support
+        /// IPgCommandView. Kewlness factor, very high.
+        /// </summary>
+        /// <param name="oViewSite">Site for the view. As of now a DecorSlot</param>
+        /// <param name="sGuid">The decor we wish to create.</param>
+        /// <seealso cref="IPgCommandView"/>
+        protected Control Decorate( IPgViewSite oViewSite, Guid sGuid ) {
+            try {
+                if( sGuid == GlobalDecor.Alerts ) {
+                    IPgController2 oAlertsController = Document.AlertSlot.Controller;
+                    return (Control) oAlertsController.CreateView( 
+                                                 oViewSite, 
+                                                 Document.AlertSlot.Document, 
+                                                 Guid.Empty );
+                }
+                if( sGuid == GlobalDecor.Results ) {
+                    return new ViewSearchResults( oViewSite, Document.Doc_Results );
+                }
+                if( sGuid == GlobalDecor.Find ) {
+                    return new FindWindow( oViewSite, this );
+                }
+                if( sGuid == GlobalDecor.Clock ) {
+                    IPgController2 oClockController = Document.ClockSlot.Controller;
+                    return (Control)  oClockController.CreateView( 
+                                                 oViewSite, 
+                                                 Document.ClockSlot.Document, 
+                                                 new Guid( "AC48BBDF-C10E-4B03-BBFF-074F0445D372" ) );
+                }
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( InvalidOperationException ),
+                                    typeof( ApplicationException ),
+                                    typeof( ArgumentException ),
+                                    typeof( ArgumentNullException ),
+                                    typeof( InvalidCastException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                LogError( null, "Solo's", "Unable to main window solo decor." );
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// These are the addornment windows that are solo. That is, they apply to what ever
         /// document is currently displayed. Adornments that bind to a single document are created
         /// by that document's controller. I might need to modify this concept for my new SQL addornment.
@@ -2728,32 +2774,19 @@ namespace Mjolnir {
 					LogError( null, "Main Window", "Top menu was not created!" );
 				}
 
-                // BUG: This is a little bit of a problem since the docslot is hosted by the program but the
-                // view is on the main window. So we're not using the best controller for the view creation.
-				DecorSlot oAlertsSite = new DecorSlot( this, Document.AlertSlot, Shepardfind( GlobalDecor.Alerts ) );
-                oAlertsSite.ViewCreate( Guid.Empty );
-				oAlertsSite.GuestInit();
-				DecorAddSolo( GlobalDecor.Alerts, oAlertsSite.Guest );
+                Guid[] rgSolos = [GlobalDecor.Alerts, GlobalDecor.Results, 
+                                  GlobalDecor.Find,   GlobalDecor.Clock];
+                foreach( Guid sDecorGuid in rgSolos ) {
+				    DecorSlot oSlot = new DecorSlot( this, Shepardfind( sDecorGuid ) );
+                    oSlot.Guest     = Decorate( oSlot, sDecorGuid );
+				    oSlot.GuestInit();
 
-				DecorSlot oResultsSite = new DecorSlot( this, 
-                                                        new InternalSlot( Document, 
-                                                                          Document.GetController( ".results" ),
-                                                                          "Search Results" ),
-                                                                          Shepardfind( GlobalDecor.Results ) );
-                ViewSearchResults oViewMatches = new ViewSearchResults( oResultsSite, Document.Doc_Results );
-                oResultsSite.Guest = oViewMatches;
-                oViewMatches.InitNew();
-                DecorAddSolo( GlobalDecor.Results, oViewMatches );
+				    DecorAddSolo( sDecorGuid, oSlot.Guest );
+                }
 
-				DecorSlot oFindSite = new DecorSlot( this, Document.FindSlot, Shepardfind( GlobalDecor.Find ) );
-                FindWindow oFindWindow = new FindWindow( oFindSite, this );
-                oFindSite.Guest = oFindWindow;
-				oFindSite.GuestInit();
-				DecorAddSolo( GlobalDecor.Find, oFindSite.Guest );
-
-                // TODO: While this compiles. It's not right plus the ViewSelectorSlot seems rather
-                //       complicated. Probably an antiquated design. I use the menu as it is so
-                //       let's park this for now.
+                // TODO: While this compiles. It's not right plus the ViewSelectorSlot
+                //       seems rather complicated. Probably an antiquated design.
+                //       Plus it's totally incompatible with my new initializer.
                 //ViewSelectorSlot oSelectorSite = 
                 //    new ViewSelectorSlot( this, 
                 //                          _oDoc_ViewSelector.Site as IDocSlot, 

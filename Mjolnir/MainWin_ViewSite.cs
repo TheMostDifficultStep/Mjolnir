@@ -613,10 +613,12 @@ namespace Mjolnir {
 	}
 
 	/// <summary>
-	/// BUG: Inheriting from ViewSite is probably not the best thing.
-	/// Commands for each tool window means something different, for one
+	/// Note: Inheriting from ViewSite is probably not the best thing.
+	/// Commands for each tool window mean something different.
 	/// ViewSelector document is hosted by MainWin and NOT Program,
 	/// thus the view site cannot produce a IDocSlot.
+    /// DecorSlots must NOT add references to the document slot like a standard
+    /// ViewSlot does.
 	/// </summary>
 	internal class DecorSlot :
         IPgViewSite,
@@ -625,7 +627,6 @@ namespace Mjolnir {
     {
 		SmartHerderBase _oHerder;
         MainWin         _oHost;
-        IDocSlot        _oSlotDoc;
 
         // The decor we are hosting. If I make the slot contained within the main
         // win, I could make the set property protected.
@@ -634,11 +635,10 @@ namespace Mjolnir {
         public IPgParent     Host       => _oHost;
 
         ///<exception cref="ArgumentNullException" />
-        public DecorSlot( MainWin oHost, IDocSlot oDocSite, SmartHerderBase oHerder ) 
+        public DecorSlot( MainWin oHost, SmartHerderBase oHerder ) 
         {
 			_oHerder  = oHerder  ?? throw new ArgumentNullException( "Herder required." );
-            _oHost    = oHost    ?? throw new ArgumentNullException( "Main windowo required." );
-            _oSlotDoc = oDocSite ?? throw new ArgumentNullException( "Document slot must not be null." );
+            _oHost    = oHost    ?? throw new ArgumentNullException( "Main window required." );
         }
 
         /// <summary>
@@ -688,25 +688,6 @@ namespace Mjolnir {
             }
             LogError( "Decor", "Could not initialize Guest" );
             return false;
-        }
-
-        public void ViewCreate( Guid guidViewType ) {
-            try {
-                Guest = (Control)_oSlotDoc.Controller.
-                          CreateView( this, _oSlotDoc.Document, guidViewType ) ;
-                //_oHerder.AdornmentAdd( null, Guest );
-            } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( InvalidOperationException ),
-                                    typeof( ApplicationException ),
-                                    typeof( ArgumentException ),
-                                    typeof( ArgumentNullException ),
-                                    typeof( InvalidCastException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
-                    throw;
-
-                LogError( "View", "Unable to create decor on document." );
-                throw new ApplicationException( "Unable to create view", oEx );
-            }
         }
 
         /// <summary>
