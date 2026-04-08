@@ -212,11 +212,11 @@ namespace Mjolnir {
 
         List<IPgController2> Controllers { get; }  = new List<IPgController2>();
 
-        readonly Dictionary<string, SKColor>    _rgDefColors     = new Dictionary<string, SKColor>(StringComparer.OrdinalIgnoreCase);
-        readonly SKColor[]                      _rgStdColors     = new SKColor[(int)StdUIColors.Max ];
-        readonly List<ColorMap>                 _rgGrammarColors = new List<ColorMap>();
-        readonly Dictionary<StdUIFaces, uint>   _rgStdFonts      = new();
-        readonly Dictionary<StdUIFaces, UInt16> _rgStdFaces      = new();
+        readonly Dictionary<string, SKColor> _rgDefColors     = new Dictionary<string, SKColor>(StringComparer.OrdinalIgnoreCase);
+        readonly SKColor[]                   _rgStdColors     = new SKColor[(int)StdUIColors.Max ];
+        readonly List<ColorMap>              _rgGrammarColors = new List<ColorMap>();
+        readonly Dictionary<Guid, uint>      _rgStdFonts      = new();
+        readonly Dictionary<Guid, UInt16>    _rgStdFaces      = new();
 
         readonly Dictionary<string, ExtensionMap> _rgExtensionMap  = new Dictionary<string, ExtensionMap>();
         readonly Dictionary<string, LangSlot>     _rgLanguageSite  = new Dictionary<string, LangSlot>();    // Load on demand
@@ -371,9 +371,11 @@ namespace Mjolnir {
             DocSlots.Clear();
 		}
 
-        public string AppDataPath => Environment.GetFolderPath( Environment.SpecialFolder.LocalApplicationData) + "\\pg\\mjolnir";
+        public string AppDataLocal=> Environment.GetFolderPath( Environment.SpecialFolder.LocalApplicationData);
+        public string AppDataPath => AppDataLocal + "\\pg\\mjolnir";
         public string UserProfile => Environment.ExpandEnvironmentVariables("%USERPROFILE%");
         public string UserDocs    => Environment.GetFolderPath(Environment.SpecialFolder.Personal);
+        public string OSInstall   => Environment.GetFolderPath(Environment.SpecialFolder.Windows);
 
 		public IPgParent Parentage => null;
 		public IPgParent Services  => this;
@@ -1657,8 +1659,7 @@ namespace Mjolnir {
         }
         
         /// <summary>
-        /// Loads up all the document controllers that we can possible use. This is
-        /// a bit of a drag since it'll load assemblies that we don't really need.
+        /// Most controllers are loaded up from the assemblies now.
         /// </summary>
         /// <seealso cref="InitializePlugins"/>
         public void InitializeControllers() {
@@ -1693,18 +1694,31 @@ namespace Mjolnir {
         private void InitializeFonts( MainWin oWindow, XmlDocument xmlConfig ) {
             SKPoint sDPI = oWindow.MainDisplayInfo.pntDpi;
 
-            _rgStdFaces.Add( StdUIFaces.Text,    FaceCacheNew( @"C:\windows\fonts\consola.ttf"  ) );
-            _rgStdFaces.Add( StdUIFaces.Decor,   StdFaceAt   ( StdUIFaces.Text ) ); // Currently the same.
-            _rgStdFaces.Add( StdUIFaces.Symbols, FaceCacheNew( @"C:\windows\fonts\seguisym.ttf" ) ); // seguiemj maybe. might need to check.
+            string strLocalFonts  = Path.Combine( AppDataLocal, @"Microsoft\Windows\Fonts" );
+            string strSystemFonts = Path.Combine( OSInstall,    @"fonts" );
 
-            foreach( KeyValuePair<StdUIFaces, UInt16> oPair in _rgStdFaces ) {
+            List<Tuple<Guid, string>> rgFonts = [
+                new ( StdUIFaces.Text,     Path.Combine( strSystemFonts, @"consola.ttf"  ) ),
+                new ( StdUIFaces.Decor,    Path.Combine( strSystemFonts, @"consola.ttf"  ) ),
+                new ( StdUIFaces.Symbols,  Path.Combine( strSystemFonts, @"seguisym.ttf" ) ),
+                new ( StdUIFaces.Japanese, Path.Combine( strSystemFonts, @"UDDigiKyokashoN-R.ttc" ) ), // Fallback
+                new ( StdUIFaces.Segment,  Path.Combine( strLocalFonts,  @"seven segment.ttf" ) ),
+            ];
+
+            foreach( Tuple<Guid,string> sFont in rgFonts ) {
+                try {
+                    _rgStdFaces.Add( sFont.Item1, FaceCacheNew( sFont.Item2 ));
+                } catch( ApplicationException ) { 
+                    LogError( "Fonts", "Couldn't load: " + sFont.Item2 );
+                }
+            }
+
+            foreach( KeyValuePair<Guid, UInt16> oPair in _rgStdFaces ) {
                 _rgStdFonts.Add( oPair.Key, FontCacheNew( oPair.Value, 12, sDPI ) );
             }
 
-            FaceCacheNew(@"C:\Windows\Fonts\UDDigiKyokashoN-R.ttc"); // Add this at program level for fallback.
-
-            //Font fallback?
-            //FaceCacheNew( @"C:\Users\Frodo\AppData\Local\Microsoft\Windows\Fonts\NotoEmoji-Regular.ttf" ) );
+            //Font fallback 2?
+            // ...\Local\Microsoft\Windows\Fonts\NotoEmoji-Regular.ttf" ) );
         }
 
         protected class EmbeddedGrammars {
@@ -2101,10 +2115,10 @@ namespace Mjolnir {
             return _rgGrammarColors[i]._sColor;
         }
 
-        uint IPgStandardUI.StdFontAt( StdUIFaces eFont ) {
+        uint IPgStandardUI.StdFontAt( Guid eFont ) {
             return _rgStdFonts[eFont];
         }
-        public UInt16 StdFaceAt( StdUIFaces eFont ) {
+        public UInt16 StdFaceAt( Guid eFont ) {
             return _rgStdFaces[eFont];
         }
     } // End class

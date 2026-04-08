@@ -534,10 +534,12 @@ namespace Play.Interfaces.Embedding {
     /// This will be the font chosen from a particular face for the given
     /// main window.
     /// </summary>
-    public enum StdUIFaces : int {
-        Decor = 0,
-        Text,
-        Symbols,
+    public static class StdUIFaces  {
+        public static Guid Decor    = new Guid( "{3C22A196-4F71-4464-9682-2198D954AA73}" );
+        public static Guid Text     = new Guid( "{C8EA6681-DE28-47ED-B9E3-1BBDEDC022AA}" );
+        public static Guid Symbols  = new Guid( "{C1130616-36EE-4250-AAA4-110420F6FF05}" );
+        public static Guid Segment  = new Guid( "{4C597B60-1B03-4101-9E0E-E1AEB43C42A9}" );
+        public static Guid Japanese = new Guid( "{97DEF726-5611-46F7-A58D-A454471A063D}" );
     }
 
     // A copy of popular keys from windows forms.
@@ -570,8 +572,8 @@ namespace Play.Interfaces.Embedding {
         uint     Space { get; } // Units? O.o;;;
         SKColor  ColorsStandardAt( StdUIColors eColor );
         SKColor  GrammarTextColor( int iIndex ); // Index to the master grammar indexed colors.
-        uint     StdFontAt( StdUIFaces eFace );  // standard Face and size chosen.
-        UInt16   StdFaceAt( StdUIFaces eFace );  // only the standard Face. User choses size (later).
+        uint     StdFontAt( Guid eFace );  // standard Face and size chosen.
+        UInt16   StdFaceAt( Guid eFace );  // only the standard Face. User choses size (later).
 	}
 
     public interface IPgViewNotify  {
