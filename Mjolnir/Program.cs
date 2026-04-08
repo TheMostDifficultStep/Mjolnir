@@ -242,21 +242,19 @@ namespace Mjolnir {
 
         // The textslots and xmlslots we could make cache the editor pointers on load
         // so we spot load errors sooner instead of later after the program boots.
-        protected InternalSlot  _oDocSlot_Scraps;
-        protected TextSlot              _oDocSlot_Alerts;
+        protected InternalSlot      _oDocSlot_Scraps;
+        protected TextSlot          _oDocSlot_Alerts;
         protected XmlSlotRefCount2  _oDocSlot_Recents;
-        protected InternalSlot          _oDocSlot_Fonts;
+        protected InternalSlot      _oDocSlot_Fonts;
         protected XmlSlotRefCount2  _oDocSlot_SearchKey;
-        protected ComplexXmlSlot        _oDocSlot_Find;
-        protected Program.TextSlot      _oDocSite_Session; // Hosting ourself, so don't be confused! ^_^;
+        protected Program.TextSlot  _oDocSite_Session; // Hosting ourself, so don't be confused! ^_^;
           
         /// <summery>Views can use this to create views on the scrapbook</summery>
-        public InternalSlot     ScrapBookSlot => _oDocSlot_Scraps;
+        public InternalSlot         ScrapBookSlot => _oDocSlot_Scraps;
         public XmlSlotRefCount2     RecentsSlot   => _oDocSlot_Recents;
-        public TextSlot                 SessionSlot   => _oDocSite_Session;
+        public TextSlot             SessionSlot   => _oDocSite_Session;
 		public XmlSlotRefCount2     SearchSlot    => _oDocSlot_SearchKey;
-        public IDocSlot                 FindSlot      => _oDocSlot_Find;
-        public IDocSlot                 AlertSlot     => _oDocSlot_Alerts;
+        public IDocSlot             AlertSlot     => _oDocSlot_Alerts;
         public XmlSlotRefCount2     ClockSlot  { get; protected set; }
         public XmlSlotRefCount2     HomeSlot   { get; protected set; }
 
@@ -792,7 +790,7 @@ namespace Mjolnir {
  			    // BUG: it's part of the window session load/init sequence. And the MainWin is trying
 			    // to get at the parse handler in it's constructor. So we've got to InitNew/Load before
 			    // that. So I'll InitNew() now and let load get called subsequently...for now. ^_^;;
-                PgDocDescr oDescr = GetController( ".search" );
+                PgDocDescr oDescr = GetController( ".txt" ); // def always returns controllerforplaintext 
                 if( oDescr.StgReqmnt != typeof( IPgLoad<TextReader> ) )
                     throw new InvalidProgramException();
 
@@ -802,15 +800,6 @@ namespace Mjolnir {
                 if( _oDocSlot_SearchKey.Document is Editor oEdit ) {
                     oEdit.LineInsert( string.Empty );
                 }
-            }
-
-            {
-                IPgController2 oTopLevelController = new ControllerForTopLevelWindows( this );
-                PgDocDescr oDocDesc = oTopLevelController.Suitability( ".finddialog" );
-                // We'll move the search key into the complexxmlslot's doc eventually.
-                _oDocSlot_Find = new ComplexXmlSlot( this, oDocDesc, "Find Dialog" );
-                _oDocSlot_Find.CreateDocument();
-                _oDocSlot_Find.InitNew();
             }
             {
                 // Always want clock since we have a solo clock window that needs it.

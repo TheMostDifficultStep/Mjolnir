@@ -6,63 +6,9 @@ using System.Text;
 using Play.Interfaces.Embedding; 
 using Play.Edit;
 using Play.Forms;
-using Play.Clock;
 using Play.Integration;
 
 namespace Mjolnir {
-    public class ControllerForTopLevelWindows :
-        Controller
-    {
-        protected readonly Program _oDocument;
-
-        public ControllerForTopLevelWindows( Program oProgram ) {
-			_oDocument = oProgram ?? throw new ArgumentNullException();
-            _rgExtensions.Add( ".filedialog" );
-            _rgExtensions.Add( ".mainwindow" );
-        }
-        
-        /// <summary>
-        /// This should be returning a main program object. Which is a singleton.
-        /// But shouldn't be returning a clock. Need to look at that.
-        /// </summary>
-        public override IDisposable CreateDocument( IPgBaseSite oSite, string strFileExt) {
-            if( string.Compare( strFileExt, ".clock", ignoreCase:true ) == 0 ) {
-                return new DocumentClock( oSite );
-            }
-
-            return _oDocument;
-        }
-
-        /// <remarks>
-        /// Techically we can handle multiple top windows. But I'm sure you'll have
-        /// problems since I'm not counting top level windows on the program.
-        /// </remarks>
-        /// <exception cref="InvalidOperationException"></exception>
-        /// <exception cref="ArgumentOutOfRangeException"></exception>
-        public override IDisposable CreateView( IPgViewSite oBaseSite, object oDocument, Guid guidViewType ) {
-            try {
-				if( guidViewType == Program.MainWin ) {
-                    MainWin oMainWin = new MainWin( _oDocument );
-					return oMainWin;
-                }
-            } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( NullReferenceException ),
-                                    typeof( InvalidCastException ),
-                                    typeof( ArgumentNullException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
-                    throw;
-
-                throw new InvalidOperationException( "Could not create a view on this Shell top level window." );
-            }
-
-			throw new ArgumentOutOfRangeException( "Don't recognize top level window requested!" );
-        }
-
-        public override IEnumerator<IPgViewType> GetEnumerator() {
- 	        yield return new ViewType( "Main Window",  Program.MainWin );
-        }
-    }
-
     /// <summary>
     /// This is an emergency controller for when we have no grammars and want a simple text editor.
     /// Using this in the Alerts since it must be initialized very early in the window sequence.
