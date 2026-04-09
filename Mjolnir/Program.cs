@@ -790,7 +790,7 @@ namespace Mjolnir {
  			    // BUG: it's part of the window session load/init sequence. And the MainWin is trying
 			    // to get at the parse handler in it's constructor. So we've got to InitNew/Load before
 			    // that. So I'll InitNew() now and let load get called subsequently...for now. ^_^;;
-                PgDocDescr oDescr = GetController( ".txt" ); // def always returns controllerforplaintext 
+                PgDocDescr oDescr = GetController( ".txt" ); // not found, always returns controllerforplaintext 
                 if( oDescr.StgReqmnt != typeof( IPgLoad<TextReader> ) )
                     throw new InvalidProgramException();
 

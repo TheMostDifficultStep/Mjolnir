@@ -703,51 +703,36 @@ namespace Mjolnir {
     }
 
     /// <summary>
-    ///     This is a specialized slot for the view selector DOCUMENT.
-    ///     It belongs on the Main Window.
-    ///     We don't bring to top on views when the user navigates 
-    ///     the view window. I prefer hitting the space bar like
-    ///     a button to make the view switch.
+    /// We used to put this behavior on a custom decor slot but that's
+    /// turns out to be a real pain. So put all that where it probably
+    /// belongs.... Here.
     /// </summary>
-    /// <remarks>
-    ///     4/7/2020: This object begs the question, where is the best place to put 
-    ///     all the specialized behavior on these complex objects
-    ///     utilizing my text editor. I'm thinking that I should subclass 
-    ///     the edit win, then I can leverage my view creation system.
-    ///     But I'm going to go with this for the moment...
-    ///     11/9/2024: Probably going to revamp the View for the Views. I've disabled it for now.
-    ///     4/7/2026:  Going to move this specialized behavior to a subclass of
-    ///     the EditWindow soonish.
-
-    /// </remarks>
-    [Obsolete] internal class ViewSelectorSlot : NonRefCountSlot {
+    internal class ViewSelectorList : EditWindow2 {
         readonly EditorForViews _oDoc_Views;
-                 IPgTextView _oViewText; 
+        readonly MainWin        _oHost;
 
-        /// <summary>4/7/2026, Slowly obsoleting this class.</summary>
-        /// <param name="oDocSite">Needed for compat with ancestor, but not for this
-        /// object. </param>
-        /// <exception cref="ArgumentException"></exception>
-        public ViewSelectorSlot(MainWin oHost, IDocSlot oDocSite, SmartHerderBase oHerder ) :
-            base(oHost, oDocSite, Guid.Empty )
+        public ViewSelectorList(IPgViewSite oSiteView, 
+            BaseEditor p_oDocument, 
+            bool fReadOnly = true, 
+            bool fSingleLine = false) : 
+            base(oSiteView, p_oDocument, fReadOnly, fSingleLine) 
         {
-            _oDoc_Views = oDocSite.Document as EditorForViews ?? throw new ArgumentException( "Document must support a ViewSite Editor" );
+            _oDoc_Views = (EditorForViews)p_oDocument;
+            _oHost      = (MainWin)oSiteView;
         }
 
-        /// <seealso cref="GuestInit"/>
-		protected override void GuestAssign( Control oGuest ) {
-            base.GuestAssign( oGuest );
 
-            _oViewText = (IPgTextView)oGuest;
-		}
+        protected override bool InitInternal() {
+            if( !base.InitInternal() )
+                return false;
 
-        protected void GuestInit() {
-            _oViewControl.Cursor = Cursors.Hand;
+            Cursor = Cursors.Hand;
 
             _oHost.ViewChanged += OnHost_ViewChanged; // This should be on the InitNew. If we fail init we're still wired up.
+            return true;
         }
 
-        private void OnHost_ViewChanged( object oView ) {
+        private void OnHost_ViewChanged(object oView) {
             try {
                 foreach( ViewSlot oViewLine in _oDoc_Views ) {
                     // Just want to see if the objects are the same.
@@ -758,25 +743,27 @@ namespace Mjolnir {
                 LogError( "View Selector", "Problem monitering switch." );
             }
         }
-
-        public override bool IsCommandPress( char cChar ) {
-            switch( cChar ) {
+        protected override void OnKeyPress(KeyPressEventArgs e) {
+            switch( e.KeyChar ) {
                 case ' ':
                     GotoView( fFocus:false );
-                    return( true );
+                    e.Handled = true;
+                    return;
                 case '\r':
                     GotoView( fFocus:true );
-                    return( true );
+                    e.Handled = true;
+                    return;
                 case '\u001B': // escape: Just go back to view.
                     _oHost.SetFocusAtCenter();
-                    return( true );
+                    e.Handled = true;
+                    return;
             }
-            return( false );
+            base.OnKeyPress( e );
         }
 
         protected void GotoView( bool fFocus ) {
 			try {
-                _oHost.ViewSelect( _oDoc_Views[_oViewText.Caret.RowIndex], fFocus );
+                _oHost.ViewSelect( _oDoc_Views[Caret.RowIndex], fFocus );
 			} catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( IndexOutOfRangeException ),
@@ -794,7 +781,7 @@ namespace Mjolnir {
 
         protected void MenuCloseViewCommand( object s, EventArgs e ) {
 			try {
-				_oHost.ViewClose( _oDoc_Views[_oViewText.Caret.RowIndex] );
+				_oHost.ViewClose( _oDoc_Views[Caret.RowIndex] );
 			} catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( IndexOutOfRangeException ),
@@ -806,9 +793,10 @@ namespace Mjolnir {
 			}
         }
 
-        public override void Dispose() {
-            _oViewControl.Dispose();
+        protected override void Dispose( bool disposing ) {
             _oHost.ViewChanged -= OnHost_ViewChanged;
+
+            base.Dispose( disposing );
         }
-    }
+    } // End class
 }

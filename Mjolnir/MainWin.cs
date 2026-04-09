@@ -19,9 +19,6 @@ using Play.Edit;
 using Play.Parse;
 using Play.Forms;
 using Play.Controls;
-using Play.Clock;
-
-using static Mjolnir.Program;
 
 namespace Mjolnir {
     /// <summary>
@@ -79,13 +76,13 @@ namespace Mjolnir {
   
 		ViewSlot _oSelectedWinSite = null;
         IDocSlot _oSelectedDocSite = null;
-
         protected DocSlot        _oSlot_ViewSelectorDoc;
         protected EditorForViews _oDoc_ViewSelector;
+
         protected bool           _fIsClosing = false;
 		internal  TOPLAYOUT      _eLayout    = TOPLAYOUT.Solo; // Once layout 1&2 are normalized I won't need this.
 
-		protected bool        _fTextInvalid  = true;
+		protected bool           _fTextInvalid  = true;
 
         protected Dictionary<Guid, DecorProperties> _rgStdDecor;
 
@@ -2659,7 +2656,7 @@ namespace Mjolnir {
                 }
                 if( sGuid == GlobalDecor.Views ) {
                     // See ViewSelectorSlot. I want to move that behavior into a EditWindow2 subclass.
-                    EditWindow2 oEditWin = new EditWindow2(oViewSite, _oDoc_ViewSelector, fReadOnly:true, fSingleLine:false);
+                    ViewSelectorList oEditWin = new(oViewSite, _oDoc_ViewSelector, fReadOnly:true, fSingleLine:false);
                         
                     oEditWin.HyperLinks.Add( "ViewSwitch", OnHyperViewSwitch );
                     oEditWin.ToolSelect = 1;
@@ -2680,21 +2677,6 @@ namespace Mjolnir {
             }
 
             return null;
-        }
-
-        /// <summary>
-        /// TODO: While this compiles. The ViewSelectorSlot is 
-        ///       rather complicated. I'd rather the view on the
-        ///       selector use a standard DocSlot.
-        /// </summary>
-        protected void InitializeViewSelectorView() {
-            ViewSelectorSlot oSelectorSite =
-                new ViewSelectorSlot( this,
-                                      _oSlot_ViewSelectorDoc,
-                                      Shepardfind( GlobalDecor.Views ));
-            oSelectorSite.Guest = Decorate( oSelectorSite, GlobalDecor.Views );
-            oSelectorSite.InitNew();
-            DecorAddSolo( GlobalDecor.Views, oSelectorSite.Guest );
         }
 
         /// <summary>
@@ -2720,7 +2702,8 @@ namespace Mjolnir {
 				}
 
                 Guid[] rgSolos = [GlobalDecor.Alerts, GlobalDecor.Results, 
-                                  GlobalDecor.Find,   GlobalDecor.Clock];
+                                  GlobalDecor.Find,   GlobalDecor.Clock,
+                               /* GlobalDecor.Views */];
                 foreach( Guid sDecorGuid in rgSolos ) {
 				    DecorSlot oSlot = new DecorSlot( this, Shepardfind( sDecorGuid ) );
                     oSlot.Guest     = Decorate( oSlot, sDecorGuid );
@@ -2728,8 +2711,6 @@ namespace Mjolnir {
 
 				    DecorAddSolo( sDecorGuid, oSlot.Guest );
                 }
-
-                //InitializeViewSelectorDoc();
             } catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( ArgumentNullException ),
 									typeof( ArgumentException ),
