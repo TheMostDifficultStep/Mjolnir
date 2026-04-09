@@ -44,7 +44,12 @@ namespace Play.Clock {
 
             try {
                 ClockFont = StdUI.FontCacheNew( StdUI.StdFaceAt( StdUIFaces.Segment ), 16, DPI );
-            } catch( ApplicationException ) {
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( ApplicationException ),
+                                    typeof( KeyNotFoundException ) };
+                if( rgErrors.IsUnhandled(oEx ) )
+                    throw;
+
                 ClockFont = StdUI.FontCacheNew( StdUI.StdFaceAt( StdUIFaces.Text ), 16, DPI );
             }
 
