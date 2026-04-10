@@ -2103,12 +2103,16 @@ namespace Mjolnir {
         public SKColor GrammarTextColor( int i ) {
             return _rgGrammarColors[i]._sColor;
         }
-
+        public UInt16 StdFaceAt( Guid eFont ) {
+            try {
+                return _rgStdFaces[eFont];
+            } catch( KeyNotFoundException ) {
+                LogError( "Fonts", "Couldn't find requested face. Returning 'Text'" );
+                return _rgStdFaces[StdUIFaces.Text];
+            }
+        }
         uint IPgStandardUI.StdFontAt( Guid eFont ) {
             return _rgStdFonts[eFont];
-        }
-        public UInt16 StdFaceAt( Guid eFont ) {
-            return _rgStdFaces[eFont];
         }
     } // End class
 

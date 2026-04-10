@@ -45,8 +45,7 @@ namespace Play.Clock {
             try {
                 ClockFont = StdUI.FontCacheNew( StdUI.StdFaceAt( StdUIFaces.Segment ), 16, DPI );
             } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( ApplicationException ),
-                                    typeof( KeyNotFoundException ) };
+                Type[] rgErrors = { typeof( ArgumentOutOfRangeException ) };
                 if( rgErrors.IsUnhandled(oEx ) )
                     throw;
 
