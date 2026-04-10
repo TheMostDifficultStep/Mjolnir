@@ -2683,10 +2683,12 @@ namespace Mjolnir {
         /// These are the addornment windows that are solo. That is, they apply to what ever
         /// document is currently displayed. Adornments that bind to a single document are created
         /// by that document's controller. I might need to modify this concept for my new SQL addornment.
-        /// BUG: If the herder/shepard is for non-solo objects but we pass a null site, we crash!
-        /// BUG: We could migrate this to the IPgCommand pattern and create these decorations on demand
+        /// BUG : If the herder/shepard is for non-solo objects but we pass a null site, we crash!
+        /// TODO: We could migrate this to the IPgCommand pattern and create these decorations on demand
         /// from the main window. Especially since the matches and alerts views aren't typically used.
         /// </summary>
+        /// <remarks>I like having this function called in the load/initnew phase so hopefully we
+        /// can fail gracefully.</remarks>
         protected void InitializeSoloWindows() {
             try {
 				if( _oTopMenu != null ) {

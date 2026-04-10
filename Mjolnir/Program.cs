@@ -1681,8 +1681,6 @@ namespace Mjolnir {
         /// </summary>
         /// <param name="xmlConfig">Fonts will come from the config.</param>
         private void InitializeFonts( MainWin oWindow, XmlDocument xmlConfig ) {
-            SKPoint sDPI = oWindow.MainDisplayInfo.pntDpi;
-
             string strLocalFonts  = Path.Combine( AppDataLocal, @"Microsoft\Windows\Fonts" );
             string strSystemFonts = Path.Combine( OSInstall,    @"fonts" );
 
@@ -1701,6 +1699,12 @@ namespace Mjolnir {
                     LogError( "Fonts", "Couldn't load: " + sFont.Item2 );
                 }
             }
+
+            // TODO: You know. Might make sense to move this portion to the main
+            // window. That way if you have other windows with other DPI you could
+            // potentially cache FONTS on a per window basis. Another reason to
+            // have MainWindow services in addition to Program services...
+            SKPoint sDPI = oWindow.MainDisplayInfo.pntDpi;
 
             foreach( KeyValuePair<Guid, UInt16> oPair in _rgStdFaces ) {
                 _rgStdFonts.Add( oPair.Key, FontCacheNew( oPair.Value, 12, sDPI ) );
@@ -2103,6 +2107,8 @@ namespace Mjolnir {
         public SKColor GrammarTextColor( int i ) {
             return _rgGrammarColors[i]._sColor;
         }
+
+        /// <exception cref="InvalidOperationException">Might happen if dictionary is empty.</exception>
         public UInt16 StdFaceAt( Guid eFont ) {
             try {
                 return _rgStdFaces[eFont];
@@ -2111,6 +2117,11 @@ namespace Mjolnir {
                 return _rgStdFaces[StdUIFaces.Text];
             }
         }
+
+        /// <summary>After loading all the standard faces. We load a standard
+        /// font size (12 point) on that same guid.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Might happen if dictionary is empty.</exception>
         uint IPgStandardUI.StdFontAt( Guid eFont ) {
             return _rgStdFonts[eFont];
         }
