@@ -27,7 +27,7 @@ namespace Play.ImageViewer {
 
         public override object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
             if( sGuid == GlobalDecor.Outline ) {
-                return( new ImageViewIcons( oBaseSite, _oDocumentWalker ) );
+                return( new ViewImageIcons( oBaseSite, _oDocumentWalker ) );
             }
             if( sGuid.Equals( GlobalDecor.Properties ) ) {
                 return( new WindowStandardProperties( oBaseSite, _oDocumentWalker.Properties ) );

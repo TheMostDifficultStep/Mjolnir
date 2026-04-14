@@ -203,7 +203,7 @@ namespace Play.SSTV {
 			//	return new CheckList( oBaseSite, _oDocSSTV.TxModeList );
 			//}
 			if( sGuid.Equals( GlobalDecor.Options ) ) {
-				return new ImageViewIcons( oBaseSite, _oDocSSTV.TxImageList );
+				return new ViewImageIcons( oBaseSite, _oDocSSTV.TxImageList );
 			}
             return base.Decorate( oBaseSite, sGuid );
         }
@@ -352,8 +352,8 @@ namespace Play.SSTV {
         protected string IconResource => "Play.SSTV.Content.icons8_camera.png";
 
 		protected readonly ViewSurface  _wmTxImageComposite; 
-		protected readonly ImageViewIcons   _wmTxViewChoices;
-		protected readonly ImageViewIcons   _wmRxViewChoices;
+		protected readonly ViewImageIcons   _wmTxViewChoices;
+		protected readonly ViewImageIcons   _wmRxViewChoices;
 		protected          WindowTxTools    _wmToolOptions;
 		protected          ViewTxProperties _wmTxProperties;
 
@@ -433,9 +433,9 @@ namespace Play.SSTV {
 			_oSiteView = oSiteView ?? throw new ArgumentNullException( nameof( oSiteView ) );
 			_oDocSSTV  = oDocSSTV  ?? throw new ArgumentNullException( nameof( oDocSSTV  ) );
 
-			_wmTxViewChoices    = new ImageViewIcons( new SSTVWinSlot( this, ChildID.TxImageChoices   ), oDocSSTV.TxImageList );
-			_wmTxImageComposite = new ViewSurface( new SSTVWinSlot( this, ChildID.TxImageComposite ), oDocSSTV.TxBitmapComp );
-			_wmRxViewChoices    = new ImageViewIcons( new SSTVWinSlot( this, ChildID.RxImageChoices   ), oDocSSTV.RxHistoryList );
+			_wmTxViewChoices    = new ViewImageIcons( new SSTVWinSlot( this, ChildID.TxImageChoices   ), oDocSSTV.TxImageList );
+			_wmTxImageComposite = new ViewSurface   ( new SSTVWinSlot( this, ChildID.TxImageComposite ), oDocSSTV.TxBitmapComp );
+			_wmRxViewChoices    = new ViewImageIcons( new SSTVWinSlot( this, ChildID.RxImageChoices   ), oDocSSTV.RxHistoryList );
 
 			_wmTxViewChoices   .Parent = this;
 			_wmTxImageComposite.Parent = this;

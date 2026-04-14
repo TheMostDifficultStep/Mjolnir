@@ -721,7 +721,7 @@ namespace Play.ImageViewer {
 			}
         }
 
-		/// <seealso cref="ImageViewIcons.OnKeyUp"
+		/// <seealso cref="ViewImageIcons.OnKeyUp"
         protected override void OnKeyDown(KeyEventArgs e) {
             if( this.IsDisposed )
                 return;
@@ -786,7 +786,7 @@ namespace Play.ImageViewer {
 
         public override object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
             if( sGuid == GlobalDecor.Outline ) {
-                return new ImageViewIcons( oBaseSite, _oDocWalker );
+                return new ViewImageIcons( oBaseSite, _oDocWalker );
             }
             if( sGuid.Equals( GlobalDecor.Properties ) ) {
                 return new WindowStandardProperties( oBaseSite, _oDocWalker.Properties );

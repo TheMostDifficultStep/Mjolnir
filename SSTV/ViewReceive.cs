@@ -558,7 +558,7 @@ namespace Play.SSTV {
 	/// </summary>
 	public abstract class WindowRxBase : WindowStaggardBase { 
 		protected ViewSingleBmp _wmViewRxImg;
-		protected ImageViewIcons  _wmViewRxHistory;
+		protected ViewImageIcons  _wmViewRxHistory;
 
 		public WindowRxBase( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : 
 			base( oSiteBase, oDocSSTV ) 

@@ -107,7 +107,7 @@ namespace Play.ImageViewer {
         }
     }
 
-    public class ImageViewIcons : ImageViewMulti,
+    public class ViewImageIcons : ImageViewMulti,
         IPgLoad<XmlElement>,
         IPgSave<XmlDocumentFragment>,
         IPgCommandView
@@ -134,9 +134,9 @@ namespace Play.ImageViewer {
 	    protected class DocSlot :
 		    IPgBaseSite
 	    {
-		    protected readonly ImageViewIcons _oHost;
+		    protected readonly ViewImageIcons _oHost;
 
-		    public DocSlot( ImageViewIcons oHost ) {
+		    public DocSlot( ViewImageIcons oHost ) {
 			    _oHost = oHost ?? throw new ArgumentNullException();
 		    }
 
@@ -150,7 +150,7 @@ namespace Play.ImageViewer {
 		    }
 	    } // End class
 
-        public ImageViewIcons( IPgViewSite oBaseSite, ImageWalkerDoc oDoc ) : base( oBaseSite, oDoc ) {
+        public ViewImageIcons( IPgViewSite oBaseSite, ImageWalkerDoc oDoc ) : base( oBaseSite, oDoc ) {
             Cursor = Cursors.Hand;
 
 			try {
@@ -764,7 +764,7 @@ namespace Play.ImageViewer {
         }
     } // end class
 
-    public class ViewImageIconsMain : ImageViewIcons {
+    public class ViewImageIconsMain : ViewImageIcons {
 		// Since ONLY the main ViewIcons window in the center has this open solo view behavior, where
 		// the decor window does not, I think it's ok to have the dependency be on the view's site.
         protected readonly IPgShellSite _oSiteShell;
@@ -793,7 +793,7 @@ namespace Play.ImageViewer {
     class TextWinReadOnly : EditWindow2 {
         Navigation _oNavDelegate;
 
-        public TextWinReadOnly( IPgViewSite oBaseSite, ImageViewIcons oViewOwner ) :
+        public TextWinReadOnly( IPgViewSite oBaseSite, ViewImageIcons oViewOwner ) :
 			base( oBaseSite, oViewOwner.Document.FileList )
         {
             Cursor   = Cursors.Hand;

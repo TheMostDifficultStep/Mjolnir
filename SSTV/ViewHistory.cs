@@ -39,8 +39,8 @@ namespace Play.SSTV {
         public IPgParent Services  => Parentage.Services;
 
         //protected WindowSoloImageNav _wmViewRxHistorySelected;
-		protected ImageViewIcons     _wmViewRxHistory;
-        protected ImageViewIcons     _wnViewTxImages;
+		protected ViewImageIcons     _wmViewRxHistory;
+        protected ViewImageIcons     _wnViewTxImages;
 
 		protected readonly LayoutStack _oLayout = new LayoutStackHorizontal() { Spacing = 5 };
 
@@ -365,7 +365,7 @@ namespace Play.SSTV {
         public IPgParent Services  => Parentage.Services;
 
         protected WindowSoloImageNav _wmViewRxHistorySelected;
-        protected ImageViewIcons     _wmViewRxHistoryClxn;
+        protected ViewImageIcons     _wmViewRxHistoryClxn;
 
         /// <summary>
 	    /// This viewer shows a subset of all SSTV Properties. Those for the Receiver only.
