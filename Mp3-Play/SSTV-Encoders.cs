@@ -27,7 +27,7 @@ namespace Play.Sound {
     /// </summary>
     public class GenerateScottie : SSTVGenerator {
         /// <exception cref="ArgumentOutOfRangeException" />
-        public GenerateScottie( SKBitmap oBitmap, IPgModulator oModulator, SSTVMode oMode ) : 
+        public GenerateScottie( SKColor[,]  oBitmap, IPgModulator oModulator, SSTVMode oMode ) : 
             base( oBitmap, oModulator, oMode )
         {
         }
@@ -87,7 +87,7 @@ namespace Play.Sound {
 
     public class GeneratePasokon : SSTVGenerator {
 
-        public GeneratePasokon( SKBitmap oBitmap, IPgModulator oModulator, SSTVMode oMode ) : 
+        public GeneratePasokon( SKColor[,]  oBitmap, IPgModulator oModulator, SSTVMode oMode ) : 
             base( oBitmap, oModulator, oMode )
         {
         }
@@ -138,7 +138,7 @@ namespace Play.Sound {
     /// <remarks>Historical note. Martin was invented after Scottie.</remarks>
     public class GenerateMartin : SSTVGenerator {
         /// <exception cref="ArgumentOutOfRangeException" />
-        public GenerateMartin( SKBitmap oBitmap, IPgModulator oModulator, SSTVMode oMode ) : 
+        public GenerateMartin( SKColor[,]  oBitmap, IPgModulator oModulator, SSTVMode oMode ) : 
             base( oBitmap, oModulator, oMode )
         {
         }
@@ -197,7 +197,7 @@ namespace Play.Sound {
             public byte BY;
         }
 
-        protected SSTVCrCbYGenerator(SKBitmap oBitmap, IPgModulator oModulator, SSTVMode oMode) : 
+        protected SSTVCrCbYGenerator(SKColor[,] oBitmap, IPgModulator oModulator, SSTVMode oMode) : 
             base(oBitmap, oModulator, oMode) 
         {
         }
@@ -232,7 +232,7 @@ namespace Play.Sound {
         /// 422 generator (I think). One horzontal luminance for one horzontal pixel,
         /// Two pixels shared per color horzontal. 1/2 color rez.
         /// </summary>
-        public GenerateRobot422( SKBitmap oBitmap, IPgModulator oModulator, SSTVMode oMode ) : 
+        public GenerateRobot422( SKColor[,]  oBitmap, IPgModulator oModulator, SSTVMode oMode ) : 
             base( oBitmap, oModulator, oMode )
         {
         }
@@ -293,7 +293,7 @@ namespace Play.Sound {
         /// Two pixels shared per color horzontal. 1/2 color rez. AND two pixels shared
         /// per vertical!
         /// </summary>
-        public GenerateRobot420( SKBitmap oBitmap, IPgModulator oModulator, SSTVMode oMode ) : 
+        public GenerateRobot420( SKColor[,]  oBitmap, IPgModulator oModulator, SSTVMode oMode ) : 
             base( oBitmap, oModulator, oMode )
         {
         }
@@ -355,7 +355,7 @@ namespace Play.Sound {
     /// </summary>
     public class GeneratePD : SSTVCrCbYGenerator {
         /// <exception cref="ArgumentOutOfRangeException" />
-        public GeneratePD( SKBitmap oBitmap, IPgModulator oModulator, SSTVMode oMode ) : 
+        public GeneratePD( SKColor[,] oBitmap, IPgModulator oModulator, SSTVMode oMode ) : 
             base( oBitmap, oModulator, oMode )
         {
         }
@@ -431,7 +431,7 @@ namespace Play.Sound {
     } 
 
     public class GenerateBW : SSTVCrCbYGenerator {
-        public GenerateBW( SKBitmap oBitmap, IPgModulator oModulator, SSTVMode oMode ) : 
+        public GenerateBW( SKColor[,]  oBitmap, IPgModulator oModulator, SSTVMode oMode ) : 
             base( oBitmap, oModulator, oMode )
         {
         }
@@ -452,7 +452,7 @@ namespace Play.Sound {
     }
 
     public class GenerateWWV : SSTVGenerator {
-        public GenerateWWV( SKBitmap oBitmap, IPgModulator oModulator, SSTVMode oMode ) : 
+        public GenerateWWV( SKColor[,] oBitmap, IPgModulator oModulator, SSTVMode oMode ) : 
             base( oBitmap, oModulator, oMode )
         {
         }

@@ -1360,11 +1360,12 @@ namespace Play.SSTV {
 
             protected ConcurrentQueue<SSTVMessage> _oBGtoFGQueue;
 
-            public TxState( SSTVMode oMode, double dblSampFreq, int iGain, int iDevice, SKBitmap skBitmap, ConcurrentQueue<SSTVMessage> oBGtoFGQueue ) {
+            public TxState( SSTVMode oMode, double dblSampFreq, int iGain, int iDevice, 
+                            SKColor[,]  rgBitmap, ConcurrentQueue<SSTVMessage> oBGtoFGQueue ) {
                 if( oMode == null )
                     throw new ArgumentNullException( nameof( oMode ) );
-                if( skBitmap == null )
-                    throw new ArgumentNullException( nameof( skBitmap ) );
+                if( rgBitmap == null )
+                    throw new ArgumentNullException( nameof( rgBitmap ) );
 
                 _oBGtoFGQueue = oBGtoFGQueue ?? throw new ArgumentNullException( nameof( oBGtoFGQueue ) );
 
@@ -1376,23 +1377,23 @@ namespace Play.SSTV {
 
 				switch( oMode.TvFamily ) {
 					case TVFamily.PD:
-						_oSSTVGenerator = new GeneratePD      ( skBitmap, _oSSTVModulator, oMode ); break;
+						_oSSTVGenerator = new GeneratePD      ( rgBitmap, _oSSTVModulator, oMode ); break;
 					case TVFamily.Martin:
-						_oSSTVGenerator = new GenerateMartin  ( skBitmap, _oSSTVModulator, oMode ); break;
+						_oSSTVGenerator = new GenerateMartin  ( rgBitmap, _oSSTVModulator, oMode ); break;
 					case TVFamily.Scottie:
-						_oSSTVGenerator = new GenerateScottie ( skBitmap, _oSSTVModulator, oMode ); break;
+						_oSSTVGenerator = new GenerateScottie ( rgBitmap, _oSSTVModulator, oMode ); break;
 					case TVFamily.BW:
-						_oSSTVGenerator = new GenerateBW      ( skBitmap, _oSSTVModulator, oMode ); break;
+						_oSSTVGenerator = new GenerateBW      ( rgBitmap, _oSSTVModulator, oMode ); break;
                     case TVFamily.Pasokon:
-                        _oSSTVGenerator = new GeneratePasokon ( skBitmap, _oSSTVModulator, oMode ); break;
+                        _oSSTVGenerator = new GeneratePasokon ( rgBitmap, _oSSTVModulator, oMode ); break;
                     case TVFamily.Robot:
                         switch( oMode.LegacyMode ) {
                             case AllSSTVModes.smR72:
                             case AllSSTVModes.smR24:
-                                _oSSTVGenerator = new GenerateRobot422( skBitmap, _oSSTVModulator, oMode ); 
+                                _oSSTVGenerator = new GenerateRobot422( rgBitmap, _oSSTVModulator, oMode ); 
                                 break;
                             case AllSSTVModes.smR36:
-                                _oSSTVGenerator = new GenerateRobot420( skBitmap, _oSSTVModulator, oMode );
+                                _oSSTVGenerator = new GenerateRobot420( rgBitmap, _oSSTVModulator, oMode );
                                 break;
                             default:
 						        throw new ArgumentOutOfRangeException( nameof( oMode ) );
@@ -1505,7 +1506,7 @@ namespace Play.SSTV {
             }
             SSTVMode oMode = TxSSTVModeDoc.SelectedMode;
 
-            if( oMode == null || TxBitmapComp.Bitmap == null ) {
+            if( oMode == null || !TxBitmapComp.IsImageValid ) {
                 LogError( "Transmit mode or image is not set." ); 
                 return;
             }
@@ -1528,13 +1529,13 @@ namespace Play.SSTV {
             }
 
             void oTransmitAction() {
-                SKBitmap bmpCopy = TxBitmapComp.Bitmap.Copy();
-                double   dblFreq = Properties.ValueGetAsDbl(SSTVProperties.Names.Std_Frequency);
-                TxState   oState = null;
+                SKColor[,] bmpCopy = TxBitmapComp.SnapShot();
+                double     dblFreq = Properties.ValueGetAsDbl(SSTVProperties.Names.Std_Frequency);
+                TxState    oState  = null;
                 try {
-                    oState = new TxState(oMode, dblFreq, MicrophoneGain,
-                                            PortTxList.CheckedLine.At,
-                                            bmpCopy, _rgBGtoUIQueue);
+                    oState = new TxState( oMode, dblFreq, MicrophoneGain,
+                                          PortTxList.CheckedLine.At,
+                                          bmpCopy, _rgBGtoUIQueue);
                 } catch( Exception oEx ) {
                     // BUG: sometimes the device list needs updating.
                     Type[] rgErrors = { typeof( BadDeviceIdException ),
@@ -1546,7 +1547,6 @@ namespace Play.SSTV {
 
                     //LogError( "Problem talking to device." );
                     //Need to send a message.
-                    bmpCopy.Dispose();
 
                     return;
                 }
@@ -1561,8 +1561,6 @@ namespace Play.SSTV {
                 }
                 if( StateTx == true )
                     Thread.Sleep(1000); // Let the buffer bleed out a little.
-
-                bmpCopy.Dispose();
             }
 
             _oTxTask = new Task( oTransmitAction );
@@ -1973,12 +1971,14 @@ namespace Play.SSTV {
                         _oSSTVBuffer      = new BufferSSTV( oTxSpec );
 					    _oSSTVDeModulator = oDemodTst;
 					    _oSSTVModulator   = new SSTVMOD ( 0, oFFTMode.SampFreq, _oSSTVBuffer );
-					    _oRxSSTV          = new SSTVDraw( _oSSTVDeModulator, oDoc.SyncImage.Bitmap, oDoc.DisplayImage.Bitmap, oDoc.RxThreadCnt );
+					    _oRxSSTV          = new SSTVDraw( _oSSTVDeModulator, oDoc.SyncImage.Bitmap, 
+                                                          oDoc.DisplayImage.Bitmap, oDoc.RxThreadCnt );
 
+                        SKColor[,] rgSnap = oDoc.TxBitmapComp.SnapShot();
 					    _oSSTVGenerator = oMode.TvFamily switch {
-						    TVFamily.PD      => new GeneratePD     ( oDoc.TxBitmapComp.Bitmap, oDemodTst, oMode ),
-						    TVFamily.Martin  => new GenerateMartin ( oDoc.TxBitmapComp.Bitmap, oDemodTst, oMode ),
-						    TVFamily.Scottie => new GenerateScottie( oDoc.TxBitmapComp.Bitmap, oDemodTst, oMode ),
+						    TVFamily.PD      => new GeneratePD     ( rgSnap, oDemodTst, oMode ),
+						    TVFamily.Martin  => new GenerateMartin ( rgSnap, oDemodTst, oMode ),
+						    TVFamily.Scottie => new GenerateScottie( rgSnap, oDemodTst, oMode ),
 
 						    _ => throw new ArgumentOutOfRangeException("Unrecognized Mode Type."),
 					    };

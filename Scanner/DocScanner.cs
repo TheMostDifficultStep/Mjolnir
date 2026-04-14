@@ -1,62 +1,57 @@
 ﻿using System.Collections.Generic;
-using System.Threading.Tasks;
 using System.Collections.ObjectModel;
+using System.Threading.Tasks;
 
 using Play.ImageViewer;
 using Play.Interfaces.Embedding;
-
-// was trying out libusbdotnet. But it doesn't work with my epson scanner. :-/
-//using LibUsbDotNet;
-//using LibUsbDotNet.Info;
-//using LibUsbDotNet.Main;
+using Play.Drawing;
 
 namespace Scanner {
     public class DocScanner :
-        ImageSoloDoc,
-        IPgLoad<BinaryReader>
+        ImageBaseDoc,
+        IPgLoad<TextReader>
     {
+        HttpClient oHttpClient = new HttpClient();
+
+        public class StdJob {
+            public int    xResolution        = 300;
+            public int    yResolution        = 300;
+            public int    xStart             = 0;    
+            public int    yStart             = 0;
+            public int    width              = 2550; 
+            public int    height             = 3300;
+            public string documentFormat     = "image/jpeg"; 
+            public int    compressionQFactor = 25;
+            public string colorMode          = "RGB24";  
+            public int    bitDepth           = 8; 
+            public int    gamma              = 1000; 
+            public int    brightness         = 1000; 
+            public int    contrast           = 1000;
+            public int    highlight          = 179; 
+            public int    shadow             = 25; 
+
+            public StdJob() {
+            }
+        }
+
         public DocScanner(IPgBaseSite oSiteBase) : base(oSiteBase) {
         }
 
-        //public static UsbDevice MyUsbDevice;
+        public override void Dispose() {
+            oHttpClient.Dispose();
+            base.Dispose();
+        }
 
-        // https://libusbdotnet.sourceforge.net/V2/Index.html
 		protected override bool Initialize() {
-            //List<string> rgResults = new List<string>();
-
-            //// Alas, my scanner does not show up in this list. It seems to
-            //// use usbscan.sys instead of winusb.sys like my tablet does. 
-            //// Dump all devices and descriptor information to console output.
-            //UsbRegDeviceList allDevices = UsbDevice.AllDevices;
-            //foreach (UsbRegistry usbRegistry in allDevices) {
-            //    if (usbRegistry.Open(out MyUsbDevice)) {
-            //        rgResults.Add(MyUsbDevice.Info.ToString());
-            //        for (int iConfig = 0; iConfig < MyUsbDevice.Configs.Count; iConfig++)
-            //        {
-            //            UsbConfigInfo configInfo = MyUsbDevice.Configs[iConfig];
-            //            rgResults.Add(configInfo.ToString());
-
-            //            ReadOnlyCollection<UsbInterfaceInfo> interfaceList = configInfo.InterfaceInfoList;
-            //            for (int iInterface = 0; iInterface < interfaceList.Count; iInterface++)
-            //            {
-            //                UsbInterfaceInfo interfaceInfo = interfaceList[iInterface];
-            //                rgResults.Add(interfaceInfo.ToString());
-
-            //                ReadOnlyCollection<UsbEndpointInfo> endpointList = interfaceInfo.EndpointInfoList;
-            //                for (int iEndpoint = 0; iEndpoint < endpointList.Count; iEndpoint++)
-            //                {
-            //                    rgResults.Add(endpointList[iEndpoint].ToString());
-            //                }
-            //            }
-            //        }
-            //    }
-            //}
-
 
  			return true;
 		}
 
-        public bool Load(BinaryReader oStream) {
+        public bool Load(TextReader oStream) {
+            return Initialize();
+        }
+
+        public bool InitNew() {
             return Initialize();
         }
     } // end class

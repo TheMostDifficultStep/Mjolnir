@@ -14,7 +14,7 @@ namespace Scanner {
         }
 
         public override IDisposable? CreateDocument( IPgBaseSite oSite, string strExtension ) {
-			if( strExtension.ToLower() == ".scan" ) {
+			if( strExtension.Equals(".scan", StringComparison.CurrentCultureIgnoreCase) ) {
 				return new DocScanner( oSite );
 			}
 
@@ -23,11 +23,11 @@ namespace Scanner {
 
         public override IDisposable CreateView( IPgViewSite oBaseSite, object oDocument, Guid guidViewType ) {
 			try {
-                DocScanner oDocNetHost = (DocScanner)oDocument;
+                DocScanner oDocScanner = (DocScanner)oDocument;
 
                 switch( guidViewType ) {
                     default:
-                        return new WindowSoloImage(oBaseSite, oDocNetHost );
+                        return new WindowSoloImage(oBaseSite, oDocScanner );
                 }
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),

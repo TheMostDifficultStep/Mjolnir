@@ -8,6 +8,7 @@ using SkiaSharp;
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Edit;
+using Play.Drawing;
 
 namespace Play.ImageViewer {
 
@@ -230,7 +231,7 @@ namespace Play.ImageViewer {
     /// document.
     /// </summary>
     public class DocImageEdit : 
-        ImageSoloDoc,
+        ImageSurfaceDoc,
         IEnumerable<SmartRect>
     {
         protected          bool           _fDisposed = false;
@@ -269,10 +270,7 @@ namespace Play.ImageViewer {
             Layers  = new Editor( new DocSite( this ) );
         }
 
-        protected override bool Initialize() {
-            if( !base.Initialize() )
-                return false;
-
+        protected bool Initialize() {
             if( !Text.InitNew() )
                 return false;
             if( !Layers.InitNew() )
@@ -294,8 +292,8 @@ namespace Play.ImageViewer {
             return true;
         }
 
-        public override bool InitNew() {
-            return base.InitNew();
+        public bool InitNew() {
+            return Initialize();
         }
 
         public override void Dispose() {
@@ -312,17 +310,56 @@ namespace Play.ImageViewer {
         /// <param name="szDestSize"></param>
         /// <returns></returns>
 		public bool Load( SKSizeI szDestSize ) {
-            if( Bitmap != null && Bitmap.Width == szDestSize.Width && Bitmap.Height == szDestSize.Height ) {
+            // Reuse image if new render is the same size.
+            if( IsImageValid
+                && ImageSize.Width  == szDestSize.Width 
+                && ImageSize.Height == szDestSize.Height ) {
                 // Kind of weird I need to do this since I always render after the bitmap
                 // is loaded. Take another look at this some time.
 				Raise_ImageUpdated();
                 return true;
             }
 
-			BitmapDispose();
+			try {
+                SKImageInfo oInfo = new SKImageInfo() { 
+                        Width     = szDestSize.Width, 
+                        Height    = szDestSize.Height, 
+                        ColorType = SKColorType.Rgba8888, 
+                        AlphaType = SKAlphaType.Opaque };
+
+				Surface = SKSurface.Create( oInfo );
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( ArgumentException ),
+									typeof( ArgumentNullException ),
+									typeof( NullReferenceException ) };
+				if( rgErrors.IsUnhandled( oEx ) )
+					throw;
+
+				return false;
+			} finally {
+				Raise_ImageUpdated();
+			}
+
+			return true;
+		}
+
+        /// <summary>
+        /// Load our surface from the given image. Use an Rgba8888 image to be compatible
+        /// with my text printing system.
+        /// </summary>
+        /// <param name="srcImage"  >source image</param>
+        /// <param name="rcSrce"    >portion of the source image.</param>
+        /// <param name="szDestSize">Size of destination bitmap to create.</param>
+		public bool Load( SKImage srcImage, SKRectI rcSrce, SKSizeI szDestSize ) {
+			SmartRect rcDest = new SmartRect( LOCUS.UPPERLEFT, 0, 0, szDestSize.Width, szDestSize.Height );
+
+			Load(szDestSize);
 
 			try {
-				Bitmap = new SKBitmap( szDestSize.Width, szDestSize.Height, SKColorType.Rgba8888, SKAlphaType.Opaque );
+                Surface.Canvas.DrawImage( srcImage, 
+                                          new SKRect( rcSrce.Left, rcSrce.Top, rcSrce.Right, rcSrce.Bottom ),
+                                          new SKRect( rcDest.Left, rcDest.Top, rcDest.Right, rcDest.Bottom ),
+                                          new SKSamplingOptions( SKFilterMode.Linear ) );
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( ArgumentException ),
 									typeof( ArgumentNullException ),
@@ -393,14 +430,14 @@ namespace Play.ImageViewer {
             // TODO: As we are going to be rendering a lot I should probably keep
             // a canvas on the image. But that will add complexity so I'll
             // implement that later.
-            using SKCanvas skCanvas = new SKCanvas( Bitmap );
+            using SKCanvas skCanvas = Surface.Canvas;
             using SKPaint  skPaint  = new SKPaint() { Color = SKColors.Beige };
 
             try {
                 // Note: My text renderer won't make visible text if the bg is transparent!!
-                skCanvas.DrawRect( new SKRect( 0, 0, Bitmap.Width, Bitmap.Height ), skPaint );
+                skCanvas.DrawRect( new SKRect( 0, 0, ImageSize.Width, ImageSize.Height ), skPaint );
 
-                Size szExtent = new Size( Bitmap.Width, Bitmap.Height );
+                Size szExtent = new Size( ImageSize.Width, ImageSize.Height );
 
                 // Clunky but we won't have a lot of objects in here.
                 foreach( SmartRect oRect in this ) {
@@ -458,6 +495,24 @@ namespace Play.ImageViewer {
 
         IEnumerator IEnumerable.GetEnumerator() {
             return GetEnumerator();
+        }
+
+        /// <summary>
+        /// This facility is crude, but it should be sufficient to
+        /// freeze Skywalker for his journy to the emperor.
+        /// </summary>
+        public SKColor[,] SnapShot() {
+            SKImage    oImgSnap  = Surface.Snapshot();
+            SKBitmap   oBmpSnap  = SKBitmap.FromImage( oImgSnap );
+            SKColor[,] rgClrSnap = new SKColor[ oImgSnap.Width, oImgSnap.Height ];
+
+            for( int y = 0; y < ImageSize.Height; ++y ) {
+                for( int x = 0; x < ImageSize.Width; ++x ) {
+                    rgClrSnap[x,y] = oBmpSnap.GetPixel( x, y );
+                }
+            }
+
+            return rgClrSnap;
         }
     }
 }

@@ -83,24 +83,22 @@ namespace Play.Drawing {
 		bool    IsImageValid { get; }
 		SKSizeI ImageSize    { get; }
 
-        SKRectI WorldDisplay { get; }
+        SKRectI WorldDisplay { get; } // BUG: Should this really be here!!
 
 		event ImageUpdatedEvent ImageUpdated;
-
-        void ImageClear();
 	}
 
-	public class ImageBaseDoc :
+    public abstract class  ImageContainer :
 		IPgParent,
 		IDisposable,
         IPgImageDocument
-	{
+    {
+		protected readonly string      _strImageUnknown = @"Drawing.Content.icons8-error-48.png";
         protected readonly IPgBaseSite _oSiteBase;
-        protected          SKImage     _oSKImageError;    // New error bitmap. >_<;;
-		protected readonly string      _strUnknownImage = @"Drawing.Content.icons8-error-48.png";
-        private            SKBitmap    _skBitmap;
         protected          SKRectI     _skWorldDisplay;
-
+		public IPgParent Parentage => _oSiteBase.Host;
+		public IPgParent Services  => Parentage.Services;
+        public SKImage   ErrorBmp { get; }
 
         public static readonly Type[] _rgBmpLoadErrs = { 
 			typeof( NullReferenceException ),
@@ -122,37 +120,12 @@ namespace Play.Drawing {
             typeof( System.Net.Sockets.SocketException )
 		};
 
-		public IPgParent Parentage   => _oSiteBase.Host;
-		public IPgParent Services    => Parentage.Services;
-
-        /// <summary>
-        /// Set the bitmap to display. NOTE: Previous bitmap will be Disposed!!
-        /// (If it exists and is not the same bitmap as present)
-        /// </summary>
-		public SKBitmap Bitmap { 
-            get { return _skBitmap; }
-            set { 
-                if( value != _skBitmap ) {
-                    if( _skBitmap != null ) {
-                        _skBitmap.Dispose();
-                    }
-
-                    _skBitmap = value;
-
-                    if( _skBitmap != null ) {
-                        WorldDisplay = new SKRectI( 0, 0, _skBitmap.Width, _skBitmap.Height );
-                    } else {
-                        WorldDisplay = new SKRectI( 0, 0, 0, 0 );
-                    }
-                }
-		    }
+        public ImageContainer( IPgBaseSite oSiteBase) {
+            _oSiteBase = oSiteBase ?? throw new ArgumentNullException();
+		    ErrorBmp   = GetSKImageResource( Assembly.GetExecutingAssembly(), _strImageUnknown ) ?? throw new InvalidOperationException( "Couldn't Load Error SKBitmap" );
         }
 
-        public bool IsImageValid => _skBitmap != null;
-        public SKSizeI ImageSize => new SKSizeI( _skBitmap.Width, _skBitmap.Height );
-
-        public void ImageClear() {
-        }
+        public abstract void Dispose();
 
         /// <summary>
         /// The portion of the bitmap we want to show.
@@ -168,25 +141,20 @@ namespace Play.Drawing {
         public SKSizeI Size {
             get { return _skWorldDisplay.Size; }
         }
-        
-        public SKImage ErrorBmp => _oSKImageError;
+
+        public abstract bool IsImageValid { get; }
+
+        public abstract SKSizeI ImageSize { get; }
 
         public event ImageUpdatedEvent ImageUpdated;
 
-        public ImageBaseDoc( IPgBaseSite oSiteBase ) {
-            _oSiteBase = oSiteBase ?? throw new ArgumentNullException();
+		public virtual void Raise_ImageUpdated() {
+            ImageUpdated?.Invoke();
+        }
 
-            try {
-				_oSKImageError = GetSKImageResource(  Assembly.GetExecutingAssembly(), _strUnknownImage ) ?? throw new InvalidOperationException( "Couldn't Load Error SKBitmap" );
-            } catch( InvalidOperationException ) {
-                Type[] rgErrors = { typeof( InvalidOperationException ),
-                                    typeof( FileNotFoundException ) };
-                _oSiteBase.LogError( "Image Base Constructor", "Having trouble finding error bitmap resource." );
-            }
+		public virtual bool Execute( Guid sGuid ) {
+			return false;
 		}
-
-        public float Aspect => (float)_skBitmap.Width / (float)_skBitmap.Height;
-
         /// <summary>
         /// We'll pack this out to the embedding interfaces after I get it going in this project.
         /// </summary>
@@ -214,23 +182,6 @@ namespace Play.Drawing {
 			}
 		}
 
-		public virtual void Dispose() {
-            Bitmap  ?.Dispose();
-            ErrorBmp?.Dispose();
-		}
-
-		protected virtual bool Initialize() {
-			return true;
-		}
-
-		public virtual void Raise_ImageUpdated() {
-            ImageUpdated?.Invoke();
-        }
-
-		public virtual bool Execute( Guid sGuid ) {
-			return( false );
-		}
-
         /// <summary>
         /// Use Assembly.GetExecutingAssembly() in order to get the assembly
         /// of the running code where the resource you want lives.
@@ -244,6 +195,86 @@ namespace Play.Drawing {
             string strRes = oAsm.GetName().Name + ".Content." + strName;
 
 			return SKImageResourceHelper.GetImageResource( oAsm, strRes );
+		}
+
+    }
+
+    public class ImageSurfaceDoc : ImageContainer {
+        SKSurface _oSurface;
+        public SKSurface Surface { 
+            get { return _oSurface; }
+            set { 
+                    Surface?.Dispose();
+                    _oSurface = value; 
+                    if( _oSurface is not null ) {
+                        WorldDisplay = new SKRectI( 0, 0, 
+                                                    _oSurface.Canvas.DeviceClipBounds.Width, 
+                                                    _oSurface.Canvas.DeviceClipBounds.Height );
+                    } else {
+                        WorldDisplay = new SKRectI( 0, 0, 0, 0 );
+                    }
+                }
+        }
+        public ImageSurfaceDoc( IPgBaseSite oSite ) : base( oSite ) { 
+        }
+
+        public override void Dispose() {
+            Surface?.Dispose();
+        }
+        public override bool IsImageValid => _oSurface is not null;
+
+        public override SKSizeI ImageSize { 
+            get {
+                return new SKSizeI( _oSurface.Canvas.DeviceClipBounds.Width, 
+                                    _oSurface.Canvas.DeviceClipBounds.Height );
+
+            }
+        }
+
+    }
+
+    public class ImageBaseDoc :	ImageContainer
+	{
+        private SKBitmap _skBitmap;
+
+        /// <summary>
+        /// Set the bitmap to display. NOTE: Previous bitmap will be Disposed!!
+        /// (If it exists and is not the same bitmap as present)
+        /// </summary>
+		public SKBitmap Bitmap { 
+            get { return _skBitmap; }
+            set { 
+                if( value != _skBitmap ) {
+                    if( _skBitmap != null ) {
+                        _skBitmap.Dispose();
+                    }
+
+                    _skBitmap = value;
+
+                    if( _skBitmap != null ) {
+                        WorldDisplay = new SKRectI( 0, 0, _skBitmap.Width, _skBitmap.Height );
+                    } else {
+                        WorldDisplay = new SKRectI( 0, 0, 0, 0 );
+                    }
+                }
+		    }
+        }
+
+        public override bool    IsImageValid => _skBitmap != null;
+        public override SKSizeI ImageSize => new SKSizeI( _skBitmap.Width, _skBitmap.Height );
+
+        public ImageBaseDoc( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
+		}
+
+        public float Aspect => (float)_skBitmap.Width / (float)_skBitmap.Height;
+
+		public override void Dispose() {
+            Bitmap  ?.Dispose();
+            ErrorBmp?.Dispose();
+		}
+
+		protected virtual bool Initialize() {
+			return true;
 		}
 
         public void PrintToDefault() {

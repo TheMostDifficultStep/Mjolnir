@@ -42,9 +42,7 @@ namespace Play.ImageViewer {
 						// Supposedly this doesn't actually copy the bits from the surface unless they
 						// change during the lifetime of this image. Sooo... maybe ok for now...
 						// but going to need to consider the SKPath object for a painting program.
-						using SKImage oImageSnap = null;
-
-						throw new NotImplementedException();
+						using SKImage oImageSnap = _oDocEdit.Surface.Snapshot();
 
                         skCanvas.DrawImage( oImageSnap,
 										    new SKRect( _rctWorldPort.Left, _rctWorldPort.Top, _rctWorldPort.Right, _rctWorldPort.Bottom ),

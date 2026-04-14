@@ -364,7 +364,7 @@ namespace Play.Interfaces.Embedding {
     }
 
     public interface IPgController2 {
-        IDisposable CreateDocument( IPgBaseSite oSite, string strExtension );
+        IDisposable? CreateDocument( IPgBaseSite oSite, string strExtension );
 
 		/// <exception cref="InvalidOperationException" />
 		/// <exception cref="ArgumentException" />
@@ -850,7 +850,7 @@ namespace Play.Interfaces.Embedding {
 		public Controller() {
 		}
 
-        public abstract IDisposable CreateDocument( IPgBaseSite oSite, string strExtension );
+        public abstract IDisposable? CreateDocument( IPgBaseSite oSite, string strExtension );
         public abstract IDisposable CreateView( IPgViewSite oViewSite, object oDocument, Guid guidViewType );
 
         public virtual IEnumerator<IPgViewType> GetEnumerator() {

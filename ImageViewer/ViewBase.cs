@@ -374,6 +374,9 @@ namespace Play.ImageViewer {
 			base.Dispose( fDisposing );
 		}
 
+		/// <summary>
+		/// Hmmmm... I put world coords on my base image doc. That's probably wrong.
+		/// </summary>
  		public SmartRect WorldCoordinates {
 			set {
 				_rctWorldPort.Copy = value; 

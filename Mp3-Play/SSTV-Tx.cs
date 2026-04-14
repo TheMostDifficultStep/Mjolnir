@@ -259,19 +259,19 @@ namespace Play.Sound {
     {
         public SSTVMode Mode { get; }
 
-        readonly private   SKBitmap      _oBitmap; // Do not dispose this, caller owns it.
+        readonly private   SKColor[,]    _oBitmap; 
         readonly private   IPgModulator  _oModulator;
         readonly protected List<SKColor> _rgRGBCache = new( 800 ); // Might be better to use an array.
 
-        public SSTVGenerator( SKBitmap oBitmap, IPgModulator oModulator, SSTVMode oMode ) {
+        public SSTVGenerator( SKColor[,] oBitmap, IPgModulator oModulator, SSTVMode oMode ) {
             _oBitmap    = oBitmap    ?? throw new ArgumentNullException( "Bitmap must not be null." );
             _oModulator = oModulator ?? throw new ArgumentNullException( "Modulator must not be null." );
             Mode        = oMode      ?? throw new ArgumentNullException( "SSTV Mode must not be null." );
 
             // These are important since we use the values from the MODE to control transmission.
-            if( oBitmap.Width < oMode.Resolution.Width )
+            if( oBitmap.GetLength(0) < oMode.Resolution.Width )
                 throw new ArgumentOutOfRangeException( "bitmap must be at least wide enough for the mode." );
-            if( oBitmap.Height < oMode.Resolution.Height )
+            if( oBitmap.GetLength(1) < oMode.Resolution.Height )
                 throw new ArgumentOutOfRangeException( "bitmap must be at least high enough for the mode." );
         }
 
@@ -280,7 +280,7 @@ namespace Play.Sound {
 	        return (short)( iIntensity + 1500 );               // offset  0->800 to 1500->2300.
         }
 
-        protected SKColor GetPixel( int x, int y ) => _oBitmap.GetPixel( x, y );
+        protected SKColor GetPixel( int x, int y ) => _oBitmap[ x, y ];
         protected int     Height                   => Mode.Resolution.Height;
         protected int     Width                    => Mode.Resolution.Width;
         public    bool    IsDirty                  => true; // We're always happy to write.

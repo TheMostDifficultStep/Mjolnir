@@ -351,7 +351,7 @@ namespace Play.SSTV {
         public    Guid   Catagory  => GUID;
         protected string IconResource => "Play.SSTV.Content.icons8_camera.png";
 
-		protected readonly ImageViewSingle  _wmTxImageComposite; 
+		protected readonly ViewSoloSurface  _wmTxImageComposite; 
 		protected readonly ImageViewIcons   _wmTxViewChoices;
 		protected readonly ImageViewIcons   _wmRxViewChoices;
 		protected          WindowTxTools    _wmToolOptions;
@@ -433,9 +433,9 @@ namespace Play.SSTV {
 			_oSiteView = oSiteView ?? throw new ArgumentNullException( nameof( oSiteView ) );
 			_oDocSSTV  = oDocSSTV  ?? throw new ArgumentNullException( nameof( oDocSSTV  ) );
 
-			_wmTxViewChoices    = new ImageViewIcons    ( new SSTVWinSlot( this, ChildID.TxImageChoices ),   oDocSSTV.TxImageList );
-			_wmTxImageComposite = new ImageViewSingle   ( new SSTVWinSlot( this, ChildID.TxImageComposite ), oDocSSTV.TxBitmapComp );
-			_wmRxViewChoices    = new ImageViewIcons    ( new SSTVWinSlot( this, ChildID.RxImageChoices ),   oDocSSTV.RxHistoryList );
+			_wmTxViewChoices    = new ImageViewIcons    ( new SSTVWinSlot( this, ChildID.TxImageChoices   ), oDocSSTV.TxImageList );
+			_wmTxImageComposite = new ViewSoloSurface   ( new SSTVWinSlot( this, ChildID.TxImageComposite ), oDocSSTV.TxBitmapComp );
+			_wmRxViewChoices    = new ImageViewIcons    ( new SSTVWinSlot( this, ChildID.RxImageChoices   ), oDocSSTV.RxHistoryList );
 
 			_wmTxViewChoices   .Parent = this;
 			_wmTxImageComposite.Parent = this;
