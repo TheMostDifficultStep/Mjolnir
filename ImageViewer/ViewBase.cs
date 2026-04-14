@@ -92,7 +92,7 @@ namespace Play.ImageViewer {
 			
 		/// <seealso cref="SmartRect.Paint(SKCanvas)"/>
 		/// <seealso cref="LayoutImageReference.Paint(SKCanvas)"/>
-		/// <seealso cref="ImageViewSingle.OnPaintSurface(SKPaintSurfaceEventArgs)"/>
+		/// <seealso cref="ViewSingleBmp.OnPaintSurface(SKPaintSurfaceEventArgs)"/>
 		public override void Paint( SKCanvas skCanvas ) {
 			if( _oDocument.Bitmap == null || Hidden )
                 return;
@@ -117,12 +117,12 @@ namespace Play.ImageViewer {
 	/// <seealso cref="LayoutImage"/>
     /// <seealso cref="LayoutControl"/>
     public class LayoutImageView : LayoutRect {
-		ImageViewSingle _oView;
+		ViewSingleBmp _oView;
 
 		/// <summary>
 		/// You can set Track using a constructor initializers, so this is a better constructor.
 		/// </summary>
-		public LayoutImageView( ImageViewSingle oView, LayoutRect.CSS eCSS ) : base( eCSS, 0, 1 ) {
+		public LayoutImageView( ViewSingleBmp oView, LayoutRect.CSS eCSS ) : base( eCSS, 0, 1 ) {
 			_oView = oView ?? throw new ArgumentNullException();
 
 			this.SizeEvent += OnSizeEvent;
@@ -131,7 +131,7 @@ namespace Play.ImageViewer {
 		/// <summary>
 		/// Share all the available space with the other layout elements.
 		/// </summary>
-		public LayoutImageView( ImageViewSingle oView ) : base( LayoutRect.CSS.None, 0, 1 ) {
+		public LayoutImageView( ViewSingleBmp oView ) : base( LayoutRect.CSS.None, 0, 1 ) {
 			_oView = oView ?? throw new ArgumentNullException();
 
 			this.SizeEvent += OnSizeEvent;
@@ -452,10 +452,11 @@ namespace Play.ImageViewer {
 	/// There is no navigation control. In the future we would like inherit to from SmartRect.
 	/// But that might not be possible for a variety of reasons.
 	/// </summary>
-	public class ImageViewSingle : ViewSinglePerportional {
+	/// <seealso cref="ViewSurface"/>
+	public class ViewSingleBmp : ViewSinglePerportional {
 		public ImageBaseDoc Document { get; }
 
-		public ImageViewSingle( IPgViewSite oSiteView, ImageBaseDoc oDocSolo ) : base( oSiteView, oDocSolo ) {
+		public ViewSingleBmp( IPgViewSite oSiteView, ImageBaseDoc oDocSolo ) : base( oSiteView, oDocSolo ) {
 			Document = oDocSolo ?? throw new ArgumentNullException( "Document must not be null." );
 		}
 
@@ -540,7 +541,7 @@ namespace Play.ImageViewer {
         }
 	}
 
-	public class ImageViewButton : ImageViewSingle {
+	public class ImageViewButton : ViewSingleBmp {
 		public Guid CommandClick     { get; set; }
 		public Guid CommandWheelUp   { get; set; }
 		public Guid CommandWheelDown { get; set; }
@@ -573,7 +574,7 @@ namespace Play.ImageViewer {
 	}
 
     public class ImageViewTextCompositor : 
-		ImageViewSingle,
+		ViewSingleBmp,
 		IPgTools
 	{
 		protected enum TCTools : int {

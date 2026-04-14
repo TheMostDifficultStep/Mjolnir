@@ -16,12 +16,17 @@ using Play.Interfaces.Embedding;
 using Play.Rectangles;
 
 namespace Play.ImageViewer {
-	public class ViewCompositor : ViewSinglePerportional {
-		readonly DocImageEdit _oDocEdit;
-		public ViewCompositor( IPgViewSite oSiteView, DocImageEdit oDocBase ) :
+
+	/// <summary>
+	/// Viewer for a surface centric document.
+	/// </summary>
+	/// <seealso cref="ViewSingleBmp"/>
+	public class ViewSurface : ViewSinglePerportional {
+		readonly DocSurfaceImage _oDocSurface;
+		public ViewSurface( IPgViewSite oSiteView, DocImageEdit oDocBase ) :
 			base( oSiteView, oDocBase ) 
 		{
-			_oDocEdit = oDocBase;
+			_oDocSurface = oDocBase;
 		}
         protected override void OnPaintSurface( SKPaintSurfaceEventArgs e ) {
             base.OnPaintSurface(e);
@@ -38,11 +43,11 @@ namespace Play.ImageViewer {
 				skCanvas.DrawRect( e.Info.Rect, skPaint );
 
                 try {
-                    if( _oDocEdit.IsImageValid ) {
+                    if( _oDocSurface.IsImageValid ) {
 						// Supposedly this doesn't actually copy the bits from the surface unless they
 						// change during the lifetime of this image. Sooo... maybe ok for now...
 						// but going to need to consider the SKPath object for a painting program.
-						using SKImage oImageSnap = _oDocEdit.Surface.Snapshot();
+						using SKImage oImageSnap = _oDocSurface.Surface.Snapshot();
 
                         skCanvas.DrawImage( oImageSnap,
 										    new SKRect( _rctWorldPort.Left, _rctWorldPort.Top, _rctWorldPort.Right, _rctWorldPort.Bottom ),
@@ -69,7 +74,7 @@ namespace Play.ImageViewer {
 	}
 
 	public class WindowSoloImage : 
-		ImageViewSingle,
+		ViewSingleBmp,
         IPgLoad<XmlElement>,
         IPgSave<XmlDocumentFragment>,
 		IPgCommandView

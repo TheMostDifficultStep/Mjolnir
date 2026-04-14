@@ -23,7 +23,7 @@ namespace Play.MusicWalker {
         readonly IPgViewNotify _oViewEvents;
 
 		EditWindow2     ViewAlbumSongs { get; }
-		ImageViewSingle ViewAlbumArt   { get; }
+		ViewSingleBmp ViewAlbumArt   { get; }
 
 		public IPgParent Parentage => _oViewSite.Host; 
 		public IPgParent Services  => _oHost.Services;
@@ -54,7 +54,7 @@ namespace Play.MusicWalker {
 			_oViewEvents = oViewSite.EventChain ?? throw new ArgumentException( "Site must support EventChain" );
 
 			ViewAlbumSongs = new EditWindow2    ( new MusicAlbumDecorSlot(this), oMusicWin.AlbumCurrent, true, false ) { Wrap = false, ToolSelect=2 };
-			ViewAlbumArt   = new ImageViewSingle( new MusicAlbumDecorSlot(this), oMusicWin.AlbumArtCurrent );
+			ViewAlbumArt   = new ViewSingleBmp( new MusicAlbumDecorSlot(this), oMusicWin.AlbumArtCurrent );
 
 			ViewAlbumSongs.Parent = this;
 			ViewAlbumArt  .Parent = this;

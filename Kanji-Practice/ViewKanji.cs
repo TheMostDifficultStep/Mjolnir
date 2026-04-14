@@ -13,7 +13,7 @@ using SkiaSharp;
 using System.Reflection;
 
 namespace Kanji_Practice {
-    public class ViewScratchPad : ImageViewSingle {
+    public class ViewScratchPad : ViewSingleBmp {
         readonly SKCanvas _oCanvas;
         readonly SKPaint  _oPaint;
         protected SKPoint _pntAspect   = SKPoint.Empty;
@@ -79,7 +79,7 @@ namespace Kanji_Practice {
 
     internal class ViewKanjiProps : WindowStandardProperties {
         protected uint BigFont { get; } 
-        protected ImageViewSingle ViewScratch { get; }
+        protected ViewSingleBmp ViewScratch { get; }
         protected EditWindow2     ViewMeaning { get; }
 
         public ViewKanjiProps( IPgViewSite oSite, KanjiDocument oKanjiDoc ) : 

@@ -231,7 +231,7 @@ namespace Play.ImageViewer {
     /// document.
     /// </summary>
     public class DocImageEdit : 
-        ImageSurfaceDoc,
+        DocSurfaceImage,
         IEnumerable<SmartRect>
     {
         protected          bool           _fDisposed = false;

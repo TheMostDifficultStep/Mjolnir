@@ -199,7 +199,7 @@ namespace Play.Drawing {
 
     }
 
-    public class ImageSurfaceDoc : ImageContainer {
+    public class DocSurfaceImage : ImageContainer {
         SKSurface _oSurface;
         public SKSurface Surface { 
             get { return _oSurface; }
@@ -215,7 +215,7 @@ namespace Play.Drawing {
                     }
                 }
         }
-        public ImageSurfaceDoc( IPgBaseSite oSite ) : base( oSite ) { 
+        public DocSurfaceImage( IPgBaseSite oSite ) : base( oSite ) { 
         }
 
         public override void Dispose() {

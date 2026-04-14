@@ -118,7 +118,7 @@ namespace Play.SSTV {
 				PropertyInitRow( (int)SSTVProperties.Names.Rx_ModeSelect,
 								 new ViewSSTVModesAsList( new WinSlot( this ), SSTVDocument.RxSSTVModeDoc ) );
 				PropertyInitRow( (int)SSTVProperties.Names.Rx_Diagnostic, 
-								 new ImageViewSingle    ( new WinSlot( this ), SSTVDocument.SyncImage ) );
+								 new ViewSingleBmp    ( new WinSlot( this ), SSTVDocument.SyncImage ) );
 				PropertyInitRow( (int)SSTVProperties.Names.Rx_SignalLevel, 
 								 new WinSignalLevel     ( new WinSlot( this ), SSTVDocument.SignalLevel ) );
 
@@ -147,7 +147,7 @@ namespace Play.SSTV {
 	/// This is the original receiver window, and the one I'm using as of 3/16/2023
 	/// </summary>
 	public class WindowSoloRx : 
-		ImageViewSingle, 
+		ViewSingleBmp, 
 		IPgCommandView,
 		IPgSave<XmlDocumentFragment>,
 		IPgLoad<XmlElement>,
@@ -557,7 +557,7 @@ namespace Play.SSTV {
 	/// windows now. This is the base class for these two windows.
 	/// </summary>
 	public abstract class WindowRxBase : WindowStaggardBase { 
-		protected ImageViewSingle _wmViewRxImg;
+		protected ViewSingleBmp _wmViewRxImg;
 		protected ImageViewIcons  _wmViewRxHistory;
 
 		public WindowRxBase( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : 

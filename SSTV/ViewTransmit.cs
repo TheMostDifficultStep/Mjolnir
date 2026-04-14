@@ -80,7 +80,7 @@ namespace Play.SSTV {
 			}
 
 			PropertyInitRow( (int)SSTVProperties.Names.Rx_Window, 
-							 new ImageViewSingle( new WinSlot( this ), _oDocSSTV.DisplayImage )  );
+							 new ViewSingleBmp( new WinSlot( this ), _oDocSSTV.DisplayImage )  );
         }
 
 		/// <summary>
@@ -351,7 +351,7 @@ namespace Play.SSTV {
         public    Guid   Catagory  => GUID;
         protected string IconResource => "Play.SSTV.Content.icons8_camera.png";
 
-		protected readonly ViewCompositor  _wmTxImageComposite; 
+		protected readonly ViewSurface  _wmTxImageComposite; 
 		protected readonly ImageViewIcons   _wmTxViewChoices;
 		protected readonly ImageViewIcons   _wmRxViewChoices;
 		protected          WindowTxTools    _wmToolOptions;
@@ -434,7 +434,7 @@ namespace Play.SSTV {
 			_oDocSSTV  = oDocSSTV  ?? throw new ArgumentNullException( nameof( oDocSSTV  ) );
 
 			_wmTxViewChoices    = new ImageViewIcons( new SSTVWinSlot( this, ChildID.TxImageChoices   ), oDocSSTV.TxImageList );
-			_wmTxImageComposite = new ViewCompositor( new SSTVWinSlot( this, ChildID.TxImageComposite ), oDocSSTV.TxBitmapComp );
+			_wmTxImageComposite = new ViewSurface( new SSTVWinSlot( this, ChildID.TxImageComposite ), oDocSSTV.TxBitmapComp );
 			_wmRxViewChoices    = new ImageViewIcons( new SSTVWinSlot( this, ChildID.RxImageChoices   ), oDocSSTV.RxHistoryList );
 
 			_wmTxViewChoices   .Parent = this;

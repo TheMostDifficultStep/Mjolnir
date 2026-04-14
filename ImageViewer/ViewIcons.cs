@@ -167,7 +167,7 @@ namespace Play.ImageViewer {
 
         /// <remarks>This is just a bit of hackery to get this control to work
         /// in my table layout object.</remarks>
-        /// <seealso cref="ImageViewSingle.GetPreferredSize(Size)"/>
+        /// <seealso cref="ViewSingleBmp.GetPreferredSize(Size)"/>
         public override Size GetPreferredSize(Size proposedSize) {
             proposedSize.Height = 200;
             return proposedSize;
