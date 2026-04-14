@@ -21,10 +21,16 @@ using Play.ImageViewer;
 using Play.Forms;
 
 namespace Play.SSTV {
-    public class SignalLevelDoc {
+
+    /// <summary>
+    /// Control point for the signal level. I'll move the colors
+    /// here in the future. But for now just use the SSTVDEM.Levels
+    /// raw. :-/
+    /// </summary>
+    public class DocSignalLevel {
         SSTVDEM.Levels _oLatest;
 
-        public SignalLevelDoc() {
+        public DocSignalLevel() {
         }
 
         /// <summary>
@@ -44,6 +50,7 @@ namespace Play.SSTV {
 
         public event Action SignalChanged;
     }
+
     /// <summary>
     /// This subclass of the DocProperties let's us have static index values. This is advantageous because it
     /// allows us to re-arrange property values without scrambling their meaning. But it also means you can't
@@ -448,7 +455,7 @@ namespace Play.SSTV {
         // This is where our image and diagnostic image live.
 		public ImageSoloDoc   DisplayImage { get; protected set; }
 		public ImageSoloDoc   SyncImage    { get; protected set; }
-        public SignalLevelDoc SignalLevel  { get; protected set; } 
+        public DocSignalLevel SignalLevel  { get; protected set; } 
 
         // Some test stuff. 
         //private DataTester _oDataTester;
@@ -493,7 +500,7 @@ namespace Play.SSTV {
                           
 			DisplayImage = new ImageSoloDoc( new DocSlot( this ) );
 			SyncImage    = new ImageSoloDoc( new DocSlot( this ) );
-            SignalLevel  = new SignalLevelDoc();
+            SignalLevel  = new DocSignalLevel();
                           
             Properties = new ( _oWorkPlace, new DocSlot( this ) );
             StateRx    = DocSSTVState.Ready;

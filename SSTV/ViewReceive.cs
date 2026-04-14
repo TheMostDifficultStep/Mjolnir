@@ -18,14 +18,18 @@ using Play.Rectangles;
 using Play.Sound;
 
 namespace Play.SSTV {
+
+	/// <summary>
+	/// New signal level displayer. Crisp clean lines.
+	/// </summary>
 	public class WinSignalLevel : 
 		SKControl,
 		IPgLoad
 	{
-		public SignalLevelDoc Document { get; }
+		public DocSignalLevel Document { get; }
 		protected IPgViewSite _oSiteView;
 
-		public WinSignalLevel( IPgViewSite oSiteView, SignalLevelDoc oDoc ) 
+		public WinSignalLevel( IPgViewSite oSiteView, DocSignalLevel oDoc ) 
 		{
 			Document   = oDoc      ?? throw new ArgumentNullException( "Document must not be null." );
 			_oSiteView = oSiteView ?? throw new ArgumentNullException( "Missing site" );
