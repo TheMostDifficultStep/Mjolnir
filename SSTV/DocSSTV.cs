@@ -453,9 +453,9 @@ namespace Play.SSTV {
         protected Mpg123FFTSupport FileDecoder   { get; set; }
 
         // This is where our image and diagnostic image live.
-		public ImageSoloDoc   DisplayImage { get; protected set; }
-		public ImageSoloDoc   SyncImage    { get; protected set; }
-        public DocSignalLevel SignalLevel  { get; protected set; } 
+		public DocDownloadBuffer DisplayImage { get; protected set; }
+		public DocDownloadBuffer SyncImage    { get; protected set; }
+        public DocSignalLevel    SignalLevel  { get; protected set; } 
 
         // Some test stuff. 
         //private DataTester _oDataTester;
@@ -498,8 +498,8 @@ namespace Play.SSTV {
             PortRxList   = new Editor      ( new DocSlot( this ) );
             MonitorList  = new Editor      ( new DocSlot( this ) );
                           
-			DisplayImage = new ImageSoloDoc( new DocSlot( this ) );
-			SyncImage    = new ImageSoloDoc( new DocSlot( this ) );
+			DisplayImage = new ( new DocSlot( this ) );
+			SyncImage    = new ( new DocSlot( this ) );
             SignalLevel  = new DocSignalLevel();
                           
             Properties = new ( _oWorkPlace, new DocSlot( this ) );
@@ -820,15 +820,6 @@ namespace Play.SSTV {
 
             if( !Properties.InitNew() )
                 return false;
-
-            // Largest bitmap needed by any of the types I can decode.
-            SKSizeI szMax = new( 800, 616 );
-		    SyncImage   .Bitmap = new SKBitmap( szMax.Width, szMax.Height, SKColorType.Rgb888x, SKAlphaType.Unknown );
-		    DisplayImage.Bitmap = new SKBitmap( szMax.Width, szMax.Height, SKColorType.Rgb888x, SKAlphaType.Opaque  );
-
-            // Just set it up so it looks ok to start. Gets updated for each image downloaded.
-			DisplayImage.WorldDisplay = new SKRectI( 0, 0, 320,         256 );
-            SyncImage   .WorldDisplay = new SKRectI( 0, 0, szMax.Width, 256 );
 
             SettingsInit(); // Loads up a bunch of properties here.
 
@@ -1745,7 +1736,8 @@ namespace Play.SSTV {
             Properties.ValueUpdate( SSTVProperties.Names.Rx_Progress, "0" );
 
             Action oFileReadAction = delegate () {
-                FileReadingState oWorker = new ( _rgBGtoUIQueue, strFileName, SyncImage.Bitmap, DisplayImage.Bitmap );
+                FileReadingState oWorker = new ( _rgBGtoUIQueue, strFileName, 
+                                                 SyncImage.Buffer, DisplayImage.Buffer );
                 
                 oWorker.DoWork( oMode );
             };
@@ -1862,7 +1854,7 @@ namespace Play.SSTV {
                         dblFreq,
                         iQuality, strSaveDir, String.Empty,
                         _rgBGtoUIQueue, _rgUItoBGQueue,
-                        SyncImage.Bitmap, DisplayImage.Bitmap,
+                        SyncImage.Buffer, DisplayImage.Buffer,
                         RxThreadCnt );
 
                     //PortListening oWorker = new PortListening( 
@@ -1981,8 +1973,10 @@ namespace Play.SSTV {
                         _oSSTVBuffer      = new BufferSSTV( oTxSpec );
 					    _oSSTVDeModulator = oDemodTst;
 					    _oSSTVModulator   = new SSTVMOD ( 0, oFFTMode.SampFreq, _oSSTVBuffer );
-					    _oRxSSTV          = new SSTVDraw( _oSSTVDeModulator, oDoc.SyncImage.Bitmap, 
-                                                          oDoc.DisplayImage.Bitmap, oDoc.RxThreadCnt );
+					    _oRxSSTV          = new SSTVDraw( _oSSTVDeModulator, 
+                                                          oDoc.SyncImage   .Buffer, 
+                                                          oDoc.DisplayImage.Buffer, 
+                                                          oDoc.RxThreadCnt );
 
                         SKColor[,] rgSnap = oDoc.TxBitmapComp.SnapShot();
 					    _oSSTVGenerator = oMode.TvFamily switch {
@@ -2015,8 +2009,8 @@ namespace Play.SSTV {
             /// up the event hooks everytime a new image comes down in the case where I
             /// was alloc'ing TmmSSTV subclasses.</remarks>
             private void OnNextMode_SSTVDeMod( SSTVMode tvMode, SSTVMode tvPrev, int iPrevBase ) {
-			    _oDoc.DisplayImage.Bitmap = null;
-			    _oDoc.SyncImage   .Bitmap = null;
+			    //_oDoc.DisplayImage.Bitmap = null;
+			    //_oDoc.SyncImage   .Bitmap = null;
 
                 _oRxSSTV.OnModeTransition_SSTVDeMo( tvMode, tvPrev, iPrevBase ); // bitmap allocated in here. (may throw exception...)
 

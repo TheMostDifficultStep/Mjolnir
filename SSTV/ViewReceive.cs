@@ -118,7 +118,7 @@ namespace Play.SSTV {
 				PropertyInitRow( (int)SSTVProperties.Names.Rx_ModeSelect,
 								 new ViewSSTVModesAsList( new WinSlot( this ), SSTVDocument.RxSSTVModeDoc ) );
 				PropertyInitRow( (int)SSTVProperties.Names.Rx_Diagnostic, 
-								 new ViewSingleBmp    ( new WinSlot( this ), SSTVDocument.SyncImage ) );
+								 new ViewSingleBmp      ( new WinSlot( this ), SSTVDocument.SyncImage ) );
 				PropertyInitRow( (int)SSTVProperties.Names.Rx_SignalLevel, 
 								 new WinSignalLevel     ( new WinSlot( this ), SSTVDocument.SignalLevel ) );
 

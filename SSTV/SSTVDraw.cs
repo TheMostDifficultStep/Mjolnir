@@ -1,15 +1,64 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections;
-using System.Threading.Tasks;
+﻿using Play.Drawing;
+using Play.Interfaces.Embedding;
+using Play.Sound;
 
 using SkiaSharp;
 
-using Play.Interfaces.Embedding;
-using Play.Sound;
-using System.Runtime.Serialization;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Play.SSTV {
+	/// <summary>
+	/// While a SKBitmap is not the best object to use for display these
+	/// days, it is great for gathering the downloading image. 
+	/// In this manner we can generate the resulting SKImage only as
+	/// we update the scan buffer.
+	/// </summary>
+	public class DocDownloadBuffer :
+		ImageBaseDoc 
+	{
+        public readonly SKSizeI _szMax = new( 800, 616 );
+
+        public DocDownloadBuffer(IPgBaseSite oSiteBase) : base(oSiteBase) {
+        }
+
+		public virtual bool InitNew() {
+            if( !Initialize() )
+                return false;
+
+			SKImageInfo oInfo = new SKImageInfo(_szMax.Width, _szMax.Height, SKColorType.Rgb888x, SKAlphaType.Unknown);
+
+		    Buffer = new SKBitmap( oInfo );
+			Bitmap = new SKBitmap( oInfo );
+			//Raise_BitmapDispose();
+
+            // Just set it up so it looks ok to start. Gets updated for each image downloaded.
+            WorldDisplay = new SKRectI( 0, 0, _szMax.Width, 256 );
+			return true;
+		}
+
+        public SKBitmap Buffer { get; protected set; }
+
+		/// <summary>
+		/// Copy the buffer to the display image. ATM the display is a
+		/// SKBitmap, but I'm going to change it to a SKImage after this
+		/// starts to work.
+		/// </summary>
+		public override void Raise_ImageUpdated() {
+			using SKCanvas oCanvas = new( Bitmap );
+			using SKPaint  oPaint  = new SKPaint();
+
+			SKRect rcSource = new SKRect( WorldDisplay.Left,  WorldDisplay.Top, 
+				                          WorldDisplay.Right, WorldDisplay.Bottom ); 
+
+			oCanvas.DrawBitmap( Buffer, rcSource, rcSource, oPaint );
+
+            base.Raise_ImageUpdated();
+        }
+
+	}
 	public struct SSTVPosition {
 		public double Position { get; init; }
 		public int    ScanLine { get; init; }
