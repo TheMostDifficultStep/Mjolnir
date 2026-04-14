@@ -1,11 +1,11 @@
 ﻿using SkiaSharp;
 
 using Play.Interfaces.Embedding;
-using Play.ImageViewer;
+using Play.Drawing;
 
 namespace Monitor {
     public class DazzleDisplay :
-        ImageSoloDoc
+        DocSurfaceImage
     {
         public enum ImageSizes {
             SixtyFour,
@@ -15,8 +15,15 @@ namespace Monitor {
         public DazzleDisplay( IPgBaseSite oSite ) : base( oSite ) { 
         }
 
+        /// <summary>
+        /// For compat.
+        /// </summary>
+        public bool InitNew() {
+            return true;
+        }
+
         public void SetSize( ImageSizes eSize ) {
-            BitmapDispose();
+            //BitmapDispose();
 
             SKSizeI sSize = new SKSizeI();
 
@@ -30,7 +37,8 @@ namespace Monitor {
             }
 
             // world display is set to the new bitmap size.
-            Bitmap = new SKBitmap( sSize.Width, sSize.Height, SKColorType.Rgba8888, SKAlphaType.Opaque );
+            SKImageInfo oInfo = new SKImageInfo( sSize.Width, sSize.Height, SKColorType.Rgba8888, SKAlphaType.Opaque );
+            Surface = SKSurface.Create( oInfo );
         }
 
         static SKColor[] _rgTest = { 
@@ -67,21 +75,21 @@ namespace Monitor {
         /// <param name="rgMemory"></param>
         /// <param name="iStart"></param>
         public void Load( byte[] rgMemory, int iStart ) {
-            if( Bitmap == null )
+            if( Surface == null )
                 return;
 
             try {
-                int iBmpHalfWidth = Bitmap.Width / 2;
+                int iBmpHalfWidth = ImageSize.Width / 2;
 
                 int a = iStart;
-                for( int y = 0; y < Bitmap.Height; y+=1 ) {
+                for( int y = 0; y < ImageSize.Height; y+=1 ) {
                     for( int i = 0; i < iBmpHalfWidth; i += 1 ) {
                         int x = i<<1;
                         int iLow  = rgMemory[a] & 0x0f;
                         int iHigh = ( rgMemory[a] & 0xf0 ) >> 4;
 
-                        Bitmap.SetPixel( x,   y, GetColor( iLow ) );
-                        Bitmap.SetPixel( x+1, y, GetColor( iHigh ) );
+                        Surface.Canvas.DrawPoint( x,   y, GetColor( iLow ) );
+                        Surface.Canvas.DrawPoint( x+1, y, GetColor( iHigh ) );
 
                         a++;
                     }
@@ -103,12 +111,10 @@ namespace Monitor {
         /// image if we are not using the Dazzler.
         /// </summary>
         public void Clear() {
-            if( Bitmap != null ) {
-                using( SKCanvas skCanvas = new SKCanvas( Bitmap ) ) {
-                    using( SKPaint skPaint = new SKPaint() ) {
-                        skCanvas.DrawColor( SKColors.White );
-                    }
-                }
+            if( Surface != null ) {
+                SKPaint skPaint = new SKPaint();
+                Surface.Canvas.DrawColor( SKColors.White );
+
                 Raise_ImageUpdated();
             }
         }

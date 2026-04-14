@@ -17,7 +17,7 @@ namespace Play.SSTV {
 	/// we update the scan buffer.
 	/// </summary>
 	public class DocDownloadBuffer :
-		ImageBaseDoc 
+		DocImageBase 
 	{
         public readonly SKSizeI _szMax = new( 800, 616 );
 
@@ -31,8 +31,7 @@ namespace Play.SSTV {
 			SKImageInfo oInfo = new SKImageInfo(_szMax.Width, _szMax.Height, SKColorType.Rgb888x, SKAlphaType.Unknown);
 
 		    Buffer = new SKBitmap( oInfo );
-			Bitmap = new SKBitmap( oInfo );
-			//Raise_BitmapDispose();
+			Bitmap = SKImage.Create( oInfo );
 
             // Just set it up so it looks ok to start. Gets updated for each image downloaded.
             WorldDisplay = new SKRectI( 0, 0, _szMax.Width, 256 );
@@ -42,18 +41,16 @@ namespace Play.SSTV {
         public SKBitmap Buffer { get; protected set; }
 
 		/// <summary>
-		/// Copy the buffer to the display image. ATM the display is a
-		/// SKBitmap, but I'm going to change it to a SKImage after this
-		/// starts to work.
+		/// We need to update our SKImage now everytime we get an
+		/// update. Fortunately it's not that frequent, (like if we
+		/// were drawing. So I don't think this'll be too bad.
 		/// </summary>
-		public override void Raise_ImageUpdated() {
-			using SKCanvas oCanvas = new( Bitmap );
-			using SKPaint  oPaint  = new SKPaint();
-
-			SKRect rcSource = new SKRect( WorldDisplay.Left,  WorldDisplay.Top, 
-				                          WorldDisplay.Right, WorldDisplay.Bottom ); 
-
-			oCanvas.DrawBitmap( Buffer, rcSource, rcSource, oPaint );
+		/// <remarks>Can't set the Image via the property accessor
+		/// since it will update the world coordinates AND make a
+		/// call to this method again. Stack overflow...</remarks>
+		public void Raise_BufferUpdated() {
+			_skImage?.Dispose();
+			_skImage = SKImage.FromBitmap( Buffer );
 
             base.Raise_ImageUpdated();
         }

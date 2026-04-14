@@ -148,7 +148,7 @@ namespace Play.Drawing {
 
         public event ImageUpdatedEvent ImageUpdated;
 
-		public virtual void Raise_ImageUpdated() {
+		protected virtual void Raise_ImageUpdated() {
             ImageUpdated?.Invoke();
         }
 
@@ -233,26 +233,26 @@ namespace Play.Drawing {
 
     }
 
-    public class ImageBaseDoc :	ImageContainer
+    public class DocImageBase :	ImageContainer
 	{
-        private SKBitmap _skBitmap;
+        protected SKImage _skImage;
 
         /// <summary>
         /// Set the bitmap to display. NOTE: Previous bitmap will be Disposed!!
         /// (If it exists and is not the same bitmap as present)
         /// </summary>
-		public SKBitmap Bitmap { 
-            get { return _skBitmap; }
-            set { 
-                if( value != _skBitmap ) {
-                    if( _skBitmap != null ) {
-                        _skBitmap.Dispose();
+		public SKImage Bitmap { 
+            get { return _skImage; }
+            protected set { 
+                if( value != _skImage ) {
+                    if( _skImage != null ) {
+                        _skImage.Dispose();
                     }
 
-                    _skBitmap = value;
+                    _skImage = value;
 
-                    if( _skBitmap != null ) {
-                        WorldDisplay = new SKRectI( 0, 0, _skBitmap.Width, _skBitmap.Height );
+                    if( _skImage != null ) {
+                        WorldDisplay = new SKRectI( 0, 0, _skImage.Width, _skImage.Height );
                     } else {
                         WorldDisplay = new SKRectI( 0, 0, 0, 0 );
                     }
@@ -260,13 +260,13 @@ namespace Play.Drawing {
 		    }
         }
 
-        public override bool    IsImageValid => _skBitmap != null;
-        public override SKSizeI ImageSize => new SKSizeI( _skBitmap.Width, _skBitmap.Height );
+        public override bool    IsImageValid => _skImage != null;
+        public override SKSizeI ImageSize => new SKSizeI( _skImage.Width, _skImage.Height );
 
-        public ImageBaseDoc( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
+        public DocImageBase( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
 		}
 
-        public float Aspect => (float)_skBitmap.Width / (float)_skBitmap.Height;
+        public float Aspect => (float)_skImage.Width / (float)_skImage.Height;
 
 		public override void Dispose() {
             Bitmap  ?.Dispose();

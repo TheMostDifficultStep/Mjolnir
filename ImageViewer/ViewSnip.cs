@@ -318,7 +318,7 @@ namespace Play.ImageViewer {
 				PropertiesDoc.ValueUpdate( (int)ImageSnipProperties.Labels.FilePath, Path.GetDirectoryName( _oDocument.CurrentFullPath ), true );
 
 				// Copy the snip section currently selected. This is the full resolution original.
-				using SKImage oImage = SKImage.FromBitmap( _oDocument.Bitmap );
+				using SKImage oImage = _oDocument.Bitmap;
 				SmartRect rcCrop = new SmartRect( 0, 0, oImage.Width, oImage.Height );
 				rcSnipRect.Intersect( rcSnipRect, rcCrop );
 
@@ -394,8 +394,7 @@ namespace Play.ImageViewer {
 			try {
                 using (ImageSoloDoc oSnipTemp = new ImageSoloDoc(new SnipSlotBase(this))) {
 					// Now we save a resized version of the snip.
-					using SKImage oImage = SKImage.FromBitmap( SnipDoc.Bitmap );
-                    if (!oSnipTemp.Load(oImage, SnipView.WorldCoordinates.SKRect, SnipSize)) {
+                    if (!oSnipTemp.Load(SnipDoc.Bitmap, SnipView.WorldCoordinates.SKRect, SnipSize)) {
                         _oSiteBase.LogError("Snip Save", "Could not create the snip copy, sizing error.");
                         return;
                     }

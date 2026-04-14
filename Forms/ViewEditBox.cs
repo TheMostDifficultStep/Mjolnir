@@ -18,12 +18,12 @@ namespace Play.Controls {
     /// document is ready the moment it's feet hit the ground.
     /// </summary>
     /// <remarks>Its a shame I'm creating a bitmap for every dropdown instantiated.</remarks>
-    public class ImageForDropDown : ImageBaseDoc {
+    public class ImageForDropDown : DocImageBase {
         public ImageForDropDown(IPgBaseSite oSiteBase) : base(oSiteBase) {
             Assembly oAssembly = Assembly.GetExecutingAssembly();
             using Stream oStream = oAssembly.GetManifestResourceStream( "Play.Forms.Content.icons8-triangle-96.png" );
 
-			Bitmap = SKBitmap.Decode( oStream );
+			Bitmap = SKImage.FromEncodedData( oStream );
         }
     }
 
@@ -57,7 +57,7 @@ namespace Play.Controls {
         protected readonly IPgDocCheckMarks      _oDocChecks;
         protected readonly IPgDocOperations<Row> _oDocOps;
         protected readonly IReadableBag<Row>     _oDocBag;
-        protected readonly ImageBaseDoc          _oBmpButton; // Bitmap for the button.
+        protected readonly DocImageBase          _oBmpButton; // Bitmap for the button.
         protected readonly SmartRect             _rctWorldPort = new(); // The part of the bitmap we want to show.
         protected readonly SmartRect             _rctViewPort  = new(); // where to show the part of the bmp we want to show!
 
@@ -265,7 +265,7 @@ namespace Play.Controls {
                 using SKPaint skPaint = new SKPaint() { BlendMode = SKBlendMode.Src };
 
 				skCanvas.DrawRect( _rgLayout.Item(1).SKRect, skPaint );
-                skCanvas.DrawBitmap( _oBmpButton.Bitmap, 
+                skCanvas.DrawImage( _oBmpButton.Bitmap, 
                                     _rctWorldPort.SKRect,
                                     _rgLayout.Item(1).SKRect,
                                     skPaint );

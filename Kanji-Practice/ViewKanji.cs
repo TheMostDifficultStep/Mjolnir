@@ -13,19 +13,18 @@ using SkiaSharp;
 using System.Reflection;
 
 namespace Kanji_Practice {
-    public class ViewScratchPad : ViewSingleBmp {
-        readonly SKCanvas _oCanvas;
+    public class ViewScratchPad : ViewSurface {
         readonly SKPaint  _oPaint;
         protected SKPoint _pntAspect   = SKPoint.Empty;
         protected SKPoint _pntPrevious = SKPoint.Empty;
-        public ViewScratchPad(IPgViewSite oSiteBase, ImageBaseDoc oDocSolo) : base(oSiteBase, oDocSolo) {
-            _oCanvas = new SKCanvas( oDocSolo.Bitmap );
+        public ViewScratchPad(IPgViewSite oSiteBase, KanjiScratch oDocSolo) : 
+            base(oSiteBase, oDocSolo) 
+        {
             _oPaint  = new SKPaint() { Color = SKColors.Black };
         }
 
         protected override void Dispose(bool fDisposing) {
             if( !_fDisposed ) {
-                _oCanvas.Dispose();
                 _oPaint .Dispose();
             }
             base.Dispose(fDisposing);
@@ -34,8 +33,8 @@ namespace Kanji_Practice {
         protected override void OnSizeChanged(EventArgs e) {
             base.OnSizeChanged(e);
 
-			_pntAspect = new SKPoint( Document.Bitmap.Width  / (float)_rctViewPort.Width,
-									  Document.Bitmap.Height / (float)_rctViewPort.Height );
+			_pntAspect = new SKPoint( _oDocSurface.ImageSize.Width  / (float)_rctViewPort.Width,
+									  _oDocSurface.ImageSize.Height / (float)_rctViewPort.Height );
             /*
             SKPoint skCenter = new SKPoint( Document.Bitmap.Width  / 2,
                                             Document.Bitmap.Height / 2 );
@@ -70,7 +69,7 @@ namespace Kanji_Practice {
             if( e.Button == MouseButtons.Left ) {
                 SKPoint pntNext = new SKPoint( e.X * _pntAspect.X, e.Y * _pntAspect.Y );
 
-                _oCanvas.DrawLine( _pntPrevious, pntNext, _oPaint );
+                _oDocSurface.Surface.Canvas.DrawLine( _pntPrevious, pntNext, _oPaint );
                 _pntPrevious = pntNext;
                 Invalidate();
             }
@@ -79,8 +78,8 @@ namespace Kanji_Practice {
 
     internal class ViewKanjiProps : WindowStandardProperties {
         protected uint BigFont { get; } 
-        protected ViewSingleBmp ViewScratch { get; }
-        protected EditWindow2     ViewMeaning { get; }
+        protected ViewSurface ViewScratch { get; }
+        protected EditWindow2 ViewMeaning { get; }
 
         public ViewKanjiProps( IPgViewSite oSite, KanjiDocument oKanjiDoc ) : 
             base( oSite, oKanjiDoc.Properties ) 

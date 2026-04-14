@@ -465,7 +465,6 @@ namespace Monitor {
                 case 0x02:
                     // When the dazzle check for a key. Update display.
                     Mon.Doc_Display.Load( Mon.Z80Memory.RawMemory, 0x200 );
-                    Mon.Doc_Display.Raise_ImageUpdated();
                     return 0;
             }
 
@@ -980,7 +979,6 @@ namespace Monitor {
                 Doc_Asm    .UpdateHighlightLine( _cpuZ80.Pc );
                 Doc_Props  .Update( this );
                 Doc_Display.Load( Z80Memory.RawMemory, 0x200 );
-                Doc_Display.Raise_ImageUpdated();
             } catch( Exception oEx ) {
                 if( _rgStdErrors.IsUnhandled( oEx ) )
                     throw;
@@ -1046,7 +1044,6 @@ namespace Monitor {
                 }
 
                 Doc_Display.Load( Z80Memory.RawMemory, 0x200 );
-                Doc_Display.Raise_ImageUpdated();
                 yield return 0;
             }
         }

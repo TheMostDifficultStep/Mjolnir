@@ -82,9 +82,9 @@ namespace Play.ImageViewer {
 	/// every view upon it.
 	/// </summary>
 	public class LayoutSKBitmap : LayoutSimpleImage {
-		protected readonly ImageBaseDoc _oDocument;
+		protected readonly DocImageBase _oDocument;
 
-		public LayoutSKBitmap( ImageBaseDoc oDocSolo ) : base() {
+		public LayoutSKBitmap( DocImageBase oDocSolo ) : base() {
 			_oDocument = oDocSolo ?? throw new ArgumentNullException();
 
 			WorldCoordinates.SetRect( 0, 0, oDocSolo.Size.Width, oDocSolo.Size.Height );
@@ -98,7 +98,7 @@ namespace Play.ImageViewer {
                 return;
 
             try {
-				skCanvas.DrawBitmap( _oDocument.Bitmap, 
+				skCanvas.DrawImage( _oDocument.Bitmap, 
 									 WorldCoordinates.SKRect,
 									 _rctViewPort.SKRect
                                    );
@@ -454,9 +454,9 @@ namespace Play.ImageViewer {
 	/// </summary>
 	/// <seealso cref="ViewSurface"/>
 	public class ViewSingleBmp : ViewSinglePerportional {
-		public ImageBaseDoc Document { get; }
+		public DocImageBase Document { get; }
 
-		public ViewSingleBmp( IPgViewSite oSiteView, ImageBaseDoc oDocSolo ) : base( oSiteView, oDocSolo ) {
+		public ViewSingleBmp( IPgViewSite oSiteView, DocImageBase oDocSolo ) : base( oSiteView, oDocSolo ) {
 			Document = oDocSolo ?? throw new ArgumentNullException( "Document must not be null." );
 		}
 
@@ -477,8 +477,7 @@ namespace Play.ImageViewer {
 
                 try {
                     if (Document.Bitmap != null) {
-						using SKImage oImage = SKImage.FromBitmap( Document.Bitmap );
-                        skCanvas.DrawImage( oImage,
+                        skCanvas.DrawImage( Document.Bitmap,
 										    new SKRect( _rctWorldPort.Left, _rctWorldPort.Top, _rctWorldPort.Right, _rctWorldPort.Bottom ),
 										    new SKRect( _rctViewPort .Left, _rctViewPort .Top, _rctViewPort.Right,  _rctViewPort .Bottom ),
 										    new SKSamplingOptions( SKFilterMode.Linear ),

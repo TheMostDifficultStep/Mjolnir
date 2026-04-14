@@ -228,7 +228,7 @@ namespace Play.ImageViewer {
     /// Don't confuse this with the DocWalker DirWalker objects and viewers.
 	/// </summary>
 	public class ImageSoloDoc : 
-		ImageBaseDoc,
+		DocImageBase,
 		IPgLoad<Stream>,
 		IPgSave<Stream>
 	{
@@ -290,7 +290,7 @@ namespace Play.ImageViewer {
 			BitmapDispose();
 
             try {
-                Bitmap = SKBitmap.Decode( oStream );
+                Bitmap = SKImage.FromEncodedData( oStream );
 			} catch( Exception oEx ) {
 				if( _rgBmpLoadErrs.IsUnhandled( oEx ) )
 					throw;
@@ -322,7 +322,7 @@ namespace Play.ImageViewer {
                                            new SKRect( rcSourcePortion.Left, rcSourcePortion.Top, rcSourcePortion.Right, rcSourcePortion.Bottom ),
                                            new SKRect( rcDest.Left, rcDest.Top, rcDest.Right, rcDest.Bottom ),
                                            new SKSamplingOptions( SKFilterMode.Linear ) );
-                Bitmap = SKBitmap.FromImage( oSurface.Snapshot() );
+                Bitmap = oSurface.Snapshot();
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( ArgumentException ),
 									typeof( ArgumentNullException ),
@@ -1041,7 +1041,7 @@ namespace Play.ImageViewer {
                 if( File.Exists( strFileName ) ) {
                     // But if this fails, we'll have an bad show path, oh well.
                     using( Stream oStream = File.OpenRead( FullPathFromLine( _oDisplayLine ) ) ) {
-                        Bitmap = SKBitmap.Decode( oStream );
+                        Bitmap = SKImage.FromEncodedData( oStream );
                     }
                     // A new bitmap always sets the world coordinates, which sends a Raise_ImageUpdated event.
 				    return true;
@@ -1183,7 +1183,7 @@ namespace Play.ImageViewer {
             base.Raise_ImageUpdated();
         }
 
-        public override void Raise_ImageUpdated() {
+        protected override void Raise_ImageUpdated() {
             CurrentShowPath.Empty();
             CurrentShowPath.TryAppend( CurrentDirectory );
             CurrentShowFile.Empty();

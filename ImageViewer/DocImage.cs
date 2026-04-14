@@ -79,10 +79,10 @@ namespace Play.ImageViewer {
     }
 
     public class SoloImgBlock : ImageBlock {
-        public readonly SKBitmap _oSoloImg;
+        public readonly SKImage  _oSoloImg;
         public readonly SKRectI  _rcWorld;
         public SoloImgBlock( LOCUS eOrigin, int iX, int iY, double dblScale, 
-                             SKBitmap oSoloImg, SmartRect rcWorldSelection ) : 
+                             SKImage oSoloImg, SmartRect rcWorldSelection ) : 
             base( eOrigin, iX, iY, dblScale ) 
         {
             _oSoloImg = oSoloImg; // We check for null
@@ -107,7 +107,7 @@ namespace Play.ImageViewer {
                 // Would be nice if we could tell if the image was disposed too,
                 // we're holding references to external bitmaps.
                 if( _oSoloImg != null ) {
-                    skCanvas.DrawBitmap( _oSoloImg, _rcWorld, SKRect, skPaint );
+                    skCanvas.DrawImage( _oSoloImg, _rcWorld, SKRect, skPaint );
                 }
                 // else draw an error image.
             } catch( Exception oEx ) {
@@ -379,7 +379,7 @@ namespace Play.ImageViewer {
             _oSiteBase.LogError( strMessage, strDetails, fShow );
         }
 
-        public void AddImage( LOCUS eOrigin, int iX, int iY, double dblSize, SKBitmap oSoloBmp, 
+        public void AddImage( LOCUS eOrigin, int iX, int iY, double dblSize, SKImage oSoloBmp, 
             SmartRect rcWorldSelect
         ) {
             if( rcWorldSelect == null )
@@ -414,7 +414,7 @@ namespace Play.ImageViewer {
         /// If we were a view we would listen in on the ImageUpdated event.
         /// But since we're the owning object, I'll simply use the override.
         /// </summary>
-        public override void Raise_ImageUpdated() {
+        protected override void Raise_ImageUpdated() {
             foreach( SmartRect oRect in this ) {
                 oRect.LayoutChildren();
             }

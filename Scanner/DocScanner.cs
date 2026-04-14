@@ -8,7 +8,7 @@ using Play.Drawing;
 
 namespace Scanner {
     public class DocScanner :
-        ImageBaseDoc,
+        DocImageBase,
         IPgLoad<TextReader>
     {
         HttpClient oHttpClient = new HttpClient();

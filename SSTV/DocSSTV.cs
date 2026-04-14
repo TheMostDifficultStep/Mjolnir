@@ -1247,8 +1247,7 @@ namespace Play.SSTV {
 
             oStack.Add( oHoriz );
 
-            SKImage oImgTemp = SKImage.FromBitmap(  TxImageList.Bitmap );
-            LayoutImageReference oImage = new LayoutIcon( oImgTemp, LayoutRect.CSS.None ) { Stretch = true };
+            LayoutImageReference oImage = new LayoutIcon( TxImageList.Bitmap, LayoutRect.CSS.None ) { Stretch = true };
             oImage.World.Copy = Selection;
             oStack.Add( oImage );
 
@@ -1285,8 +1284,7 @@ namespace Play.SSTV {
             uint      uiFontID = _oStdUI.FontCacheNew( TxBitmapComp.StdFace, uiPoints, skEMsPerInch );
             oText.Cache.Measure( _oStdUI.FontRendererAt( uiFontID ) );
 
-            SKImage oImgTemp = SKImage.FromBitmap(  TxImageList.Bitmap );
-            LayoutImage oImage = new LayoutImage( oImgTemp, LayoutRect.CSS.None ) { Stretch = true };
+            LayoutImage oImage = new LayoutImage( TxImageList.Bitmap, LayoutRect.CSS.None ) { Stretch = true };
             oImage.World.Copy = Selection;
 
             oStack.Add( oImage );
@@ -1340,12 +1338,10 @@ namespace Play.SSTV {
 
             oVertiMain.Add( oSingle );
 
-            SKImage oImgTemp1 = SKImage.FromBitmap(  TxImageList.Bitmap );
-            LayoutImageReference oImage1 = new LayoutIcon( oImgTemp1, LayoutRect.CSS.None ) { Stretch = true };
+            LayoutImageReference oImage1 = new LayoutIcon( TxImageList.Bitmap, LayoutRect.CSS.None ) { Stretch = true };
             oImage1.World.Copy = Selection;
 
-            SKImage oImgTemp2 = SKImage.FromBitmap(  RxHistoryList.Bitmap );
-            LayoutImageReference oImage2 = new LayoutIcon( oImgTemp2, LayoutRect.CSS.None ) { Stretch = true };
+            LayoutImageReference oImage2 = new LayoutIcon( RxHistoryList.Bitmap, LayoutRect.CSS.None ) { Stretch = true };
             oHorizImgs.Add( oImage1 );
             oHorizImgs.Add( oImage2 );
 
@@ -1621,8 +1617,8 @@ namespace Play.SSTV {
                         } break;
                         case SSTVEvents.ImageUpdated:
                             // A little bit skanky. First place we need public access to the Raise event...
-                            DisplayImage.Raise_ImageUpdated();
-                            SyncImage   .Raise_ImageUpdated();
+                            DisplayImage.Raise_BufferUpdated();
+                            SyncImage   .Raise_BufferUpdated();
                             break;
                         case SSTVEvents.UploadTime:
                             Properties.ValueUpdate( SSTVProperties.Names.Tx_Progress, sResult.Param.ToString( "D2" ) + "%", Broadcast:true );
@@ -1630,8 +1626,8 @@ namespace Play.SSTV {
                         case SSTVEvents.DownLoadTime: 
                             Properties.ValueUpdate( SSTVProperties.Names.Rx_Progress, sResult.Param.ToString( "D2" ) + "%", Broadcast:true );
                             PropertyChange?.Invoke( SSTVEvents.DownLoadTime );
-                            DisplayImage.Raise_ImageUpdated();
-                            SyncImage   .Raise_ImageUpdated();
+                            DisplayImage.Raise_BufferUpdated();
+                            SyncImage   .Raise_BufferUpdated();
                             break;
                         case SSTVEvents.DownLoadFinished: // NOTE: This comes along unreliably in the device streaming case.
                             Properties.ValueUpdate( SSTVProperties.Names.Rx_Progress, sResult.Param.ToString( "D2" ) + "% - Complete", Broadcast:true );
@@ -1957,8 +1953,7 @@ namespace Play.SSTV {
                 try {
                     if( oWorkPlace.Status == WorkerStatus.FREE ) {
                         // borrow the Composite Bitmap for this test.
-                        using SKImage oImage = SKImage.FromBitmap( oDoc.TxImageList.Bitmap );
-			            oDoc.TxBitmapComp.Load( oImage, skSelect, oMode.Resolution );
+			            oDoc.TxBitmapComp.Load( oDoc.TxImageList.Bitmap, skSelect, oMode.Resolution );
 
                         // Use a low sample rate so it's easier to slog thru the data. 
                         Specification oTxSpec = new( 8000, 1, 0, 16 );

@@ -8,26 +8,25 @@ using Play.Forms;
 using Play.Integration;
 using Play.Parse;
 using Play.Parse.Impl;
-using Play.ImageViewer;
+using Play.Drawing;
 
 namespace Kanji_Practice {
-    public class KanjiScratch : ImageSoloDoc {
+    public class KanjiScratch : DocSurfaceImage,
+        IPgLoad
+    {
         public KanjiScratch(IPgBaseSite oSiteBase) : base(oSiteBase) {
         }
 
-        public override bool InitNew() {
-            if( !base.InitNew() )
-                return false;
+        public bool InitNew() {
+            SKImageInfo oInfo = new( 200, 150, SkiaSharp.SKColorType.Gray8, SkiaSharp.SKAlphaType.Opaque );
 
-            Bitmap = new SKBitmap( 200, 150, SkiaSharp.SKColorType.Gray8, SkiaSharp.SKAlphaType.Opaque );
+            Surface = SKSurface.Create( oInfo );
 
             return true;
         }
 
         public void Clear() {
-            using SKCanvas oCanvas = new SKCanvas( Bitmap );
-
-            oCanvas.Clear( SKColors.White );
+            Surface.Canvas.Clear( SKColors.White );
 
             Raise_ImageUpdated();
         }

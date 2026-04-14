@@ -19,7 +19,7 @@ namespace Monitor {
     {
         DocumentMonitor Mon { get; }
         public ViewEmulatorImage(IPgViewSite oBaseSite, DocumentMonitor oMon ) : 
-            base(oBaseSite, oMon.Doc_Display) 
+            base(oBaseSite, /* oMon.Doc_Display */ null ) 
         {
             Mon = oMon ?? throw new ArgumentNullException();
 

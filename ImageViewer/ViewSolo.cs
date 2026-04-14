@@ -22,8 +22,8 @@ namespace Play.ImageViewer {
 	/// </summary>
 	/// <seealso cref="ViewSingleBmp"/>
 	public class ViewSurface : ViewSinglePerportional {
-		readonly DocSurfaceImage _oDocSurface;
-		public ViewSurface( IPgViewSite oSiteView, DocImageEdit oDocBase ) :
+		protected readonly DocSurfaceImage _oDocSurface;
+		public ViewSurface( IPgViewSite oSiteView, DocSurfaceImage oDocBase ) :
 			base( oSiteView, oDocBase ) 
 		{
 			_oDocSurface = oDocBase;
@@ -97,7 +97,7 @@ namespace Play.ImageViewer {
 		public         Image     Iconic => null;
         public         uint      ID { get { return _oSiteShell.SiteID; } }
 
-        public WindowSoloImage( IPgViewSite oBaseSite, ImageBaseDoc oDoc ) : base( oBaseSite, oDoc ) {
+        public WindowSoloImage( IPgViewSite oBaseSite, DocImageBase oDoc ) : base( oBaseSite, oDoc ) {
 			_oSiteShell = oBaseSite as IPgShellSite; // not required to exist.
 
 			_rcSelectionView.Hidden     = true;
