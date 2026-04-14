@@ -112,7 +112,7 @@ namespace Play.MusicWalker {
 				Type[] rgErrors = { typeof( NullReferenceException ),
 									typeof( InvalidCastException ) };
 				if( rgErrors.IsUnhandled( oEx ) )
-					throw oEx;
+					throw;
 			}
 		}
 

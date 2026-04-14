@@ -916,7 +916,7 @@ namespace Play.MusicWalker {
 																	 typeof( PathTooLongException ),
 																	 typeof( InvalidCastException ) };
 												if( _rgErrors.IsUnhandled( oEx ) )
-													throw oEx;
+													throw;
 
 												_oSiteBase.LogError( "player", "Couldn't play a song in your selection" );
 											}
