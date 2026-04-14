@@ -1767,6 +1767,9 @@ namespace Play.Sound {
 			return null;
 		}
 
+		/// <summary>
+		/// We'll move the colors to the DocSSTV SignalLevelDoc object soon.
+		/// </summary>
 		public class Levels {
 			public double Current { get; }
 			public double Peak    { get; }

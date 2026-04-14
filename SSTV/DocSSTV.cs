@@ -21,6 +21,29 @@ using Play.ImageViewer;
 using Play.Forms;
 
 namespace Play.SSTV {
+    public class SignalLevelDoc {
+        SSTVDEM.Levels _oLatest;
+
+        public SignalLevelDoc() {
+        }
+
+        /// <summary>
+        /// Just do this for compatibilities sake.
+        /// </summary>
+        public bool InitNew() {
+            return true;
+        }
+
+        public SSTVDEM.Levels Level { 
+            get { return _oLatest; }
+            set {
+                _oLatest = value;
+                SignalChanged?.Invoke();
+            }
+        }
+
+        public event Action SignalChanged;
+    }
     /// <summary>
     /// This subclass of the DocProperties let's us have static index values. This is advantageous because it
     /// allows us to re-arrange property values without scrambling their meaning. But it also means you can't
@@ -393,7 +416,6 @@ namespace Play.SSTV {
 		protected readonly IPgRoundRobinWork _oWorkPlace;
         protected readonly IPgStandardUI2    _oStdUI;
 
-
         public IPgParent Parentage => _oSiteBase.Host;
         public IPgParent Services  => Parentage;
         public bool      IsDirty   => false; // BUG: Time to implement this.
@@ -424,9 +446,9 @@ namespace Play.SSTV {
         protected Mpg123FFTSupport FileDecoder   { get; set; }
 
         // This is where our image and diagnostic image live.
-		public ImageSoloDoc DisplayImage { get; protected set; }
-		public ImageSoloDoc SyncImage    { get; protected set; }
-        public ImageSoloDoc SignalLevel  { get; protected set; } // Don't really need bitmap, easy to use for now.
+		public ImageSoloDoc   DisplayImage { get; protected set; }
+		public ImageSoloDoc   SyncImage    { get; protected set; }
+        public SignalLevelDoc SignalLevel  { get; protected set; } 
 
         // Some test stuff. 
         //private DataTester _oDataTester;
@@ -471,7 +493,7 @@ namespace Play.SSTV {
                           
 			DisplayImage = new ImageSoloDoc( new DocSlot( this ) );
 			SyncImage    = new ImageSoloDoc( new DocSlot( this ) );
-            SignalLevel  = new ImageSoloDoc( new DocSlot( this ) );
+            SignalLevel  = new SignalLevelDoc();
                           
             Properties = new ( _oWorkPlace, new DocSlot( this ) );
             StateRx    = DocSSTVState.Ready;
@@ -796,12 +818,10 @@ namespace Play.SSTV {
             SKSizeI szMax = new( 800, 616 );
 		    SyncImage   .Bitmap = new SKBitmap( szMax.Width, szMax.Height, SKColorType.Rgb888x, SKAlphaType.Unknown );
 		    DisplayImage.Bitmap = new SKBitmap( szMax.Width, szMax.Height, SKColorType.Rgb888x, SKAlphaType.Opaque  );
-            SignalLevel .Bitmap = new SKBitmap( 100, 10, SKColorType.Rgb888x, SKAlphaType.Opaque  );
 
             // Just set it up so it looks ok to start. Gets updated for each image downloaded.
 			DisplayImage.WorldDisplay = new SKRectI( 0, 0, 320,         256 );
             SyncImage   .WorldDisplay = new SKRectI( 0, 0, szMax.Width, 256 );
-            SignalLevel .WorldDisplay = new SKRectI( 0, 0, 100,          10 );
 
             SettingsInit(); // Loads up a bunch of properties here.
 
@@ -1676,25 +1696,8 @@ namespace Play.SSTV {
         }
 
         protected void SignalLevelRender( SSTVMessage msg ) {
-            if( SignalLevel.Bitmap != null &&
-                msg.Param2 is SSTVDEM.Levels oLevel
-            ) {
-                using SKCanvas skCanvas = new( SignalLevel.Bitmap );
-                using SKPaint  skPaint  = new() { Color = SKColors.Black };
-
-                skCanvas.DrawRect( 0, 0, SignalLevel.Bitmap.Width, SignalLevel.Bitmap.Height, skPaint );
-
-                skPaint.Color = oLevel.CurrColor;
-
-                skCanvas.DrawRect( 0, 0, (float)(SignalLevel.Bitmap.Width * oLevel.Current / 100), SignalLevel.Bitmap.Height, skPaint );
-
-                float flLineX = (float)(SignalLevel.Bitmap.Width * oLevel.Peak / 100);
-                skPaint.Color = oLevel.PeakColor;
-                skPaint.StrokeWidth = 2;
-
-                skCanvas.DrawLine( flLineX, 0, flLineX, SignalLevel.Bitmap.Height, skPaint );
-
-                SignalLevel.Raise_ImageUpdated();
+            if( msg.Param2 is SSTVDEM.Levels oLevel ) {
+                SignalLevel.Level = oLevel;
             }
         }
 

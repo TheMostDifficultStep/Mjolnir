@@ -16,9 +16,9 @@ using Play.Interfaces.Embedding;
 using Play.Rectangles;
 
 namespace Play.ImageViewer {
-	public class ViewSoloSurface : ViewSinglePerportional {
+	public class ViewCompositor : ViewSinglePerportional {
 		readonly DocImageEdit _oDocEdit;
-		public ViewSoloSurface( IPgViewSite oSiteView, DocImageEdit oDocBase ) :
+		public ViewCompositor( IPgViewSite oSiteView, DocImageEdit oDocBase ) :
 			base( oSiteView, oDocBase ) 
 		{
 			_oDocEdit = oDocBase;
@@ -66,7 +66,6 @@ namespace Play.ImageViewer {
                 }
 			}
         }
-
 	}
 
 	public class WindowSoloImage : 

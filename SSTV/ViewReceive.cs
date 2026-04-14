@@ -1,23 +1,85 @@
 ﻿using System;
-using System.Drawing;
-using System.Xml;
 using System.Collections.Generic;
-using System.Windows.Forms;
+using System.Drawing;
 using System.Reflection;
 using System.Text;
+using System.Windows.Forms;
+using System.Xml;
 
 using SkiaSharp;
 using SkiaSharp.Views.Desktop;
 
 using Play.Drawing;
+using Play.Edit;
+using Play.Forms;
+using Play.ImageViewer;
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
-using Play.Edit;
-using Play.ImageViewer;
-using Play.Forms;
 using Play.Sound;
 
 namespace Play.SSTV {
+	public class WinSignalLevel : 
+		SKControl,
+		IPgLoad
+	{
+		public SignalLevelDoc Document { get; }
+		protected IPgViewSite _oSiteView;
+
+		public WinSignalLevel( IPgViewSite oSiteView, SignalLevelDoc oDoc ) 
+		{
+			Document   = oDoc      ?? throw new ArgumentNullException( "Document must not be null." );
+			_oSiteView = oSiteView ?? throw new ArgumentNullException( "Missing site" );
+		}
+
+		public override Size GetPreferredSize( Size szProposed ) {
+			return new Size( 100, 20 );
+		}
+
+        protected override void Dispose(bool disposing) {
+			if( disposing ) {
+				Document.SignalChanged -= OnSignalChanged;
+			}
+
+            base.Dispose(disposing);
+        }
+
+        public bool InitNew() {
+            Document.SignalChanged += OnSignalChanged;
+			return true;
+        }
+
+        private void OnSignalChanged() {
+            Invalidate(); // refresh?
+        }
+
+        /// <seealso cref="LayoutImageView.Paint(SKCanvas)"/>
+        protected override void OnPaintSurface( SKPaintSurfaceEventArgs e ) {
+            using SKCanvas skCanvas = e.Surface.Canvas;
+            using SKPaint  skPaint  = new() { Color = SKColors.White }; // Wuz black.
+
+            skCanvas.DrawRect( 0, 0, Width, Height, skPaint );
+
+			SSTVDEM.Levels oLevel = Document.Level;
+
+			if( oLevel is null )
+				return;
+
+            skPaint.Color = oLevel.CurrColor;
+
+            skCanvas.DrawRect( 0, 0, (float)(Width * oLevel.Current / 100), Height, skPaint );
+
+            float flLineX = (float)(Width * oLevel.Peak / 100);
+            skPaint.Color = oLevel.PeakColor;
+            skPaint.StrokeWidth = 2;
+
+            skCanvas.DrawLine( flLineX, 0, flLineX, Height, skPaint );
+		}
+
+        protected override void OnSizeChanged(EventArgs e) {
+            base.OnSizeChanged(e);
+        }
+    }
+
 	/// <summary>
 	/// This viewer shows a subset of all SSTV Properties. Those for the Receiver only.
 	/// </summary>
@@ -54,7 +116,7 @@ namespace Play.SSTV {
 				PropertyInitRow( (int)SSTVProperties.Names.Rx_Diagnostic, 
 								 new ImageViewSingle    ( new WinSlot( this ), SSTVDocument.SyncImage ) );
 				PropertyInitRow( (int)SSTVProperties.Names.Rx_SignalLevel, 
-								 new ImageViewSingle    ( new WinSlot( this ), SSTVDocument.SignalLevel ) );
+								 new WinSignalLevel     ( new WinSlot( this ), SSTVDocument.SignalLevel ) );
 
                 SSTVDocument.RxSSTVModeDoc.Event_Loaded += OnDocLoaded_RxSSTVModeDoc;
 			} catch ( Exception oEx ) {
