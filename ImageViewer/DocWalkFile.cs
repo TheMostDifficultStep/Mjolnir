@@ -623,13 +623,7 @@ namespace Play.ImageViewer {
 
             ThumbsDispose();
 
-            if( Icon != null ) {
-                Icon.Dispose();
-            }
-            if( _oBitmapUnknown != null ) {
-                _oBitmapUnknown.Dispose();
-                _oBitmapUnknown = null;
-            }
+            Icon?.Dispose();
 
 			base.Dispose();
         }

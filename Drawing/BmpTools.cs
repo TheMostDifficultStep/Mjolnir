@@ -96,8 +96,7 @@ namespace Play.Drawing {
         IPgImageDocument
 	{
         protected readonly IPgBaseSite _oSiteBase;
-        protected          Bitmap      _oBitmapUnknown; // An error bitmap.
-        protected          SKImage     _oSKBmpError;    // New error bitmap. >_<;;
+        protected          SKImage     _oSKImageError;    // New error bitmap. >_<;;
 		protected readonly string      _strUnknownImage = @"Drawing.Content.icons8-error-48.png";
         private            SKBitmap    _skBitmap;
         protected          SKRectI     _skWorldDisplay;
@@ -170,7 +169,7 @@ namespace Play.Drawing {
             get { return _skWorldDisplay.Size; }
         }
         
-        public SKImage ErrorBmp => _oSKBmpError;
+        public SKImage ErrorBmp => _oSKImageError;
 
         public event ImageUpdatedEvent ImageUpdated;
 
@@ -178,8 +177,7 @@ namespace Play.Drawing {
             _oSiteBase = oSiteBase ?? throw new ArgumentNullException();
 
             try {
-				_oBitmapUnknown = ImageResourceHelper.GetImageResource(  Assembly.GetExecutingAssembly(), _strUnknownImage );
-				_oSKBmpError    = GetSKImageResource(  Assembly.GetExecutingAssembly(), _strUnknownImage ) ?? throw new InvalidOperationException( "Couldn't Load Error SKBitmap" );
+				_oSKImageError = GetSKImageResource(  Assembly.GetExecutingAssembly(), _strUnknownImage ) ?? throw new InvalidOperationException( "Couldn't Load Error SKBitmap" );
             } catch( InvalidOperationException ) {
                 Type[] rgErrors = { typeof( InvalidOperationException ),
                                     typeof( FileNotFoundException ) };
@@ -217,14 +215,8 @@ namespace Play.Drawing {
 		}
 
 		public virtual void Dispose() {
-            if( Bitmap != null ) {
-                Bitmap.Dispose();
-                Bitmap = null;
-            }
-			if( _oBitmapUnknown != null ) {
-				_oBitmapUnknown.Dispose();
-				_oBitmapUnknown = null;
-			}
+            Bitmap  ?.Dispose();
+            ErrorBmp?.Dispose();
 		}
 
 		protected virtual bool Initialize() {
