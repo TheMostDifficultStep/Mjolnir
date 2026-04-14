@@ -1036,8 +1036,8 @@ namespace Play.SSTV {
             Properties.ValueUpdate( SSTVProperties.Names.Tx_SrcDir,  TxImageList.CurrentShowPath );
             Properties.ValueUpdate( SSTVProperties.Names.Tx_SrcFile, TxImageList.CurrentShowFile );
 
-            if( TxImageList.Bitmap != null ) {
-			    Selection.SetRect( 0, 0, TxImageList.Bitmap.Width, TxImageList.Bitmap.Height );
+            if( TxImageList.Image != null ) {
+			    Selection.SetRect( 0, 0, TxImageList.Image.Width, TxImageList.Image.Height );
             } else {
                 Selection.SetRect( 0, 0, 0, 0 );
             }
@@ -1116,11 +1116,11 @@ namespace Play.SSTV {
             // of these causes TemplateSet() to be called and only one can
             // be loaded first! >_<;; Perhaps I can make a super object
             // containing both of these to fix that problem...
-			if( TxImageList.Bitmap == null ) {
+			if( TxImageList.Image == null ) {
                 //LogError( "No Tx Images Here." );
                 return;
             } 
-			if( RxHistoryList.Bitmap == null ) {
+			if( RxHistoryList.Image == null ) {
                 //LogError( "No Rx Images Here." );
                 return;
             } 
@@ -1130,24 +1130,24 @@ namespace Play.SSTV {
 
 				switch( iIndex ) {
 					case 0: // PnP reply.
-						TxBitmapComp.AddImage( LOCUS.LOWERRIGHT, 10, 10,  40.0, RxHistoryList.Bitmap, null );
+						TxBitmapComp.AddImage( LOCUS.LOWERRIGHT, 10, 10,  40.0, RxHistoryList.Image, null );
 						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  17.0, TxBitmapComp.StdFace, ForeColor, TemplateReplyFromProps() );
-						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxImageList.Bitmap, Selection );
+						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxImageList.Image, Selection );
 
                         Send_TxImageAspect?.Invoke( new SKPointI( oMode.Resolution.Width, oMode.Resolution.Height ) );
                         TxImgLayoutAspect = new ( oMode.Resolution.Width, oMode.Resolution.Height );
 						break;
 					case 1: // General Message
 						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  20.0, TxBitmapComp.StdFace, ForeColor, Message );
-						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxImageList.Bitmap, Selection );
+						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxImageList.Image, Selection );
 
                         Send_TxImageAspect?.Invoke( new SKPointI( oMode.Resolution.Width, oMode.Resolution.Height ) );
                         TxImgLayoutAspect = new ( oMode.Resolution.Width, oMode.Resolution.Height );
 						break;
                     case 2: // General Message PnP
-						TxBitmapComp.AddImage( LOCUS.LOWERRIGHT, 10, 10,  40.0, RxHistoryList.Bitmap, null );
+						TxBitmapComp.AddImage( LOCUS.LOWERRIGHT, 10, 10,  40.0, RxHistoryList.Image, null );
 						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  15.0, TxBitmapComp.StdFace, ForeColor, Message );
-						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxImageList.Bitmap, Selection );
+						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxImageList.Image, Selection );
 
                         Send_TxImageAspect?.Invoke( new SKPointI( oMode.Resolution.Width, oMode.Resolution.Height ) );
                         TxImgLayoutAspect = new ( oMode.Resolution.Width, oMode.Resolution.Height );
@@ -1247,7 +1247,7 @@ namespace Play.SSTV {
 
             oStack.Add( oHoriz );
 
-            LayoutImageReference oImage = new LayoutIcon( TxImageList.Bitmap, LayoutRect.CSS.None ) { Stretch = true };
+            LayoutImageReference oImage = new LayoutIcon( TxImageList.Image, LayoutRect.CSS.None ) { Stretch = true };
             oImage.World.Copy = Selection;
             oStack.Add( oImage );
 
@@ -1284,7 +1284,7 @@ namespace Play.SSTV {
             uint      uiFontID = _oStdUI.FontCacheNew( TxBitmapComp.StdFace, uiPoints, skEMsPerInch );
             oText.Cache.Measure( _oStdUI.FontRendererAt( uiFontID ) );
 
-            LayoutImage oImage = new LayoutImage( TxImageList.Bitmap, LayoutRect.CSS.None ) { Stretch = true };
+            LayoutImage oImage = new LayoutImage( TxImageList.Image, LayoutRect.CSS.None ) { Stretch = true };
             oImage.World.Copy = Selection;
 
             oStack.Add( oImage );
@@ -1338,10 +1338,10 @@ namespace Play.SSTV {
 
             oVertiMain.Add( oSingle );
 
-            LayoutImageReference oImage1 = new LayoutIcon( TxImageList.Bitmap, LayoutRect.CSS.None ) { Stretch = true };
+            LayoutImageReference oImage1 = new LayoutIcon( TxImageList.Image, LayoutRect.CSS.None ) { Stretch = true };
             oImage1.World.Copy = Selection;
 
-            LayoutImageReference oImage2 = new LayoutIcon( RxHistoryList.Bitmap, LayoutRect.CSS.None ) { Stretch = true };
+            LayoutImageReference oImage2 = new LayoutIcon( RxHistoryList.Image, LayoutRect.CSS.None ) { Stretch = true };
             oHorizImgs.Add( oImage1 );
             oHorizImgs.Add( oImage2 );
 
@@ -1472,10 +1472,10 @@ namespace Play.SSTV {
 			    return false;
 			}
 
-			if( Selection.IsEmpty() && TxImageList.Bitmap != null ) {
+			if( Selection.IsEmpty() && TxImageList.Image != null ) {
 				Selection.SetRect ( 0, 0,
-									TxImageList.Bitmap.Width,
-									TxImageList.Bitmap.Height );
+									TxImageList.Image.Width,
+									TxImageList.Image.Height );
 			}
 
 			TxBitmapComp.Load( oMode.Resolution ); 
@@ -1604,7 +1604,7 @@ namespace Play.SSTV {
                                 RxSSTVFamilyDoc.SelectFamily( oMode.TvFamily );
 
 			                    DisplayImage.WorldDisplay = new SKRectI( 0, 0, oMode.Resolution.Width, oMode.Resolution.Height );
-                                SyncImage   .WorldDisplay = new SKRectI( 0, 0, SyncImage.Bitmap.Width, oMode.Resolution.Height / oMode.ScanMultiplier );
+                                SyncImage   .WorldDisplay = new SKRectI( 0, 0, SyncImage.Image.Width, oMode.Resolution.Height / oMode.ScanMultiplier );
 
                                 Properties.ValueUpdate( SSTVProperties.Names.Rx_Mode,   oMode.FamilyName + ' ' + oMode.Version );
                                 Properties.ValueUpdate( SSTVProperties.Names.Rx_Width,  oMode.Resolution.Width .ToString() );
@@ -1953,7 +1953,7 @@ namespace Play.SSTV {
                 try {
                     if( oWorkPlace.Status == WorkerStatus.FREE ) {
                         // borrow the Composite Bitmap for this test.
-			            oDoc.TxBitmapComp.Load( oDoc.TxImageList.Bitmap, skSelect, oMode.Resolution );
+			            oDoc.TxBitmapComp.Load( oDoc.TxImageList.Image, skSelect, oMode.Resolution );
 
                         // Use a low sample rate so it's easier to slog thru the data. 
                         Specification oTxSpec = new( 8000, 1, 0, 16 );

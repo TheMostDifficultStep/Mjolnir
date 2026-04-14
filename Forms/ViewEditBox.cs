@@ -23,7 +23,7 @@ namespace Play.Controls {
             Assembly oAssembly = Assembly.GetExecutingAssembly();
             using Stream oStream = oAssembly.GetManifestResourceStream( "Play.Forms.Content.icons8-triangle-96.png" );
 
-			Bitmap = SKImage.FromEncodedData( oStream );
+			Image = SKImage.FromEncodedData( oStream );
         }
     }
 
@@ -157,7 +157,7 @@ namespace Play.Controls {
         }
 
         public bool InitNew() {
-            if( _oBmpButton.Bitmap == null )
+            if( _oBmpButton.Image == null )
                 return false;
 
             _oDocOps.ListenerAdd( this ); // Look for check mark move via this.
@@ -166,7 +166,7 @@ namespace Play.Controls {
             _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Pixels, 15, (float)0.1 ) ); // Arrow bitmap.
 
             // Show the whole bitamp. Don't look for changes, not a high pri thing.
-            _rctWorldPort.SetRect( 0, 0, _oBmpButton.Bitmap.Width, _oBmpButton.Bitmap.Height );
+            _rctWorldPort.SetRect( 0, 0, _oBmpButton.Image.Width, _oBmpButton.Image.Height );
 
             // Set our text value to the checked line...
             OnDocLoaded();
@@ -265,7 +265,7 @@ namespace Play.Controls {
                 using SKPaint skPaint = new SKPaint() { BlendMode = SKBlendMode.Src };
 
 				skCanvas.DrawRect( _rgLayout.Item(1).SKRect, skPaint );
-                skCanvas.DrawImage( _oBmpButton.Bitmap, 
+                skCanvas.DrawImage( _oBmpButton.Image, 
                                     _rctWorldPort.SKRect,
                                     _rgLayout.Item(1).SKRect,
                                     skPaint );

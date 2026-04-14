@@ -22,8 +22,8 @@ namespace Play.ImageViewer {
 	/// </summary>
 	/// <seealso cref="ViewSingleBmp"/>
 	public class ViewSurface : ViewSinglePerportional {
-		protected readonly DocSurfaceImage _oDocSurface;
-		public ViewSurface( IPgViewSite oSiteView, DocSurfaceImage oDocBase ) :
+		protected readonly DocSurfaceBase _oDocSurface;
+		public ViewSurface( IPgViewSite oSiteView, DocSurfaceBase oDocBase ) :
 			base( oSiteView, oDocBase ) 
 		{
 			_oDocSurface = oDocBase;
@@ -197,7 +197,7 @@ namespace Play.ImageViewer {
 		/// it's dependent on the old style bitmap. BUG: Is this leaking?</remarks>
 		[Obsolete]protected void ClipboardCopyTo(object sender, EventArgs e) {
 			DataObject oDataObject = new DataObject();
-			oDataObject.SetImage( Document.Bitmap.ToBitmap() );
+			oDataObject.SetImage( Document.Image.ToBitmap() );
 		}
 
         /// <summary>
@@ -206,8 +206,8 @@ namespace Play.ImageViewer {
         /// </summary>
         /// <seealso cref="AlignViewSelectionToCurrentBmpSelection"/>
         protected void AlignBmpSelectionToViewSelection() {
-			SKPoint pntAspect = new SKPoint( Document.Bitmap.Width  / (float)_rctViewPort.Width,
-											 Document.Bitmap.Height / (float)_rctViewPort.Height );
+			SKPoint pntAspect = new SKPoint( Document.Image.Width  / (float)_rctViewPort.Width,
+											 Document.Image.Height / (float)_rctViewPort.Height );
 
 			// Note: If you move the points top/left, bottom/right in two steps you might
 			//       end up with an intermediate inverted rect which is illegal and we
@@ -226,8 +226,8 @@ namespace Play.ImageViewer {
 		/// </summary>
 		/// <seealso cref="AlignBmpSelectionToViewSelection"/>
 		protected void AlignViewSelectionToCurrentBmpSelection() {
-				SKPoint pntAspect = new SKPoint( _rctViewPort.Width  / (float)Document.Bitmap.Width,
-											     _rctViewPort.Height / (float)Document.Bitmap.Height );
+				SKPoint pntAspect = new SKPoint( _rctViewPort.Width  / (float)Document.Image.Width,
+											     _rctViewPort.Height / (float)Document.Image.Height );
 
 				_rcSelectionView.SetRect(LOCUS.UPPERLEFT,
 								   (int)( Selection.Left * pntAspect.X ) + _rctViewPort.Left,
@@ -399,7 +399,7 @@ namespace Play.ImageViewer {
             base.OnSizeChanged(e);
 
 			// Turns out we get called all the time and we might not have our bitmap set yet.
-			if( Document.Bitmap == null )
+			if( Document.Image == null )
 				return;
 
 			try {
@@ -417,11 +417,11 @@ namespace Play.ImageViewer {
 		}
 
 		public virtual void SelectAll() {
-			if( Document.Bitmap != null ) {
+			if( Document.Image != null ) {
 				_rcSelectionView.Show = SHOWSTATE.Focused;
 			    _sBorder              = _sGrabBorder;  // Just in case not enough room.
 
-				Selection.SetRect( LOCUS.UPPERLEFT ,0, 0, Document.Bitmap.Width, Document.Bitmap.Height );
+				Selection.SetRect( LOCUS.UPPERLEFT ,0, 0, Document.Image.Width, Document.Image.Height );
 
 				ViewPortSizeMax( _rctWorldPort, _rcSelectionView );
 				ViewPortSizeMax( _rctWorldPort, _rctViewPort );
@@ -570,14 +570,14 @@ namespace Play.ImageViewer {
 		/// it's dependent on the old style bitmap. BUG: Is this leaking?</remarks>
 		[Obsolete]protected void ClipboardCopyTo(object sender, EventArgs e) {
 			DataObject oDataObject = new DataObject();
-			oDataObject.SetImage( _oDocWalker.Bitmap.ToBitmap() );
+			oDataObject.SetImage( _oDocWalker.Image.ToBitmap() );
 		}
 
         protected override void OnSizeChanged(EventArgs e) {
             base.OnSizeChanged(e);
 
 			// Turns out we get called all the time and we might not have our bitmap set yet.
-			if( Document.Bitmap == null )
+			if( Document.Image == null )
 				return;
 
 			try {
@@ -623,9 +623,9 @@ namespace Play.ImageViewer {
 			try {
 				if( _flZoom > 1 ) {
 					_flZoom = 1;
-					_rctWorldPort.SetRect( LOCUS.UPPERLEFT, 0, 0, Document.Bitmap.Width, Document.Bitmap.Height );
+					_rctWorldPort.SetRect( LOCUS.UPPERLEFT, 0, 0, Document.Image.Width, Document.Image.Height );
 				} else {
-					_rctWorldPort.SetRect( LOCUS.UPPERLEFT, 0, 0, Document.Bitmap.Width, Document.Bitmap.Height );
+					_rctWorldPort.SetRect( LOCUS.UPPERLEFT, 0, 0, Document.Image.Width, Document.Image.Height );
 				}
 
 				if( Width > Height ) {
@@ -641,14 +641,14 @@ namespace Play.ImageViewer {
 
 				if( rctNewWorld.Left < 0 )
 					return;
-				if( rctNewWorld.Right > Document.Bitmap.Width )
+				if( rctNewWorld.Right > Document.Image.Width )
 					return;
 				if( rctNewWorld.Left >= rctNewWorld.Right )
 					return;
 
 				if( rctNewWorld.Top < 0 )
 					return;
-				if( rctNewWorld.Bottom > Document.Bitmap.Height )
+				if( rctNewWorld.Bottom > Document.Image.Height )
 					return;
 				if( rctNewWorld.Top >= rctNewWorld.Bottom )
 					return;
@@ -697,7 +697,7 @@ namespace Play.ImageViewer {
 			// This is a little hacky. But we need to clear the
 			// smart drag in the base and then exit so as not
 			// to call the tools below...
-			if( _oSmartDrag != null && Document.Bitmap != null ) {
+			if( _oSmartDrag != null && Document.Image != null ) {
 				base.OnMouseUp(e);
 				return;
 			}
@@ -778,7 +778,7 @@ namespace Play.ImageViewer {
 
 			base.SelectAll();
 
-			if( Document.Bitmap != null ) {
+			if( Document.Image != null ) {
 				ToolSelect = (int)Tools.Select;
 				// BUG: need to send the shell an event.
 			} 

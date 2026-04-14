@@ -5,7 +5,7 @@ using Play.Drawing;
 
 namespace Monitor {
     public class DazzleDisplay :
-        DocSurfaceImage
+        DocSurfaceBase
     {
         public enum ImageSizes {
             SixtyFour,

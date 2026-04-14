@@ -98,7 +98,7 @@ namespace Play.Drawing {
         protected          SKRectI     _skWorldDisplay;
 		public IPgParent Parentage => _oSiteBase.Host;
 		public IPgParent Services  => Parentage.Services;
-        public SKImage   ErrorBmp { get; }
+        public SKImage   ErrorImage { get; }
 
         public static readonly Type[] _rgBmpLoadErrs = { 
 			typeof( NullReferenceException ),
@@ -122,7 +122,7 @@ namespace Play.Drawing {
 
         public ImageContainer( IPgBaseSite oSiteBase) {
             _oSiteBase = oSiteBase ?? throw new ArgumentNullException();
-		    ErrorBmp   = GetSKImageResource( Assembly.GetExecutingAssembly(), _strImageUnknown ) ?? throw new InvalidOperationException( "Couldn't Load Error SKBitmap" );
+		    ErrorImage   = GetSKImageResource( Assembly.GetExecutingAssembly(), _strImageUnknown ) ?? throw new InvalidOperationException( "Couldn't Load Error SKBitmap" );
         }
 
         public abstract void Dispose();
@@ -199,7 +199,7 @@ namespace Play.Drawing {
 
     }
 
-    public class DocSurfaceImage : ImageContainer {
+    public class DocSurfaceBase : ImageContainer {
         SKSurface _oSurface;
         public SKSurface Surface { 
             get { return _oSurface; }
@@ -215,7 +215,7 @@ namespace Play.Drawing {
                     }
                 }
         }
-        public DocSurfaceImage( IPgBaseSite oSite ) : base( oSite ) { 
+        public DocSurfaceBase( IPgBaseSite oSite ) : base( oSite ) { 
         }
 
         public override void Dispose() {
@@ -230,7 +230,6 @@ namespace Play.Drawing {
 
             }
         }
-
     }
 
     public class DocImageBase :	ImageContainer
@@ -238,17 +237,14 @@ namespace Play.Drawing {
         protected SKImage _skImage;
 
         /// <summary>
-        /// Set the bitmap to display. NOTE: Previous bitmap will be Disposed!!
+        /// Set the Image to display. NOTE: Previous Image will be Disposed!!
         /// (If it exists and is not the same bitmap as present)
         /// </summary>
-		public SKImage Bitmap { 
+		public SKImage Image { 
             get { return _skImage; }
             protected set { 
                 if( value != _skImage ) {
-                    if( _skImage != null ) {
-                        _skImage.Dispose();
-                    }
-
+                    _skImage?.Dispose();
                     _skImage = value;
 
                     if( _skImage != null ) {
@@ -269,8 +265,8 @@ namespace Play.Drawing {
         public float Aspect => (float)_skImage.Width / (float)_skImage.Height;
 
 		public override void Dispose() {
-            Bitmap  ?.Dispose();
-            ErrorBmp?.Dispose();
+            Image  ?.Dispose();
+            ErrorImage?.Dispose();
 		}
 
 		protected virtual bool Initialize() {

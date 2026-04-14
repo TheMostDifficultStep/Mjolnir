@@ -11,7 +11,7 @@ using Play.Parse.Impl;
 using Play.Drawing;
 
 namespace Kanji_Practice {
-    public class KanjiScratch : DocSurfaceImage,
+    public class KanjiScratch : DocSurfaceBase,
         IPgLoad
     {
         public KanjiScratch(IPgBaseSite oSiteBase) : base(oSiteBase) {

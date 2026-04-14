@@ -94,11 +94,11 @@ namespace Play.ImageViewer {
 		/// <seealso cref="LayoutImageReference.Paint(SKCanvas)"/>
 		/// <seealso cref="ViewSingleBmp.OnPaintSurface(SKPaintSurfaceEventArgs)"/>
 		public override void Paint( SKCanvas skCanvas ) {
-			if( _oDocument.Bitmap == null || Hidden )
+			if( _oDocument.Image == null || Hidden )
                 return;
 
             try {
-				skCanvas.DrawImage( _oDocument.Bitmap, 
+				skCanvas.DrawImage( _oDocument.Image, 
 									 WorldCoordinates.SKRect,
 									 _rctViewPort.SKRect
                                    );
@@ -142,10 +142,10 @@ namespace Play.ImageViewer {
 				if( iRailExtent <= 0 )
 					return 0;
 
-				if( _oView.Document.Bitmap == null )
+				if( _oView.Document.Image == null )
 					return (uint)iRailExtent; // Try for square.
 
-				Size  oBmpSize = new Size( _oView.Document.Bitmap.Width, _oView.Document.Bitmap.Height);
+				Size  oBmpSize = new Size( _oView.Document.Image.Width, _oView.Document.Image.Height);
 				float flAspect = (float)oBmpSize.Width / (float)oBmpSize.Height;
 
 				return ExtentDesired( flAspect, (uint)iRailExtent, eParentAxis );
@@ -476,19 +476,19 @@ namespace Play.ImageViewer {
 				skCanvas.DrawRect( e.Info.Rect, skPaint );
 
                 try {
-                    if (Document.Bitmap != null) {
-                        skCanvas.DrawImage( Document.Bitmap,
+                    if (Document.Image != null) {
+                        skCanvas.DrawImage( Document.Image,
 										    new SKRect( _rctWorldPort.Left, _rctWorldPort.Top, _rctWorldPort.Right, _rctWorldPort.Bottom ),
 										    new SKRect( _rctViewPort .Left, _rctViewPort .Top, _rctViewPort.Right,  _rctViewPort .Bottom ),
 										    new SKSamplingOptions( SKFilterMode.Linear ),
 										    skPaint );
                     } else {
-                        if (Document.ErrorBmp != null) {
-                            ViewPortSizeCenter( Document.ErrorBmp, _rctViewPort );
+                        if (Document.ErrorImage != null) {
+                            ViewPortSizeCenter( Document.ErrorImage, _rctViewPort );
                             _rctWorldPort.SetRect( LOCUS.UPPERLEFT, 0, 0,
-                                                   Document.ErrorBmp.Width,
-                                                   Document.ErrorBmp.Height);
-							skCanvas.DrawImage( Document.ErrorBmp,
+                                                   Document.ErrorImage.Width,
+                                                   Document.ErrorImage.Height);
+							skCanvas.DrawImage( Document.ErrorImage,
 												new SKRect( _rctWorldPort.Left, _rctWorldPort.Top, _rctWorldPort.Right, _rctWorldPort.Bottom ),
 												new SKRect( _rctViewPort.Left, _rctViewPort.Top, _rctViewPort.Right, _rctViewPort.Bottom ) );
                         } else {
@@ -517,11 +517,11 @@ namespace Play.ImageViewer {
 			try {
 				if( !Document.IsImageValid ) {
 					// Looks like we're hitting this when the shell shuts down.
-					if( Document.ErrorBmp != null ) {
-						ViewPortSizeCenter(Document.ErrorBmp, _rctViewPort);
+					if( Document.ErrorImage != null ) {
+						ViewPortSizeCenter(Document.ErrorImage, _rctViewPort);
 						_rctWorldPort.SetRect( LOCUS.UPPERLEFT, 0, 0,
-											   Document.ErrorBmp.Width,
-											   Document.ErrorBmp.Height);
+											   Document.ErrorImage.Width,
+											   Document.ErrorImage.Height);
 					}
 				}
 			} catch( Exception oEx ) {

@@ -556,10 +556,10 @@ namespace Play.ImageViewer {
                         if( rgErrors.IsUnhandled( oEx ) )
                             throw;
 
-                        if( _oDocument.ErrorBmp == null ) {
+                        if( _oDocument.ErrorImage == null ) {
                             LogError( "Image Icon Viewer", "Noticed that the error bitmap is not loaded.");
                         } else {
-                            LayoutImage oError = new LayoutImage( _oDocument.ErrorBmp );
+                            LayoutImage oError = new LayoutImage( _oDocument.ErrorImage );
 
                             oError.SetPoint( SET.RIGID, LOCUS.UPPERLEFT, oImage.Top, oImage.Left );
                             oError.Paint( skCanvas );

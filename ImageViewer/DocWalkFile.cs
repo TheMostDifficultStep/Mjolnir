@@ -236,9 +236,9 @@ namespace Play.ImageViewer {
 		}
 
 		public void BitmapDispose() {
-            if( Bitmap != null ) {
-                var skTemp = Bitmap;
-                Bitmap = null; // This sends the event.
+            if( Image != null ) {
+                var skTemp = Image;
+                Image = null; // This sends the event.
                 skTemp.Dispose();
             }
 		}
@@ -290,7 +290,7 @@ namespace Play.ImageViewer {
 			BitmapDispose();
 
             try {
-                Bitmap = SKImage.FromEncodedData( oStream );
+                Image = SKImage.FromEncodedData( oStream );
 			} catch( Exception oEx ) {
 				if( _rgBmpLoadErrs.IsUnhandled( oEx ) )
 					throw;
@@ -322,7 +322,7 @@ namespace Play.ImageViewer {
                                            new SKRect( rcSourcePortion.Left, rcSourcePortion.Top, rcSourcePortion.Right, rcSourcePortion.Bottom ),
                                            new SKRect( rcDest.Left, rcDest.Top, rcDest.Right, rcDest.Bottom ),
                                            new SKSamplingOptions( SKFilterMode.Linear ) );
-                Bitmap = oSurface.Snapshot();
+                Image = oSurface.Snapshot();
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( ArgumentException ),
 									typeof( ArgumentNullException ),
@@ -366,7 +366,7 @@ namespace Play.ImageViewer {
 				// BUG: Get this from a ImageSoloDoc property in the future.
 				oEncoderParams.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, 85L);  
 
-                using Bitmap oBmp = Bitmap.ToBitmap();
+                using Bitmap oBmp = Image.ToBitmap();
 
                 oBmp.Save( oStream, oJpgEncoder, oEncoderParams );
 
@@ -388,10 +388,10 @@ namespace Play.ImageViewer {
 		}
 
         protected override void PrintPageHandler( object sender, PrintPageEventArgs e ) {
-            using Bitmap oCopy = Bitmap.ToBitmap();
+            using Bitmap oCopy = Image.ToBitmap();
 
             SmartRect rctDest   = new SmartRect();
-            SmartRect rctSource = new SmartRect( 0, 0, Bitmap.Width, Bitmap.Height );
+            SmartRect rctSource = new SmartRect( 0, 0, Image.Width, Image.Height );
 
 			ImageHelpers.ViewPortSizeMax( szBorder      : new Size( 0, 0 ), 
 										  szView        : new Size( e.MarginBounds.Width, e.MarginBounds.Height ), 
@@ -903,7 +903,7 @@ namespace Play.ImageViewer {
 						oFileName.Extra = ReScale( Path.Combine( CurrentDirectory, oFileName.ToString() ), skSize ); 
                         if( oFileName.Extra is null ) {
                             // Adding multiple references, but doesn't seem to bomb things.
-                            oFileName.Extra = ErrorBmp;
+                            oFileName.Extra = ErrorImage;
                         }
                         if( ++iCount % 5 == 0 ) {
                             Raise_UpdatedThumbs();
@@ -1027,7 +1027,7 @@ namespace Play.ImageViewer {
 
 					if( DateTime.Compare( oFileNew.ModifiedDate, oFileOld.ModifiedDate ) == 0 &&
 						oFileNew.FileSize == oFileOld.FileSize &&
-						Bitmap != null ) {
+						Image != null ) {
 						return true;
 					}
 				}
@@ -1041,7 +1041,7 @@ namespace Play.ImageViewer {
                 if( File.Exists( strFileName ) ) {
                     // But if this fails, we'll have an bad show path, oh well.
                     using( Stream oStream = File.OpenRead( FullPathFromLine( _oDisplayLine ) ) ) {
-                        Bitmap = SKImage.FromEncodedData( oStream );
+                        Image = SKImage.FromEncodedData( oStream );
                     }
                     // A new bitmap always sets the world coordinates, which sends a Raise_ImageUpdated event.
 				    return true;
@@ -1237,10 +1237,10 @@ namespace Play.ImageViewer {
             DateTime    dtModified  = DateTime.MinValue;
             FileLine    oFileLine   = _oDisplayLine as FileLine;
 
-            if( Bitmap != null ) {
-                iHeight     = Bitmap.Height;
-                iWidth      = Bitmap.Width;
-                skColorType = Bitmap.ColorType;
+            if( Image != null ) {
+                iHeight     = Image.Height;
+                iWidth      = Image.Width;
+                skColorType = Image.ColorType;
             }
 
             try {

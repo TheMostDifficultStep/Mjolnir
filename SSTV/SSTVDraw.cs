@@ -31,7 +31,7 @@ namespace Play.SSTV {
 			SKImageInfo oInfo = new SKImageInfo(_szMax.Width, _szMax.Height, SKColorType.Rgb888x, SKAlphaType.Unknown);
 
 		    Buffer = new SKBitmap( oInfo );
-			Bitmap = SKImage.Create( oInfo );
+			Image = SKImage.Create( oInfo );
 
             // Just set it up so it looks ok to start. Gets updated for each image downloaded.
             WorldDisplay = new SKRectI( 0, 0, _szMax.Width, 256 );
