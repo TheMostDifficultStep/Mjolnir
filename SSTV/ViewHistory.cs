@@ -390,7 +390,7 @@ namespace Play.SSTV {
 			    InitRows( rgShow );
 
 			    PropertyInitRow( (int)SSTVProperties.Names.Rx_Window, 
-							     new ViewSingleBmp( new WinSlot( this ), SSTVDocument.DisplayImage )  );
+							     new ViewSingleImage( new WinSlot( this ), SSTVDocument.DisplayImage )  );
 
 				//PropertyInitRow( (int)SSTVProperties.Names.Rx_HistoryIcons, 
 				//				   new ImageViewIcons( new WinSlot( this ), SSTVDocument.RxHistoryList )  );

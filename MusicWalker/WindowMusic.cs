@@ -199,9 +199,9 @@ namespace Play.MusicWalker {
 		public AlbumProperties AlbumProperties { get; } // Props for current album.
 
 		LibraryWindow   ViewLibrary { get; }
-		ViewSingleBmp ViewSpeaker { get; }
-		ViewSingleBmp ViewAlbumArt{ get; }
-		ViewSingleBmp ViewSettings{ get; }
+		ViewSingleImage ViewSpeaker { get; }
+		ViewSingleImage ViewAlbumArt{ get; }
+		ViewSingleImage ViewSettings{ get; }
 
 		public SKImage   Icon     { get; }
 		public string    Banner   => Document.FileBase;
@@ -328,7 +328,7 @@ namespace Play.MusicWalker {
 				CommandClick     = GlobalCommands.PlayToggle,
 				Cursor           = GetCursor( _strVolumeIcon ) // Gets deleted on shutdown?
 			};
-			ViewSettings = new ViewSingleBmp( new MusicViewSlot( this ), oDoc.IconSettings ) {
+			ViewSettings = new ViewSingleImage( new MusicViewSlot( this ), oDoc.IconSettings ) {
 				Parent = this
 			};
 

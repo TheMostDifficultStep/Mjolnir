@@ -67,7 +67,7 @@ namespace Play.ImageViewer {
         readonly LayoutStackVertical _rgVertStack = new LayoutStackVertical() { Spacing = 5 };
 
 		protected ImageSoloDoc    SnipDoc { get; }
-		protected ViewSingleBmp SnipView{ get; }
+		protected ViewSingleImage SnipView{ get; }
 
         protected uint _uiReturnID       = 0; // Which view to return to after snip save.
 		protected bool _fBlockTextEvents = false;
@@ -82,7 +82,7 @@ namespace Play.ImageViewer {
 			Icon         = _oDocument.GetResource( "icons8-cut-40.png", Assembly.GetExecutingAssembly() );
 
 			SnipDoc  = new ImageSoloDoc   ( new SnipSlotBase( this ) );
-			SnipView = new ViewSingleBmp( new SnipSlotView( this ), SnipDoc );
+			SnipView = new ViewSingleImage( new SnipSlotView( this ), SnipDoc );
 
 			PropertiesDoc = new ImageSnipProperties     ( new SnipSlotBase( this ) );
 		  //PropertiesWin = new WindowStandardProperties( new SnipSlotView( this ), PropertiesDoc );

@@ -20,7 +20,7 @@ namespace Play.ImageViewer {
 	/// <summary>
 	/// Viewer for a surface centric document.
 	/// </summary>
-	/// <seealso cref="ViewSingleBmp"/>
+	/// <seealso cref="ViewSingleImage"/>
 	public class ViewSurface : ViewSinglePerportional {
 		protected readonly DocSurfaceBase _oDocSurface;
 		public ViewSurface( IPgViewSite oSiteView, DocSurfaceBase oDocBase ) :
@@ -74,7 +74,7 @@ namespace Play.ImageViewer {
 	}
 
 	public class WindowSoloImage : 
-		ViewSingleBmp,
+		ViewSingleImage,
         IPgLoad<XmlElement>,
         IPgSave<XmlDocumentFragment>,
 		IPgCommandView

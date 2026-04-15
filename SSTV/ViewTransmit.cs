@@ -80,7 +80,7 @@ namespace Play.SSTV {
 			}
 
 			PropertyInitRow( (int)SSTVProperties.Names.Rx_Window, 
-							 new ViewSingleBmp( new WinSlot( this ), _oDocSSTV.DisplayImage )  );
+							 new ViewSingleImage( new WinSlot( this ), _oDocSSTV.DisplayImage )  );
         }
 
 		/// <summary>

@@ -30,8 +30,8 @@ namespace Play.Clock {
         protected List<LayoutRect>      CacheList { get; }      = new List<LayoutRect>();
         protected new LayoutStack       Layout    { get; set; } = new LayoutStackVertical() { Spacing = 5 };
 
-        ViewSingleBmp ViewSolarVhf { get; }
-        ViewSingleBmp ViewSolarMap { get; }
+        ViewSingleImage ViewSolarVhf { get; }
+        ViewSingleImage ViewSolarMap { get; }
 
         public bool IsDirty => false;
 
@@ -65,8 +65,8 @@ namespace Play.Clock {
 			_oSiteView   = oSiteView ?? throw new ArgumentNullException( "Solar window needs a site!!" );
             _oViewEvents = oSiteView.EventChain ?? throw new ArgumentException("Site.EventChain must support IPgViewSiteEvents");
 
-			ViewSolarVhf = new ViewSingleBmp( new ViewSolarSlot(this), oDocSolar.SolarVhf );
-			ViewSolarMap = new ViewSingleBmp( new ViewSolarSlot(this), oDocSolar.SolarMap );
+			ViewSolarVhf = new ViewSingleImage( new ViewSolarSlot(this), oDocSolar.SolarVhf );
+			ViewSolarMap = new ViewSingleImage( new ViewSolarSlot(this), oDocSolar.SolarMap );
 
             // NOTE: Not currently disposed...
             Icon = SKImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(),"Play.Clock.Content.icons8-solar-system-64.png" );

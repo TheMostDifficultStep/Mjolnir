@@ -55,7 +55,7 @@ namespace Play.SSTV {
 		protected readonly IPgViewSite   _oSiteView;
 		protected readonly DocSSTV       _oDocSSTV;
 
-		protected readonly ViewSingleBmp _wmViewSync;    // The sync bitmap.
+		protected readonly ViewSingleImage _wmViewSync;    // The sync bitmap.
 
 		protected LayoutStack _oLayout = new LayoutStackVertical() { Spacing = 5 };
 
@@ -95,7 +95,7 @@ namespace Play.SSTV {
 			Icon = oDocument.CreateIconic( _strIcon );
  
 
-			_wmViewSync = new ViewSingleBmp( new SSTVWinSlot( this ), _oDocSSTV.SyncImage );
+			_wmViewSync = new ViewSingleImage( new SSTVWinSlot( this ), _oDocSSTV.SyncImage );
 			_wmViewSync.SetBorderOn();
 		}
 

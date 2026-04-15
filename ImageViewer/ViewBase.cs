@@ -92,7 +92,7 @@ namespace Play.ImageViewer {
 			
 		/// <seealso cref="SmartRect.Paint(SKCanvas)"/>
 		/// <seealso cref="LayoutImageReference.Paint(SKCanvas)"/>
-		/// <seealso cref="ViewSingleBmp.OnPaintSurface(SKPaintSurfaceEventArgs)"/>
+		/// <seealso cref="ViewSingleImage.OnPaintSurface(SKPaintSurfaceEventArgs)"/>
 		public override void Paint( SKCanvas skCanvas ) {
 			if( _oDocument.Image == null || Hidden )
                 return;
@@ -117,12 +117,12 @@ namespace Play.ImageViewer {
 	/// <seealso cref="LayoutImage"/>
     /// <seealso cref="LayoutControl"/>
     public class LayoutImageView : LayoutRect {
-		ViewSingleBmp _oView;
+		ViewSingleImage _oView;
 
 		/// <summary>
 		/// You can set Track using a constructor initializers, so this is a better constructor.
 		/// </summary>
-		public LayoutImageView( ViewSingleBmp oView, LayoutRect.CSS eCSS ) : base( eCSS, 0, 1 ) {
+		public LayoutImageView( ViewSingleImage oView, LayoutRect.CSS eCSS ) : base( eCSS, 0, 1 ) {
 			_oView = oView ?? throw new ArgumentNullException();
 
 			this.SizeEvent += OnSizeEvent;
@@ -131,7 +131,7 @@ namespace Play.ImageViewer {
 		/// <summary>
 		/// Share all the available space with the other layout elements.
 		/// </summary>
-		public LayoutImageView( ViewSingleBmp oView ) : base( LayoutRect.CSS.None, 0, 1 ) {
+		public LayoutImageView( ViewSingleImage oView ) : base( LayoutRect.CSS.None, 0, 1 ) {
 			_oView = oView ?? throw new ArgumentNullException();
 
 			this.SizeEvent += OnSizeEvent;
@@ -453,10 +453,10 @@ namespace Play.ImageViewer {
 	/// But that might not be possible for a variety of reasons.
 	/// </summary>
 	/// <seealso cref="ViewSurface"/>
-	public class ViewSingleBmp : ViewSinglePerportional {
+	public class ViewSingleImage : ViewSinglePerportional {
 		public DocImageBase Document { get; }
 
-		public ViewSingleBmp( IPgViewSite oSiteView, DocImageBase oDocSolo ) : base( oSiteView, oDocSolo ) {
+		public ViewSingleImage( IPgViewSite oSiteView, DocImageBase oDocSolo ) : base( oSiteView, oDocSolo ) {
 			Document = oDocSolo ?? throw new ArgumentNullException( "Document must not be null." );
 		}
 
@@ -540,7 +540,7 @@ namespace Play.ImageViewer {
         }
 	}
 
-	public class ImageViewButton : ViewSingleBmp {
+	public class ImageViewButton : ViewSingleImage {
 		public Guid CommandClick     { get; set; }
 		public Guid CommandWheelUp   { get; set; }
 		public Guid CommandWheelDown { get; set; }
@@ -573,7 +573,7 @@ namespace Play.ImageViewer {
 	}
 
     public class ImageViewTextCompositor : 
-		ViewSingleBmp,
+		ViewSingleImage,
 		IPgTools
 	{
 		protected enum TCTools : int {
