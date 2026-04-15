@@ -1616,7 +1616,6 @@ namespace Play.SSTV {
                             PropertyChange?.Invoke( SSTVEvents.ModeChanged );
                         } break;
                         case SSTVEvents.ImageUpdated:
-                            // A little bit skanky. First place we need public access to the Raise event...
                             DisplayImage.Raise_BufferUpdated();
                             SyncImage   .Raise_BufferUpdated();
                             break;

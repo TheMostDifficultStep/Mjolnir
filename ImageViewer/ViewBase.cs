@@ -446,7 +446,6 @@ namespace Play.ImageViewer {
         }
 	}
 
-
 	/// <summary>
 	/// Though we inherit from control (at present) this viewer just shows a bitmap.
 	/// There is no navigation control. In the future we would like inherit to from SmartRect.
