@@ -335,7 +335,8 @@ namespace Play.ImageViewer {
 	
 	public class ViewSinglePerportional : 
 		ViewImageControl, 
-		IPgParent
+		IPgParent,
+		IPgLoad
 	{
 		public bool _fDisposed { get; private set; } = false;
 

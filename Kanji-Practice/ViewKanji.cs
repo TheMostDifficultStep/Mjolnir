@@ -36,8 +36,8 @@ namespace Kanji_Practice {
 			_pntAspect = new SKPoint( _oDocSurface.ImageSize.Width  / (float)_rctViewPort.Width,
 									  _oDocSurface.ImageSize.Height / (float)_rctViewPort.Height );
             /*
-            SKPoint skCenter = new SKPoint( Document.Bitmap.Width  / 2,
-                                            Document.Bitmap.Height / 2 );
+            SKPoint skCenter = new SKPoint( _oDocSurface.ImageSize.Width  / 2,
+                                            _oDocSurface.ImageSize.Height / 2 );
             double dblRadius = skCenter.X < skCenter.Y ? skCenter.X : skCenter.Y;
 
             SKPoint skCurr = new SKPoint();
@@ -49,7 +49,7 @@ namespace Kanji_Practice {
                 skCurr.X = (float)(skCenter.X + dblRadius * Math.Sin( dblRad ));
                 skCurr.Y = (float)(skCenter.Y + dblRadius * Math.Cos( dblRad ));
 
-                _oCanvas.DrawLine( skPrev, skCurr, _oPaint );
+                _oDocSurface.Surface.Canvas.DrawLine( skPrev, skCurr, _oPaint );
 
                 skPrev = skCurr;
             }
@@ -116,7 +116,7 @@ namespace Kanji_Practice {
 
             ViewScratch.Parent = this;
             ViewMeaning.Parent = this;
-            
+
             _oScrollBarVirt.Visible = false;
 
             Line oKanjiLine = Document.ValueAsLine( (int)KanjiPropEnum.Kanji    );
