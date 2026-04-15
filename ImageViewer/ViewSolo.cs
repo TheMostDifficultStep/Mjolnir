@@ -28,6 +28,12 @@ namespace Play.ImageViewer {
 		{
 			_oDocSurface = oDocBase;
 		}
+
+		public override Size GetPreferredSize( Size sProposed ) {
+			//Size oPrefered = new Size( Width, 800 );
+			return sProposed;
+		}
+
         protected override void OnPaintSurface( SKPaintSurfaceEventArgs e ) {
             base.OnPaintSurface(e);
 

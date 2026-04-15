@@ -459,7 +459,7 @@ namespace Play.ImageViewer {
 			Document = oDocSolo ?? throw new ArgumentNullException( "Document must not be null." );
 		}
 
-		/// <seealso cref="LayoutImageView.Paint(SKCanvas)"/>
+		/// <seealso cref="LayoutImageView"/>
         protected override void OnPaintSurface( SKPaintSurfaceEventArgs e ) {
             base.OnPaintSurface(e);
 
