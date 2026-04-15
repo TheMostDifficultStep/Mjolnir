@@ -16,10 +16,19 @@ namespace Play.SSTV {
 	/// In this manner we can generate the resulting SKImage only as
 	/// we update the scan buffer.
 	/// </summary>
+	/// <remarks>		
+	/// NOTE: So SKBitmap is not thread safe. And I've seen
+	/// very random error show up from time to time that
+	/// the pixels are (already) locked. We can hand out a
+	/// managed "Buffer" of some type in the future.
+	/// I don't do that now b/c of the DiagnosticsOverlay
+	/// </remarks>
+	/// <seealso cref="SSTVDraw.DiagnosticsOverlay"/>
 	public class DocDownloadBuffer :
 		DocImageBase 
 	{
         public readonly SKSizeI _szMax = new( 800, 616 );
+        public SKBitmap Buffer { get; protected set; }
 
         public DocDownloadBuffer(IPgBaseSite oSiteBase) : base(oSiteBase) {
         }
@@ -38,8 +47,6 @@ namespace Play.SSTV {
 			return true;
 		}
 
-        public SKBitmap Buffer { get; protected set; }
-
 		/// <summary>
 		/// We need to update our SKImage now everytime we get an
 		/// update. Fortunately it's not that frequent, (like if we
@@ -49,8 +56,17 @@ namespace Play.SSTV {
 		/// since it will update the world coordinates AND make a
 		/// call to this method again. Stack overflow...</remarks>
 		public void Raise_BufferUpdated() {
-			_skImage?.Dispose();
-			_skImage = SKImage.FromBitmap( Buffer );
+			try {
+				_skImage?.Dispose();
+				_skImage = SKImage.FromBitmap( Buffer );
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( AccessViolationException ),
+									typeof( ArgumentException ),
+									typeof( InvalidOperationException ) };
+				if( rgErrors.IsUnhandled( oEx ) )
+					throw;
+				_oSiteBase.LogError( "SSTV Download Buffer", "Race condition... :-/" );
+			}
 
             base.Raise_ImageUpdated();
         }
