@@ -166,7 +166,7 @@ namespace Play.ImageViewer {
 		}
     }
 
-    public class ImageViewBase : SKControl, IPgParent {
+    public class ViewImageControl : SKControl, IPgParent {
         protected readonly IPgViewSite    _oViewSite;
         protected readonly IPgViewNotify  _oViewNotify;
 		protected readonly IPgStandardUI2 _oStdUI;
@@ -184,7 +184,7 @@ namespace Play.ImageViewer {
         public IPgParent Parentage => _oViewSite.Host;
         public IPgParent Services  => Parentage.Services;
 
-        public ImageViewBase( IPgViewSite oViewSite ) {
+        public ViewImageControl( IPgViewSite oViewSite ) {
             DoubleBuffered = true;
 
             _oViewSite   = oViewSite ?? throw new ArgumentNullException( "Site must not be null" );
@@ -321,7 +321,7 @@ namespace Play.ImageViewer {
 		}
     } // end class inherits SKControl
 
-	public class ImageViewMulti : ImageViewBase {
+	public class ImageViewMulti : ViewImageControl {
         protected readonly ImageWalkerDoc _oDocument; 
 
 		public ImageViewMulti( IPgViewSite oSiteBase, ImageWalkerDoc oDoc ) : base( oSiteBase ) {
@@ -334,7 +334,7 @@ namespace Play.ImageViewer {
 	}
 	
 	public class ViewSinglePerportional : 
-		ImageViewBase, 
+		ViewImageControl, 
 		IPgParent
 	{
 		public bool _fDisposed { get; private set; } = false;

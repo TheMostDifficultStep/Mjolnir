@@ -134,15 +134,14 @@ namespace Monitor {
             return new DocumentMonitor( oSite );
         }
 
-        protected static Guid _gViewDazzle   = new Guid( "{6F5EAD43-B191-404F-BC5D-F108FEB68205}" );
         public override IDisposable CreateView(IPgViewSite oViewSite, object oDocument, Guid guidViewType) {
             if( oDocument is DocumentMonitor oMonitorDoc ) {
 			    try {
                     if( guidViewType == ViewDisassembly.GUID )
                         return new ViewDisassembly  ( oViewSite, oMonitorDoc );
-                    if( guidViewType == _gViewDazzle )
+                    if( guidViewType == ViewEmulatorImage.GUID )
                         return new ViewEmulatorImage( oViewSite, oMonitorDoc );
-                    if( guidViewType == ViewTerminal._gViewTerminal )
+                    if( guidViewType == ViewTerminal.GUID )
                         return new ViewTerminal( oViewSite, oMonitorDoc.Doc_Terminal );
 
                     // Service the GUID.Empty case too.
@@ -161,9 +160,9 @@ namespace Monitor {
         }
 
         public override IEnumerator<IPgViewType> GetEnumerator() {
-            yield return new ViewType( "Assembly Display", ViewDisassembly.GUID );
-            yield return new ViewType( "Dazzle Display",   _gViewDazzle );
-            yield return new ViewType( "Terminal",         ViewTerminal._gViewTerminal );
+            yield return new ViewType( "Assembly Display", ViewDisassembly  .GUID );
+            yield return new ViewType( "Dazzle Display",   ViewEmulatorImage.GUID );
+            yield return new ViewType( "Terminal",         ViewTerminal     .GUID );
         }
     }
 

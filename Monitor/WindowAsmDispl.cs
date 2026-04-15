@@ -15,11 +15,21 @@ namespace Monitor {
     /// I suppose.
     /// </summary>
     internal class ViewEmulatorImage :
-        WindowSoloImage 
+        ViewSurface,
+        IPgCommandView
     {
+        public static readonly Guid GUID = new Guid( "{6F5EAD43-B191-404F-BC5D-F108FEB68205}" );
+
         DocumentMonitor Mon { get; }
+
+        public string Banner => "Dazzle Display";
+
+        public SKImage? Icon { get; protected set; }
+
+        public Guid Catagory => GUID;
+
         public ViewEmulatorImage(IPgViewSite oBaseSite, DocumentMonitor oMon ) : 
-            base(oBaseSite, /* oMon.Doc_Display */ null ) 
+            base(oBaseSite, oMon.Doc_Display ) 
         {
             Mon = oMon ?? throw new ArgumentNullException();
 
@@ -29,12 +39,15 @@ namespace Monitor {
 			}
         }
 
-        public override bool Execute( Guid sGuid ) {
+        public virtual bool Execute( Guid sGuid ) {
             if( Mon.Execute( sGuid ) ) {
                 return true;
             }
+            return false;
+        }
 
-            return base.Execute( sGuid );
+        public object? Decorate(IPgViewSite oBaseSite, Guid sGuid) {
+            return null;
         }
     }
 

@@ -12,10 +12,10 @@ namespace Monitor {
         WindowMultiColumn,
         IPgCommandView 
     {
-        public readonly static Guid _gViewTerminal = new Guid( "{BE1E1F3D-6CE5-4FE2-9A52-EA2E5F72D3D5}" );
+        public readonly static Guid GUID = new Guid( "{BE1E1F3D-6CE5-4FE2-9A52-EA2E5F72D3D5}" );
         public string    Banner => "Simple Terminal";
 		public SKImage?  Icon { get; protected set; }
-        public Guid      Catagory => _gViewTerminal;
+        public Guid      Catagory => GUID;
 
         protected DocumentMonitor DocMon { get; } 
 
