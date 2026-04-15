@@ -199,6 +199,7 @@ namespace Play.ImageViewer {
             foreach( IPgCommandView oView in _oSiteShell.EnumerateSiblings ) {
                 if( oView is WindowSoloImageNav oViewSolo && oViewSolo.ID == _uiReturnID ) {
                     oViewSolo.FocusMe();
+					break;
                 }
             }
         }
@@ -318,7 +319,7 @@ namespace Play.ImageViewer {
 				PropertiesDoc.ValueUpdate( (int)ImageSnipProperties.Labels.FilePath, Path.GetDirectoryName( _oDocument.CurrentFullPath ), true );
 
 				// Copy the snip section currently selected. This is the full resolution original.
-				using SKImage oImage = _oDocument.Image;
+				SKImage   oImage = _oDocument.Image;
 				SmartRect rcCrop = new SmartRect( 0, 0, oImage.Width, oImage.Height );
 				rcSnipRect.Intersect( rcSnipRect, rcCrop );
 

@@ -265,7 +265,7 @@ namespace Play.Drawing {
         public float Aspect => (float)_skImage.Width / (float)_skImage.Height;
 
 		public override void Dispose() {
-            Image  ?.Dispose();
+            Image     ?.Dispose();
             ErrorImage?.Dispose();
 		}
 

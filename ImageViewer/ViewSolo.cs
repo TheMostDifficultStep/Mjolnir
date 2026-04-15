@@ -236,9 +236,9 @@ namespace Play.ImageViewer {
 											     _rctViewPort.Height / (float)Document.Image.Height );
 
 				_rcSelectionView.SetRect(LOCUS.UPPERLEFT,
-								   (int)( Selection.Left * pntAspect.X ) + _rctViewPort.Left,
-								   (int)( Selection.Top * pntAspect.Y ) + _rctViewPort.Top,
-								   (int)( Selection.Width * pntAspect.X ),
+								   (int)( Selection.Left   * pntAspect.X ) + _rctViewPort.Left,
+								   (int)( Selection.Top    * pntAspect.Y ) + _rctViewPort.Top,
+								   (int)( Selection.Width  * pntAspect.X ),
 								   (int)( Selection.Height * pntAspect.Y ));
 		}
 

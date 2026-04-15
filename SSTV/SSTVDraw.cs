@@ -40,7 +40,7 @@ namespace Play.SSTV {
 			SKImageInfo oInfo = new SKImageInfo(_szMax.Width, _szMax.Height, SKColorType.Rgb888x, SKAlphaType.Unknown);
 
 		    Buffer = new SKBitmap( oInfo );
-			Image = SKImage.Create( oInfo );
+			Image  = SKImage.Create( oInfo );
 
             // Just set it up so it looks ok to start. Gets updated for each image downloaded.
             WorldDisplay = new SKRectI( 0, 0, _szMax.Width, 256 );
@@ -66,6 +66,7 @@ namespace Play.SSTV {
 				if( rgErrors.IsUnhandled( oEx ) )
 					throw;
 				_oSiteBase.LogError( "SSTV Download Buffer", "Race condition... :-/" );
+				_skImage = null;
 			}
 
             base.Raise_ImageUpdated();
@@ -129,9 +130,8 @@ namespace Play.SSTV {
 			public setPixel[] Writers { get; }
 
 			public ScanBuffers( SSTVDraw oHost ) {
-				if( oHost == null )
-					throw new ArgumentNullException( nameof( oHost ) );
-				if( oHost._pBitmapRX == null )
+                ArgumentNullException.ThrowIfNull(oHost);
+                if( oHost._pBitmapRX == null )
 					throw new InvalidProgramException( "SSTV Target bitmap is null!" );
 
 				_oDraw     = oHost;
