@@ -968,6 +968,7 @@ namespace Mjolnir {
             }
 
 			try {
+                int iHighestID = 0;
 				// Load up the documents.
                 if( rgSessionDocs != null ) {
 				    foreach( XmlElement xmlFileNode in rgSessionDocs ) {
@@ -976,6 +977,10 @@ namespace Mjolnir {
 					    int    iDocID  = int.Parse(xmlFileNode.GetAttribute("docid") );
                         string strExtn = xmlFileNode.GetAttribute( "extn" );
                         IDocSlot oDocSite = null;
+
+                        if( iHighestID < iDocID ) {
+                            iHighestID = iDocID+1;
+                        }
                         
                         if( string.IsNullOrEmpty( strEmbedding ) ) {
                             string strPath = xmlFileNode.InnerText;
@@ -997,16 +1002,21 @@ namespace Mjolnir {
 					    if( oDocSite == null )
 						    throw new InvalidOperationException( "Couldn't create document" );
 				    } // end for
-                    // Yes, it's clunky. But if we didn't persist our home and clock then
-                    // we need to get them running manually.
                 }
+
+                // Yes, it's clunky. But if we didn't persist our home and clock then
+                // we need to get them running manually. Worse you must make sure the
+                // ID is not overlapping any of the document id's that the main window
+                // might try to load it's persisted view later!
                 if( ClockSlot.Document is null ) {
+                    ClockSlot.ID = ++iHighestID;
                     ClockSlot.CreateDocument();
                     ClockSlot.InitNew();
                     ClockSlot.IsInternal = true;
                     _rgDocSites.Add(ClockSlot);
                 }
                 if( HomeSlot.Document is null ) {
+                    HomeSlot.ID = ++iHighestID;
                     HomeSlot.CreateDocument();
                     HomeSlot.InitNew();
                     HomeSlot.IsInternal = true;
