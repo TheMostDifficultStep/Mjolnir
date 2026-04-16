@@ -393,22 +393,22 @@ namespace Play.ImageViewer {
 			}
 
 			try {
-                using (ImageSoloDoc oSnipTemp = new ImageSoloDoc(new SnipSlotBase(this))) {
-					// Now we save a resized version of the snip.
-                    if (!oSnipTemp.Load(SnipDoc.Image, SnipView.WorldCoordinates.SKRect, SnipSize)) {
-                        _oSiteBase.LogError("Snip Save", "Could not create the snip copy, sizing error.");
-                        return;
-                    }
-                    string strFullName = Path.Combine( PropertiesDoc.ValueAsStr( (int)ImageSnipProperties.Labels.FilePath ),
-                                                       PropertiesDoc.ValueAsStr( (int)ImageSnipProperties.Labels.FileName ) );
-                    using( Stream oStream = File.Open( strFullName, FileMode.Create )) {
-                        if( !oSnipTemp.Save(oStream)) {
-                            _oSiteBase.LogError("Snip Save", "Could not create the snip copy, stream error.");
-                            return;
-                        }
-                        oStream.Flush();
-                    }
+                using ImageSoloDoc oSnipTemp = new(new SnipSlotBase(this));
+
+				// Now we save a resized version of the snip.
+                if( !oSnipTemp.Load(SnipDoc.Image, SnipView.WorldCoordinates.SKRect, SnipSize)) {
+                    _oSiteBase.LogError("Snip Save", "Could not create the snip copy, sizing error.");
+                    return;
                 }
+                string strFullName = Path.Combine( PropertiesDoc.ValueAsStr( (int)ImageSnipProperties.Labels.FilePath ),
+                                                    PropertiesDoc.ValueAsStr( (int)ImageSnipProperties.Labels.FileName ) );
+                using Stream oStream = File.Open(strFullName, FileMode.Create);
+                if( !oSnipTemp.Save(oStream) ) {
+                    _oSiteBase.LogError("Snip Save", "Could not create the snip copy, stream error.");
+                    return;
+                }
+                oStream.Flush();
+
                 _oDocument.LoadAgain( _oDocument.CurrentFullPath );
             } catch( Exception oEx ) {
 				Type[] rgErrors = { 
