@@ -112,35 +112,6 @@ namespace Play.Interfaces.Embedding {
         }
     };
 
-	public class ImageResourceHelper {
-		/// <summary>
-		/// Get the specified resource from the currently executing assembly.
-		/// </summary>
-		/// <exception cref="InvalidOperationException" />
-        /// <remarks>Consider changing the exception to ApplicationException</remarks>
-		public static Bitmap GetImageResource( Assembly oAssembly, string strResourceName ) {
-			try {
-                // Let's you peep in on all of them! ^_^
-                // string[] rgStuff = oAssembly.GetManifestResourceNames();
-
-				using( Stream oStream = oAssembly.GetManifestResourceStream( strResourceName )) {
-					return( new Bitmap( oStream ) );
-				}
-			} catch( Exception oEx ) {
-				Type[] rgErrors = { typeof( NullReferenceException ), 
-									typeof( ArgumentNullException ),
-									typeof( ArgumentException ),
-									typeof( FileLoadException ),
-									typeof( BadImageFormatException ),
-									typeof( NotImplementedException ) };
-				if( !rgErrors.Contains( oEx.GetType() ) )
-					throw;
-
-				throw new InvalidOperationException( "Could not retrieve given image resource : " + strResourceName );
-			}
-		}
-	}
-
     /// <summary>
     /// This class is an exact copy of the one from the win forms. But because I hate win forms I want to minimize
     /// what I require from it, in the hopes of dumping it some day.
