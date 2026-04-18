@@ -572,13 +572,6 @@ namespace Play.ImageViewer {
             base.Dispose( fDisposing );
         }
 
-		/// <remarks>This represents an interesting cunundrom. The old OLE stuff looks like
-		/// it's dependent on the old style bitmap. BUG: Is this leaking?</remarks>
-		[Obsolete]protected void ClipboardCopyTo(object sender, EventArgs e) {
-			DataObject oDataObject = new DataObject();
-			oDataObject.SetImage( _oDocWalker.Image.ToBitmap() );
-		}
-
         protected override void OnSizeChanged(EventArgs e) {
             base.OnSizeChanged(e);
 
