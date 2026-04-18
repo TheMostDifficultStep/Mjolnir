@@ -54,11 +54,15 @@
 			<desc>Improved logger with start, end times, and notes.</desc> 
 		</use>		
 	</add>
-	<add assm="Clock.dll" >
-		<use name="World Time" guid="" >
+	<add assm="Clock.dll" factory="Play.Clock.ControllerFactory" >
+		<use name="World Time" guid="{E42ED42F-3362-4C68-A393-2AEFCA1B2F9E}" >
 			<e v="weather" />
 			<desc>Date time displayer widget.</desc> 
-		</use>		
+		</use>
+		<use name="Clock" guid="{36A57A73-2296-4DFB-B430-882B72D98180}" >
+			<e v="clock" />
+			<desc>Analog clock face</desc> 
+		</use>
 	</add>
 	<add assm="SSTV.dll" factory="Play.SSTV.ControllerFactory" >
 		<use name="Slow Scan Television Viewer" 
@@ -136,13 +140,13 @@
       <grammar name="flashcard" type="text" file="flash-card.bnf" />
       <grammar name="bbcbasic" type="text" file="bbc-basic.bnf" />
       <grammar name="tinybasic" type="text" file="tiny-basic.bnf" />
-      <grammar name="filename" type="text" file="filenames.bnf" />
+	  <grammar name="filename" type="text" file="filenames.bnf" />
+	  <grammar name="epsoncommands" type="text" file="epson-cmds.bnf" />
     </grammars>
     <maps>
       <!-- when you map one of these extensions, you will be using the parsed text document type -->
       <!-- overriding any controller you might have mapped to the extension. so be aware! -->
       <!-- Map the extension to a grammar name -->
-	  <map extn=".adi" grammar="html" />
       <map extn=".rs" grammar="text" />
       <map extn=".toml" grammar="ini" />
       <map extn=".deck" grammar="flashcard" />
@@ -193,6 +197,7 @@
       <map extn=".bbc" grammar="bbcbasic" />
       <map extn=".btx" grammar="bbcbasic" />
       <map extn=".tbtxt" grammar="tinybasic" />
+	  <map extn=".epsn" grammar="epsoncommands" />
     </maps>
   </languages>
   <mainwindow>

@@ -197,7 +197,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
       <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);freetype.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)..\freetype\builds\windows\visualc\freetype\bin\$(Configuration)\net8.0-windows7.0</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\freetype\objs\$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
