@@ -317,7 +317,7 @@ namespace Mjolnir {
             
             try {
                 GlyphGenerate( FT_Render_Mode.FT_RENDER_MODE_NORMAL, uiGlyph );
-                SKBitmap skGlyphBitmap = GlyphCopyCurrent( out FTGlyphPos oGlyphCoords );
+                SKImage skGlyphBitmap = GlyphCopyCurrent( out FTGlyphPos oGlyphCoords );
 
                 if( uiCode == 9 )
                     oGlyphCoords.advance_em_x *= 4;
