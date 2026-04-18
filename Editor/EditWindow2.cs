@@ -187,8 +187,8 @@ namespace Play.Edit {
     /// </summary>
     public interface IPgGlyph {
         UInt32     FaceIndex   { get; } // index to the face index from freetype.
-        UInt32     GlyphID       { get; }
-        SKBitmap   Image       { get; }
+        UInt32     GlyphID      { get; }
+        SKImage    Image       { get; }
         PgGlyphPos Coordinates { get; }
         UInt32     CodePoint   { get; }
         int        CodeLength  { get; set; } // Encoded word length either utf16 or utf8 depending on implementation.
@@ -1111,10 +1111,11 @@ namespace Play.Edit {
             SKRect skRect = new SKRect( flX, flY, 
                                         flX + oGlyph.Image.Width, 
                                         flY + oGlyph.Image.Height );
+            SKSamplingOptions oOptions = new SKSamplingOptions( SKFilterMode.Linear );
             // So XOR only works with alpha, which explains why my
             // Alpha8 bitmap works with this.
             skPaint .BlendMode = SKBlendMode.Xor;
-            skCanvas.DrawBitmap(oGlyph.Image, flX, flY, skPaint);
+            skCanvas.DrawImage( oGlyph.Image, flX, flY, oOptions, skPaint);
 
             // So the BG is already the color we wanted, it get's XOR'd and
             // has a transparency set, then we draw our text colored rect...

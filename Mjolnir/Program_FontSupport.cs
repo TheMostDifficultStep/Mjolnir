@@ -70,7 +70,7 @@ namespace Mjolnir {
         public uint FaceIndex { get; }
         public uint GlyphID     { get; }
 
-        public SKBitmap   Image       { get; }
+        public SKImage    Image       { get; }
         public PgGlyphPos Coordinates { get; }
         public UInt32     CodePoint   { get; }
         public int        CodeLength  { get; set; }
@@ -86,13 +86,15 @@ namespace Mjolnir {
         /// them so I don't know the context I might have to convert them. But it will happen
         /// here somehow.
         /// </summary>
-        public GlyphInfo( uint uiFaceIndex, uint uiCodePoint, uint uiGlyph, SKBitmap skGlyphBmp, FTGlyphPos ftGlyphPos )
+        public GlyphInfo( uint uiFaceIndex, uint uiCodePoint, uint uiGlyph, SKImage skGlyphBmp, FTGlyphPos ftGlyphPos )
         {
             FaceIndex   = uiFaceIndex;
             GlyphID       = uiGlyph;
             CodePoint   = uiCodePoint;
             Image       = skGlyphBmp;
             CodeLength  = 1; // default set UTF32 length. 1 32 bit value.
+
+            ArgumentNullException.ThrowIfNull ( Image );
 
             PgGlyphPos sTranslate;
 
@@ -220,7 +222,7 @@ namespace Mjolnir {
         /// First generate the glyph, then call this function to retrieve it.
         /// </summary>
         /// <exception cref="ApplicationException"></exception>
-        protected SKBitmap GlyphCopyCurrent( out FTGlyphPos ftCoords ) {
+        protected SKImage GlyphCopyCurrent( out FTGlyphPos ftCoords ) {
             unsafe {
                 int iError = 0;
                 try {
@@ -230,9 +232,16 @@ namespace Mjolnir {
                     }
 
                     if( iError == 0 ) {
+                        // this happens for the space character '32' (and thus tab too)
+                        if( ftBitmap.width == 0 || ftBitmap.rows == 0 ) {
+                            using SKBitmap skTemp = new SKBitmap( 1, 1, SKColorType.Alpha8, SKAlphaType.Opaque );
+                            skTemp.SetPixel( 0, 0, new SKColor( 0, 0, 0, 0 ) ); // Fully transparent. 
+                            return SKImage.FromBitmap( skTemp );
+                        }
+
                       //SKBitmap skBitmap = new SKBitmap( ftBitmap.pitch, ftBitmap.rows, SKColorType.Gray8, SKAlphaType.Opaque );
                       //SKBitmap skBitmap = new SKBitmap( ftBitmap.pitch, ftBitmap.rows, SKColorType.Rgba8888, SKAlphaType.Unpremul );
-                        SKBitmap skBitmap = new SKBitmap( ftBitmap.width, ftBitmap.rows, SKColorType.Alpha8, SKAlphaType.Opaque );
+                        using SKBitmap skBitmap = new SKBitmap( ftBitmap.width, ftBitmap.rows, SKColorType.Alpha8, SKAlphaType.Opaque );
                         IntPtr   ipPixels = skBitmap.GetPixels();
 
                         byte* pPixel = (byte*)ftBitmap.bits.ToPointer();
@@ -275,7 +284,7 @@ namespace Mjolnir {
                         //                   skBitmap.ByteCount,            // Is this radical or what!
                         //                   ftBitmap.rows * ftBitmap.pitch // This isn't shabby either. 
                         //                 );
-                        return skBitmap;
+                        return SKImage.FromBitmap( skBitmap );
                     }
                 } catch( Exception oEx ) {
                     if( rgErrors.IsUnhandled( oEx ) )
@@ -323,7 +332,6 @@ namespace Mjolnir {
                     oGlyphCoords.advance_em_x *= 4;
 
                 oGlyphCoords.top += iDescender;
-
                 return new GlyphInfo( (uint)ID, uiCode, uiGlyph, skGlyphBitmap, oGlyphCoords );
             } catch( Exception oEx ) {
                 if( rgErrors.IsUnhandled( oEx ) )

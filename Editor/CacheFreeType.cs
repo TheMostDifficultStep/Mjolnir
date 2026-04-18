@@ -720,12 +720,12 @@ namespace Play.Edit {
                                         flX + oGlyph.Image.Width, 
                                         flY + oGlyph.Image.Height );
             //Not sure how to use this yet.
-            //SKSamplingOptions oOptions = new SKSamplingOptions( SKFilterMode.Linear );
+            SKSamplingOptions oOptions = new SKSamplingOptions( SKFilterMode.Linear );
 
             // So XOR only works with alpha, which explains why my
             // Alpha8 bitmap works with this.
             skPaint .BlendMode = SKBlendMode.Xor;
-            skCanvas.DrawBitmap(oGlyph.Image, flX, flY, skPaint);
+            skCanvas.DrawImage(oGlyph.Image, flX, flY, oOptions, skPaint);
 
             // So the BG is already the color we wanted, it get's XOR'd and
             // has a transparency set, then we draw our text colored rect...
@@ -911,8 +911,6 @@ namespace Play.Edit {
             // we think of text but weird since the screen origin is top left and we print successive
             // lines down. >_<;;
             SKPoint pntLowerLeft = new SKPoint( pntEditAt.X, pntEditAt.Y + FontHeight );
-
-            skPaint.FilterQuality = SKFilterQuality.High;
 
             try { // Draw all glyphs so whitespace is properly colored when selected.
                 //skCanvas.DrawLine( pntLowerLeft, new SKPoint( pntLowerLeft.X + 300, pntLowerLeft.Y ), skPaint );

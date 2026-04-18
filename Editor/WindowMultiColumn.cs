@@ -867,7 +867,7 @@ namespace Play.Edit {
                     BlendMode = SKBlendMode.Src,
                     Color     = _oStdUI.ColorsStandardAt( StdUIColors.BGReadOnly )
                 };
-                using SKPaint skPaintTx = new SKPaint() { FilterQuality = SKFilterQuality.High };
+                using SKPaint skPaintTx = new SKPaint();
 
                 // Paint all window background. Note: We could get by without this if
                 // there was no space between lines/columns.
