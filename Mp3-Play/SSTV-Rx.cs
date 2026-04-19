@@ -1805,7 +1805,7 @@ namespace Play.Sound {
 		/// TODO: let's just set struct that can be read by message receiver.
 		/// </summary>
 		public Levels CalcLevel( bool fTransmitting ) {
-			int YB = 100; // Percentage.
+			const int YB = 100; // Percentage.
 
 			m_Rcptlvl.Fix(); // Fix here, get's used in a couple of places.
 
@@ -1816,7 +1816,6 @@ namespace Play.Sound {
 			double  dblScale;
 			double  dblCurrent;
 			SKColor clrCurrent = SKColors.Black;
-
 
 			// This is the main level display.
 			if( m_LevelType == LevelDisplay.Sync ){
@@ -1860,7 +1859,6 @@ namespace Play.Sound {
 
 			return new Levels( dblCurrent, dblPeak, clrCurrent, clrPeakColor );
 		}
-
     }
 
 	public class DemodTest : SSTVDEM, IPgModulator {
