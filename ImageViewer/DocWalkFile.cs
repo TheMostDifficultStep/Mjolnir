@@ -245,10 +245,9 @@ namespace Play.ImageViewer {
 		
 		public void Raise_BitmapDispose() {
 			BitmapDispose();
-			//Raise_ImageUpdated();
 		}
 
-		public virtual bool InitNew() {
+		public override bool InitNew() {
             if( !Initialize() )
                 return false;
 
