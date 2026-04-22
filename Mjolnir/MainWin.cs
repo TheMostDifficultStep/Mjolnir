@@ -193,45 +193,25 @@ namespace Mjolnir {
 		public SmartRect Frame    { get { return _rcFrame; } }
 
         /// <summary>
-        /// The Main window didn't have it's own document embedding slot. This is different than a view
-        /// slot or a program document slot. I used to want the views selection to live on the program
-        /// but I'm changing my mind and I'm slowly migrating it to the MainWindow. I'm hardcoding this
-        /// instance to the ViewSelector and can sort it all out later. The main complexity is that
-        /// decor views want access to an IDocSlot on the document. That sux and we need to work on that.
+        /// The Main window needs it's own document embedding slot. This is different than a view
+        /// slot or a program document slot. 
         /// </summary>
-        /// <remarks>1/14/2022 : Might be a bit of overkill with a controller. I need to
-        /// sort out the solo's on themain window to use a controller from it.</remarks>
-        [Obsolete]protected class DocSlot : 
-            IPgBaseSite, 
-            IDocSlot  
+        protected class DocSlot : 
+            IPgBaseSite
         {
-            readonly MainWin                 _oHost;
-                     IDisposable             _oGuest;
-                     IPgLoad                 _oGuestLoad;
+            readonly MainWin     _oHost;
+                     IDisposable _oGuest;
+                     IPgLoad     _oGuestLoad;
 
             public DocSlot( MainWin oMainWin ) {
                 _oHost = oMainWin ?? throw new ArgumentNullException( "Main window reference must not be null" );
             }
 
-            public IPgParent      Host       => _oHost;
-            public int            ID         {get; set;}
-            public IDisposable    Document   => _oGuest;
-            public bool           IsDirty    => false;
-            public string         Title      => "View Selector";
-            public string         FilePath   => string.Empty;
-            public string         FileDir    => string.Empty;
-            public string         FileName   => string.Empty;
-
-            //This is why this object is obsolete... :-/
-            public IPgController2           Controller => throw new NotImplementedException();
-            public IEnumerable<IPgViewType> ViewTypes  => throw new NotImplementedException();
-            public int    Reference { get => throw new NotImplementedException(); 
-                                      set => throw new NotImplementedException(); }
-            public string LastPath => throw new NotImplementedException();
-            public bool   IsInternal => false;
+            public IPgParent Host    => _oHost;
+            public bool      IsDirty => false;
 
             public void Dispose() {
-                _oGuest.Dispose();
+                _oGuest?.Dispose();
             }
 
             public void LogError(string strMessage, string strDetails, bool fShow = true) {
@@ -251,18 +231,9 @@ namespace Mjolnir {
                 }
             }
 
-
-            public bool Load(string strFileName) {
-                throw new NotImplementedException();
-            }
-
             public void Notify(ShellNotify eEvent) {
             }
-
-            public bool Save(bool fNewLocation) {
-                throw new NotImplementedException();
-            }
-        }
+        } // class
 
         protected override void Dispose(bool disposing) {
             if( disposing ) {
@@ -303,9 +274,7 @@ namespace Mjolnir {
             _oSlot_ViewSelectorDoc.InitNew();
 
             // This needs to follow the view selector document assignment.
-            Tabs = new(new WinSlot(this), _oDoc_ViewSelector);
-            Tabs.Parent  = this;
-            Tabs.Visible = true;
+            Tabs = new(new WinSlot(this), _oDoc_ViewSelector) { Parent = this, Visible = true };
             Tabs.Layout.Padding.SetRect( 5, 5, 5, 0 );
             Tabs.InitNew();
             Tabs.CreateControl();
