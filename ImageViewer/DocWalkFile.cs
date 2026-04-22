@@ -1,27 +1,30 @@
-﻿using System;
+﻿using Play.Drawing;
+using Play.Edit;
+using Play.Forms;
+using Play.Interfaces.Embedding;
+using Play.Parse;
+using Play.Parse.Impl;
+using Play.Rectangles;
+using Play.Sound;
+using SkiaSharp;
+using SkiaSharp.Views.Desktop;
+using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.IO;
-using System.IO.Compression;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Drawing.Printing;
-using System.Windows.Forms;
-using System.Reflection;
+using System.IO;
+using System.IO.Compression;
 using System.Linq;
+using System.Reflection;
+using System.Reflection.Metadata;
 using System.Runtime.InteropServices;
-using System.Web;
+using System.Runtime.InteropServices.JavaScript;
 using System.Text;
-
-using SkiaSharp;
-using SkiaSharp.Views.Desktop;
-using Play.Drawing;
-using Play.Interfaces.Embedding;
-using Play.Sound;
-using Play.Edit;
-using Play.Forms;
-using Play.Parse.Impl;
-using Play.Rectangles;
+using System.Web;
+using System.Windows.Forms;
+using System.Xml.Linq;
 
 
 namespace Play.ImageViewer {
@@ -1207,25 +1210,6 @@ namespace Play.ImageViewer {
             TextLoaded?.Invoke();
         }
 
-        /// <summary>
-        /// BUG: Huh, doesn't look like it's getting used anymore. Might
-        /// be able to remove this and the GateFilesEvent object.
-        /// </summary>
-        /// <param name="eEvent"></param>
-        void OnFileList_BufferEvent(BUFFEREVENTS eEvent) {
-            using( GateFilesEvent oGate = new GateFilesEvent( this ) ) {
-                if( oGate.Open ) {
-                    if( eEvent == BUFFEREVENTS.MULTILINE ||
-                        eEvent == BUFFEREVENTS.SINGLELINE ) 
-                    {
-                        Raise_ImageUpdated();
-                        Raise_UpdatedThumbs();
-                        _oSiteWorkParse.Queue( CreateParseWorker(), 0 );
-                    }
-                }
-            }
-        }
-
         protected virtual void DecorNavigatorUpdate() {
             SKColorType skColorType;
             long        lSize       = 0;
@@ -1265,147 +1249,94 @@ namespace Play.ImageViewer {
                 oBulk.SetValue( (int)ImageProperties.Names.Name,      Path.GetFileName( strName ) );
                 oBulk.SetValue( (int)ImageProperties.Names.Directory, CurrentShowPath.ToString() );
             }
-        }
+        } // method
 
-        protected void Push( Stack<ProdBase<char>> oStack, Production<char> p_oProduction, ProdBase<char> p_oParent )
-        {
-            try {
-                for( int iProdElem = p_oProduction.Count - 1; iProdElem >= 0; --iProdElem ) {
-                    ProdBase<char> oMemElem = p_oProduction[iProdElem]; 
+        /// <summary>
+        /// While an improvement over it's predecessor, you could probably move
+        /// a lot of functionality into a base class...
+        /// </summary>
+        /// <seealso cref="Integration.ParseHandlerText"/>
+        /// <seealso cref="Integration.ParseSimpleText"/>
+		public class ParseHandler : IParseEvents<char> {
+            ImageWalkerDoc        _oHost;
+            BaseEditor.LineStream _oStream;
+            public ParseIterator<char> Parser { get; }
 
-                    if( oMemElem == null ) {
-                        StringBuilder sbError = new StringBuilder();
+            public ParseHandler( State<char> oStart, ImageWalkerDoc oHost ) {
+                ArgumentNullException.ThrowIfNull( oStart );
+                ArgumentNullException.ThrowIfNull( oHost  );
 
-                        sbError.AppendLine( "Problem with production..." );
-                        sbError.Append( "State: " );
-                        sbError.AppendLine( p_oProduction.StateName );
-                        sbError.Append( "Production #: " );
-                        sbError.AppendLine( p_oProduction.Index.ToString() );
-                        sbError.Append( "Element #: " );
-                        sbError.Append( iProdElem.ToString() );
-                        sbError.AppendLine( "." );
+                _oHost   = oHost;
+                _oStream = oHost.FileList.CreateStream();
 
-                        throw new InvalidOperationException( sbError.ToString() );
-                    }
+                MemoryState<char> oMStart = new MemoryState<char>( new ProdState<char>( oStart ), null );
 
-                    oStack.Push( oMemElem );
-                }
-            } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( ArgumentNullException ),
-                                    typeof( NullReferenceException ),
-                                    typeof( InvalidOperationException ) };
-				if( rgErrors.IsUnhandled( oEx ) )
-					throw;
-                LogError( "parse", "trouble pushing productions" );
+                Parser = new ParseIterator<char>( _oStream, this, oMStart ) {
+                    ExceptionEvent = OnParserException
+                };
             }
-        }
 
-        protected void OnMatch( Stack<ProdBase<char>> oStack, BaseEditor.LineStream oStream, ProdBase<char> oElem, int iInput, int iMatch ) {
-            // Null match is zero length so just ignore.
-            if( iMatch > 0 ) {
-                Line oLine  = oStream.SeekLine( iInput, out int iOffset);
-                int  iColor = 0;
-
-                try {
-                    foreach( ProdBase<char> oParent in oStack ) {
-						// Note: Seems odd, that this might be false. But I'm seeing it.
-						if( oParent is ProdState<char> oState ) {
-							int iIndex = oState.Class.Bindings.IndexOfKey( oElem.ID );
-                
-							if( iIndex > -1 ) {
-								iColor = oState.Class.Bindings.Values[iIndex].ColorIndex;
-								break;
-							}
-						}
-                    }
-                } catch( NullReferenceException ) {
-					LogError( "ImageDocWalk", "Problem on match" );
-                }
-                oLine.Formatting.Add( new WordRange( iOffset, iMatch, iColor ));
+            protected void LogError( string strCatagory, string strDetails ) {
+                _oHost.LogError( strCatagory, strDetails );
             }
-        }
 
-		protected void OnError( Stack<ProdBase<char>> oStack, BaseEditor.LineStream oStream, int iInput, ProdBase<char> oElem ) {
-            Line oLine = oStream.SeekLine( iInput, out int iOffset);
+            public void OnMatch(ProdBase<char> p_oElem, int p_lStart, int p_lLength) {
+                // MemoryElem captures both terminals and states.
+                if( p_oElem is MemoryElem<char> oMemElem ) {
+                    Line oLine = _oStream.SeekLine( oMemElem.Start, out int iLineOffset);
 
-			StringBuilder oBuilder = new StringBuilder();
+                    // Parser is totally stream based, talking to the base class. So have to do this here.
+                    oMemElem.Offset = iLineOffset;
+                    oLine.Formatting.Add(oMemElem);
+                }
+            }
 
-			oBuilder.Append( "Grammer error at Line: " );
-			oBuilder.Append( oLine.At.ToString() );
-			oBuilder.Append( "; Col: " );
-			oBuilder.Append( iOffset.ToString() );
-			oBuilder.Append( "; Elem: " );
-			oBuilder.Append( oElem.ToString() );
-			oBuilder.Append( "; Stack: " );
+            public void OnParserError(ProdBase<char> p_oMemory, int p_iStart) {
+                Line oLine = _oStream.SeekLine( p_iStart, out int iOffset);
 
-			foreach( ProdBase<char> oState in oStack ) {
-				oBuilder.Append( "'");
-				oBuilder.Append( oState.ToString() );
-				oBuilder.Append( "'");
-				oBuilder.Append( ",");
-			}
+			    StringBuilder oBuilder = new StringBuilder();
 
-			LogError( "parsing", oBuilder.ToString() );
-		}
-        
-		/// <summary>
-		/// 2019: This is kind of weird. I could use the parse iterator instead of
-		/// hand coding all this. Try fixing that.
-		/// </summary>
-		/// <returns></returns>
-        [Obsolete]public IEnumerator<int> CreateParseWorker() {
-            Stack<ProdBase<char>> oStack        = new Stack<ProdBase<char>>();
-            int                   iStreamLength = (int)FileList.CharacterCount( 0 ) + 1;
-		    BaseEditor.LineStream oStream       = FileList.CreateStream();
-		    int                   iInput        = 0;
+			    oBuilder.Append( "Grammer error at Line: " );
+			    oBuilder.Append( oLine.At.ToString() );
+			    oBuilder.Append( "; Col: " );
+			    oBuilder.Append( iOffset.ToString() );
+			    oBuilder.Append( "; Elem: " );
+			    oBuilder.Append( p_oMemory.ToString() );
+			    oBuilder.Append( "; Stack: " );
 
-            if( _oGrammar == null )
+			    LogError( "parsing", oBuilder.ToString() );
+            }
+
+            /// <summary>
+            /// These are exceptions handled by the compiler. But
+            /// still indicates problems that should be caught.
+            /// </summary>
+            void OnParserException( Exception oEx, int iStart ) {
+                LogError( "Image Walker", oEx.Message );
+            }
+        } // class
+
+        public IEnumerator<int> CreateParseWorker() {
+            FileList.ClearFormatting();
+            FileList.CharacterCount (0);
+
+			State<char> oStart = _oGrammar.FindState( "start" );
+			if( oStart is null ) {
+                LogError( "Image Walker", "Could not find grammar start state" );
                 yield break;
-
-            oStack.Push( new ProdState<char>(_oGrammar.FindState("start")) );
-
-            while( iInput < iStreamLength - 1 ) {
-                if( oStack.Count < 1 ) {
-                    Raise_TextParsed(); // BUG: This never happened before. Need to investigate.
-                    yield break;
-                }
-
-                ProdBase<char>   oNonTerm    = null;
-		        int              iMatch;
-                Production<char> oProduction;
-
-				try {
-					oNonTerm = oStack.Pop();
-					if( oNonTerm.IsEqual( 30, oStream, false, iInput, out iMatch, out oProduction) ) {
-						if( oProduction == null ) {
-							OnMatch( oStack, oStream, oNonTerm, iInput, iMatch ); // just match terminals.
-							iInput += iMatch;
-						} else {
-							Push( oStack, oProduction, oNonTerm );
-						}
-					} else {
-						// It's only an error if somewhere inside the stream, not at the end.
-						if( iInput < iStreamLength - 1 )
-							OnError( oStack, oStream, iInput, oNonTerm );
-					}
-				} catch ( Exception oEx ) {
-					Type[] rgErrors = { typeof( ArgumentNullException ),     // MemoryEnd<T> can throw it on grammar bugs.
-										typeof( InvalidOperationException ), // Push had problem with a production
-										typeof( NullReferenceException ) };  // Usually this means one of the callbacks had a problem! ^_^
-					if( rgErrors.IsUnhandled( oEx )) 
-						throw;
-
-					LogError( "DocWalkFile", "Parsing exception at term: " + oNonTerm.ToString() );
-					oStack.Clear();
-				}
-                yield return( 0 );
             }
-            
+
+            ParseHandler oHandler = new( oStart, this );
+
+            while( oHandler.Parser.MoveNext() ) {
+                yield return 0;
+            }
+
             Raise_TextParsed();
-			yield return( 0 );
+			yield return 0;
         }
 
-		public virtual bool LoadAgain( string strDirectory ) {
+        public virtual bool LoadAgain( string strDirectory ) {
 			return( false );
 		}
 
@@ -1635,6 +1566,7 @@ namespace Play.ImageViewer {
 
             return( base.Execute( sGuid ) );
         }
+
     } // end class
 
 }

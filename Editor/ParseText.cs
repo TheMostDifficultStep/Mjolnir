@@ -510,12 +510,10 @@ namespace Play.Integration {
 		protected State<char>			_oStart;
 
 		public ParseSimpleText( BaseEditor oText, Grammer<char> oLanguage ) {
+            ArgumentNullException.ThrowIfNull(oLanguage);
 			Document = oText ?? throw new ArgumentNullException( "Editor must not be null" );
 
-			if( oLanguage == null )
-				throw new ArgumentNullException( "Language must not be null" );
-
-			_oStream = Document.CreateStream() ?? throw new InvalidOperationException( "Couldn't create stream on given document" );
+            _oStream = Document.CreateStream() ?? throw new InvalidOperationException( "Couldn't create stream on given document" );
 			_oStart  = oLanguage.FindState("start") ?? throw new InvalidOperationException( "Couldn't find start state" );
 
 		}
