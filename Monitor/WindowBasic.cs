@@ -66,7 +66,7 @@ namespace Monitor {
         /// Override the normal row behavior so we can search for lines
         /// by address!! 
         /// </summary>
-        public Row this[int iIndex] {
+        public Row? this[int iIndex] {
             get {
                 foreach( Row oRow in DocMain.BasicDoc ) {
                     if( oRow is BasicRow oAsm ) {
