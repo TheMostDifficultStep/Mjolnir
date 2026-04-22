@@ -123,10 +123,8 @@ namespace Play.SSTV {
         {
             _strFileName = strFileName ?? throw new ArgumentNullException( nameof( strFileName ) );
 
-            if( oD12 == null )
-                throw new ArgumentNullException( nameof( oD12 ) );
-            if( oRx  == null )
-                throw new ArgumentNullException( nameof( oRx  ) );
+            ArgumentNullException.ThrowIfNull( oD12 );
+            ArgumentNullException.ThrowIfNull( oRx  );
 
             _oReader     = new AudioFileReader     ( _strFileName ); // BUG: throws if not find file.
             _oProvider   = new WaveToSampleProvider( _oReader );
@@ -253,6 +251,7 @@ namespace Play.SSTV {
 
                 // Overrite any existing file!!
                 using var stream   = File.OpenWrite( strSavePath );
+                //oImage.Encode( SKEncodedImageFormat.Jpeg, 80 ).SaveTo( stream );
 
                 oSnipDoc.Save( stream );
             } catch( Exception oEx ) {
@@ -355,7 +354,7 @@ namespace Play.SSTV {
         private void OnTvEvents_SSTVDraw( SSTVMessage sMessage ) {
             if( sMessage.Event == SSTVEvents.ModeChanged ) {
                 foreach( SSTVMode oMode in _oSSTVDeMo ) {
-                    if( oMode.LegacyMode == (AllSSTVModes)sMessage.Param ) {
+                    if( oMode.LegacyMode == (AllSSTVModes)sMessage.ParamInt ) {
                         _oLastMode = oMode;
                     }
                 }

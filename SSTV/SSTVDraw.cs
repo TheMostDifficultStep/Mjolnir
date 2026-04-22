@@ -33,10 +33,7 @@ namespace Play.SSTV {
         public DocDownloadBuffer(IPgBaseSite oSiteBase) : base(oSiteBase) {
         }
 
-		public virtual bool InitNew() {
-            if( !Initialize() )
-                return false;
-
+		protected override bool Initialize() {
 			SKImageInfo oInfo = new SKImageInfo(_szMax.Width, _szMax.Height, SKColorType.Rgb888x, SKAlphaType.Unknown);
 
 		    Buffer = new SKBitmap( oInfo );
@@ -71,17 +68,17 @@ namespace Play.SSTV {
 
             base.Raise_ImageUpdated();
         }
+    }
 
-	}
 	public struct SSTVPosition {
 		public double Position { get; init; }
 		public int    ScanLine { get; init; }
 	}
 
 	/// <summary>
-	/// The demodulator converts the signal from the time to frequency domain. In the original
+	/// The demodulator converts the signal from the time to frequency domain, in the original
 	/// code. It looks like it lives on it's own thread. I'm going to put it with the demodulator
-	/// in the same thread. The actual audio retrival can still live in another thread if we want.
+	/// in the same thread. The actual audio retrieval can still live in another thread if we want.
 	/// </summary>
     public class SSTVDraw : 
 		IEnumerable<SSTVPosition>
@@ -131,11 +128,8 @@ namespace Play.SSTV {
 
 			public ScanBuffers( SSTVDraw oHost ) {
                 ArgumentNullException.ThrowIfNull(oHost);
-                if( oHost._pBitmapRX == null )
-					throw new InvalidProgramException( "SSTV Target bitmap is null!" );
 
-				_oDraw     = oHost;
-				_pBitmapRX = oHost._pBitmapRX;
+				_oDraw = oHost;
 
 				var rgWriterEnum = typeof( ScanLineChannelType ).GetEnumValues();
 
@@ -146,12 +140,10 @@ namespace Play.SSTV {
 				}
 			}
 
-			protected readonly SKBitmap _pBitmapRX;
-
 			public bool Reset( int iRasterLine ) {
-			    _AY    = iRasterLine;
+			    _AY = iRasterLine;
 
-				if( (_AY < 0) || (_AY >= _pBitmapRX.Height) )
+				if( (_AY < 0) || (_AY >= _oDraw.Mode.Resolution.Height) )
 					return false;
 
 				_rgSense.Clear();
@@ -171,9 +163,9 @@ namespace Play.SSTV {
 			/// Cache the Green and Blue values first and finish with this call.
 			/// </summary>
 			protected void PixelSetRed( int iX, short sValue ) {
-				_pBitmapRX.SetPixel( iX, _AY,  new SKColor( (byte)Limit256(sValue + 128 ), 
-															(byte)_CBy[iX], 
-															(byte)_CRy[iX] ) );
+				_oDraw.SetPixel( iX, _AY,  new SKColor( (byte)Limit256(sValue + 128 ), 
+														(byte)_CBy[iX], 
+														(byte)_CRy[iX] ) );
 			}
 
 			/// <summary>
@@ -191,8 +183,8 @@ namespace Play.SSTV {
 			/// for PD.  Cached the Y1, RY and BY values first and finish with this call.
 			/// </summary>
 			protected void PixelSetY2( int iX, short sValue ) {
-				_pBitmapRX.SetPixel( iX, _AY,   YCtoRGB( _Y1[iX],      _CRy[iX], _CBy[iX]) );
-				_pBitmapRX.SetPixel( iX, _AY+1, YCtoRGB( sValue + 128, _CRy[iX], _CBy[iX]) );
+				_oDraw.SetPixel( iX, _AY,   YCtoRGB( _Y1[iX],      _CRy[iX], _CBy[iX]) );
+				_oDraw.SetPixel( iX, _AY+1, YCtoRGB( sValue + 128, _CRy[iX], _CBy[iX]) );
 			}
 
 			protected void PixelSetRY( int iX, short sValue ) {
@@ -220,8 +212,8 @@ namespace Play.SSTV {
 				_CBy[iX2  ] = sValue;
 				_CBy[iX2+1] = sValue;
 
-				_pBitmapRX.SetPixel( iX,   _AY, YCtoRGB( _Y1[iX], _CRy[iX2  ], _CBy[iX2  ]) );
-				_pBitmapRX.SetPixel( iX+1, _AY, YCtoRGB( _Y1[iX], _CRy[iX2+1], _CBy[iX2+1]) );
+				_oDraw.SetPixel( iX,   _AY, YCtoRGB( _Y1[iX], _CRy[iX2  ], _CBy[iX2  ]) );
+				_oDraw.SetPixel( iX+1, _AY, YCtoRGB( _Y1[iX], _CRy[iX2+1], _CBy[iX2+1]) );
 			}
 
 			protected void PixelSetR36Y2( int iX, short sValue ) {
@@ -300,10 +292,10 @@ namespace Play.SSTV {
 					_CBy[iX] = sValue;
 				}
 
-				_pBitmapRX.SetPixel( iX,   _AY,   YCtoRGB( _Y1[iX  ], _CRy[iX], _CBy[iX]) );
-				_pBitmapRX.SetPixel( iX+1, _AY,   YCtoRGB( _Y1[iX+1], _CRy[iX], _CBy[iX]) );
-				_pBitmapRX.SetPixel( iX,   _AY+1, YCtoRGB( _Y2[iX  ], _CRy[iX], _CBy[iX]) );
-				_pBitmapRX.SetPixel( iX+1, _AY+1, YCtoRGB( _Y2[iX+1], _CRy[iX], _CBy[iX]) );
+				_oDraw.SetPixel( iX,   _AY,   YCtoRGB( _Y1[iX  ], _CRy[iX], _CBy[iX]) );
+				_oDraw.SetPixel( iX+1, _AY,   YCtoRGB( _Y1[iX+1], _CRy[iX], _CBy[iX]) );
+				_oDraw.SetPixel( iX,   _AY+1, YCtoRGB( _Y2[iX  ], _CRy[iX], _CBy[iX]) );
+				_oDraw.SetPixel( iX+1, _AY+1, YCtoRGB( _Y2[iX+1], _CRy[iX], _CBy[iX]) );
 			}
 
 			/// <summary>
@@ -314,7 +306,7 @@ namespace Play.SSTV {
 			protected void PixelSetY( int iX, short sValue ) {
 				sValue += 128;
 				_Y1[iX] = sValue;
-				_pBitmapRX.SetPixel( iX, _AY, new SKColor( (byte)sValue, (byte)sValue, (byte)sValue ) );
+				_oDraw.SetPixel( iX, _AY, new SKColor( (byte)sValue, (byte)sValue, (byte)sValue ) );
 			}
 
 			public setPixel ReturnColorFunction( ScanLineChannelType eDT ) {
@@ -394,8 +386,8 @@ namespace Play.SSTV {
 		/// </remarks>
 		public SSTVDraw( SSTVDEM p_dp, SKBitmap oD12, SKBitmap oRx, int iThreadCnt=1 ) {
 			_dp         = p_dp ?? throw new ArgumentNullException( "Demodulator must not be null to SSTVDraw." );
+			_pBitmapRX  = oRx  ?? throw new ArgumentNullException( "Image buffer must not be null." );
 			_pBitmapD12 = oD12 ?? throw new ArgumentNullException( "D12 bmp must not be null" );
-			_pBitmapRX  = oRx  ?? throw new ArgumentNullException( "D12 bmp must not be null" );
 
 			_skD12Canvas = new( _pBitmapD12 );
 
@@ -428,7 +420,11 @@ namespace Play.SSTV {
 			_rgDiagnosticColors.Add( ScanLineChannelType.END,    new( SKColors.Aquamarine, 3 ) );
 		}
 
-		/// <summary>this method get's called to initiate the processing of
+		public void SetPixel( int iX, int iY, SKColor sColor ) {
+			_pBitmapRX.SetPixel( iX, iY, sColor );
+		}
+
+	/// <summary>this method get's called to initiate the processing of
 		/// a new image.</summary>
 		/// <seealso cref="OnModeTransition_SSTVDeMo"/>
 		/// <seealso cref="InitSlots"/>
@@ -447,7 +443,7 @@ namespace Play.SSTV {
 				ClearImage();
 
 				// If the delegate is null, no way to send the error up!!
-				Send_TvMessage( new( SSTVEvents.ModeChanged, (int)Mode.LegacyMode ) );
+				Send_TvMessage( new( SSTVEvents.ModeChanged,  (int)Mode.LegacyMode ) );
 				Send_TvMessage( new( SSTVEvents.DownLoadTime, 0 ) );
 
 				StartTime = DateTime.Now;

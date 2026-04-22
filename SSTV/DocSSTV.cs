@@ -23,9 +23,10 @@ using Play.Forms;
 namespace Play.SSTV {
 
     /// <summary>
-    /// Control point for the signal level. I'll move the colors
-    /// here in the future. But for now just use the SSTVDEM.Levels
-    /// raw. :-/
+    /// Control point for the signal level. Would be kind
+    /// of nice to have the colors defined on this struct.
+    /// But they would just be enum's on the colors I'm
+    /// sending anyway. :-/
     /// </summary>
     public class DocSignalLevel {
         SSTVDEM.Levels _oLatest;
@@ -318,23 +319,29 @@ namespace Play.SSTV {
     // Arg, I wonder if I should unify with TVMessage. :-/
     public struct SSTVMessage {
         public SSTVMessage( SSTVEvents eEvent, string strMsg, object oParam2 = null ) {
-            Event   = eEvent;
-            Message = strMsg;
-            Param   = -1;
-            Param2  = oParam2;
+            Event    = eEvent;
+            Message  = strMsg;
+            ParamInt = -1;
+            ParamObj = oParam2;
         }
 
         public SSTVMessage( SSTVEvents eEvent, int iMsg ) {
-            Event   = eEvent;
-            Param   = iMsg;
-            Message = string.Empty;
-            Param2  = null;
+            Event    = eEvent;
+            ParamInt = iMsg;
+            Message  = string.Empty;
+            ParamObj = null;
+        }
+
+        public SSTVMessage( SSTVEvents eEvent ) {
+            ParamInt = 0;
+            Message  = string.Empty;
+            ParamObj = null;
         }
 
         public SSTVEvents Event  { get; }
-        public string     Message{ get; }
-        public int        Param  { get; }
-        public object     Param2 { get; }
+        public string     Message{ get; set; }
+        public int        ParamInt { get; set; }
+        public object     ParamObj { get; set; }
     }
 
     /// <summary>
@@ -453,9 +460,9 @@ namespace Play.SSTV {
         protected Mpg123FFTSupport FileDecoder   { get; set; }
 
         // This is where our image and diagnostic image live.
-		public DocDownloadBuffer DisplayImage { get; protected set; }
-		public DocDownloadBuffer SyncImage    { get; protected set; }
-        public DocSignalLevel    SignalLevel  { get; protected set; } 
+		public DocDownloadBuffer  DisplayImage { get; protected set; }
+		public DocDownloadBuffer  SyncImage    { get; protected set; }
+        public DocSignalLevel     SignalLevel  { get; protected set; } 
 
         // Some test stuff. 
         //private DataTester _oDataTester;
@@ -1596,7 +1603,7 @@ namespace Play.SSTV {
                             SignalLevelRender( sResult );
                         } break;
                         case SSTVEvents.ModeChanged: {
-                            SSTVMode oMode = RxSSTVModeDoc.GetDescriptor( (AllSSTVModes)sResult.Param );
+                            SSTVMode oMode = RxSSTVModeDoc.GetDescriptor( (AllSSTVModes)sResult.ParamInt );
 
                             if( oMode == null ) {
                                 RxSSTVFamilyDoc.ResetFamily();
@@ -1620,16 +1627,17 @@ namespace Play.SSTV {
                             SyncImage   .Raise_BufferUpdated();
                             break;
                         case SSTVEvents.UploadTime:
-                            Properties.ValueUpdate( SSTVProperties.Names.Tx_Progress, sResult.Param.ToString( "D2" ) + "%", Broadcast:true );
+                            Properties.ValueUpdate( SSTVProperties.Names.Tx_Progress, sResult.ParamInt.ToString( "D2" ) + "%", Broadcast:true );
                             break;
                         case SSTVEvents.DownLoadTime: 
-                            Properties.ValueUpdate( SSTVProperties.Names.Rx_Progress, sResult.Param.ToString( "D2" ) + "%", Broadcast:true );
+                            Properties.ValueUpdate( SSTVProperties.Names.Rx_Progress, sResult.ParamInt.ToString( "D2" ) + "%", Broadcast:true );
                             PropertyChange?.Invoke( SSTVEvents.DownLoadTime );
+
                             DisplayImage.Raise_BufferUpdated();
                             SyncImage   .Raise_BufferUpdated();
                             break;
                         case SSTVEvents.DownLoadFinished: // NOTE: This comes along unreliably in the device streaming case.
-                            Properties.ValueUpdate( SSTVProperties.Names.Rx_Progress, sResult.Param.ToString( "D2" ) + "% - Complete", Broadcast:true );
+                            Properties.ValueUpdate( SSTVProperties.Names.Rx_Progress, sResult.ParamInt.ToString( "D2" ) + "% - Complete", Broadcast:true );
                             PropertyChange?.Invoke( SSTVEvents.DownLoadFinished );
 
                             RxSSTVFamilyDoc.SelectFamily( TVFamily.None );
@@ -1643,7 +1651,7 @@ namespace Play.SSTV {
                             break;
                         case SSTVEvents.ThreadExit:
                             // If there's an abort, you'll get that message and then this one.
-                            Properties.ValueUpdate( SSTVProperties.Names.Std_Process, "Rx Live: Stopped - " + sResult.Param.ToString(), true );
+                            Properties.ValueUpdate( SSTVProperties.Names.Std_Process, "Rx Live: Stopped - " + sResult.ParamInt.ToString(), true );
                             break;
                         case SSTVEvents.ThreadAbort:
                             if( _oThread == null ) {
@@ -1654,7 +1662,7 @@ namespace Play.SSTV {
                             RxSSTVFamilyDoc.SelectFamily( TVFamily.None );
                             RxSSTVModeDoc.HighLight = null;
 
-                            if( sResult.Param2 is Exception oEx ) {
+                            if( sResult.ParamObj is Exception oEx ) {
                                 LogError( oEx.StackTrace );
                             }
 
@@ -1665,7 +1673,7 @@ namespace Play.SSTV {
                                 LogError( sResult.Message + " halting device read" );
                                 ReceiveLiveStop(); 
 
-                                if( sResult.Param2 is Exception oExThread ) {
+                                if( sResult.ParamObj is Exception oExThread ) {
                                     LogError( oExThread.StackTrace );
                                     LogError( oExThread.Message );
                                 }
@@ -1689,7 +1697,7 @@ namespace Play.SSTV {
         }
 
         protected void SignalLevelRender( SSTVMessage msg ) {
-            if( msg.Param2 is SSTVDEM.Levels oLevel ) {
+            if( msg.ParamObj is SSTVDEM.Levels oLevel ) {
                 SignalLevel.Level = oLevel;
             }
         }
@@ -1968,8 +1976,8 @@ namespace Play.SSTV {
 					    _oSSTVDeModulator = oDemodTst;
 					    _oSSTVModulator   = new SSTVMOD ( 0, oFFTMode.SampFreq, _oSSTVBuffer );
 					    _oRxSSTV          = new SSTVDraw( _oSSTVDeModulator, 
-                                                          oDoc.SyncImage   .Buffer, 
-                                                          oDoc.DisplayImage.Buffer, 
+                                                          oDoc.SyncImage   .Buffer,
+                                                          oDoc.DisplayImage.Buffer,
                                                           oDoc.RxThreadCnt );
 
                         SKColor[,] rgSnap = oDoc.TxBitmapComp.SnapShot();

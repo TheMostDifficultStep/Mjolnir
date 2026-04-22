@@ -401,7 +401,7 @@ namespace Play.ImageViewer {
                     return;
                 }
                 string strFullName = Path.Combine( PropertiesDoc.ValueAsStr( (int)ImageSnipProperties.Labels.FilePath ),
-                                                    PropertiesDoc.ValueAsStr( (int)ImageSnipProperties.Labels.FileName ) );
+                                                   PropertiesDoc.ValueAsStr( (int)ImageSnipProperties.Labels.FileName ) );
                 using Stream oStream = File.Open(strFullName, FileMode.Create);
                 if( !oSnipTemp.Save(oStream) ) {
                     _oSiteBase.LogError("Snip Save", "Could not create the snip copy, stream error.");
