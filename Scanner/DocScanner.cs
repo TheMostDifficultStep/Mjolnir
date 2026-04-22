@@ -51,7 +51,7 @@ namespace Scanner {
             return Initialize();
         }
 
-        public bool InitNew() {
+        public override bool InitNew() {
             return Initialize();
         }
     } // end class
