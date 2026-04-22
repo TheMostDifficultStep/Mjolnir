@@ -6,7 +6,6 @@ using System.Windows.Forms;
 using System.Threading.Tasks;
 using System.Drawing;
 using System.Reflection;
-
 using SkiaSharp;
 using SkiaSharp.Views.Desktop;
 
@@ -441,7 +440,6 @@ namespace Play.SSTV {
 			_wmTxImageComposite.Parent = this;
 			_wmRxViewChoices   .Parent = this;
 
-
 			_rgToolIcons = new Editor( new SSTVWinSlot( this, ChildID.None ) );
 			Icon = SKImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), IconResource );
 		}
@@ -584,8 +582,9 @@ namespace Play.SSTV {
 
         public bool Execute( Guid sGuid ) {
 			if( sGuid == GlobalCommands.Play ) {
+				//_oDocSSTV.SimpleTest();
 				if( _oDocSSTV.RenderComposite() ) {
-					_oDocSSTV.TransmitBegin  (); 
+					_oDocSSTV.TransmitBegin  ();
 				}
 				return true;
 			}

@@ -23,10 +23,9 @@ using Play.Forms;
 namespace Play.SSTV {
 
     /// <summary>
-    /// Control point for the signal level. Would be kind
-    /// of nice to have the colors defined on this struct.
-    /// But they would just be enum's on the colors I'm
-    /// sending anyway. :-/
+    /// Control point for the signal level. I'll move the colors
+    /// here in the future. But for now just use the SSTVDEM.Levels
+    /// raw. :-/
     /// </summary>
     public class DocSignalLevel {
         SSTVDEM.Levels _oLatest;
@@ -332,16 +331,10 @@ namespace Play.SSTV {
             ParamObj = null;
         }
 
-        public SSTVMessage( SSTVEvents eEvent ) {
-            ParamInt = 0;
-            Message  = string.Empty;
-            ParamObj = null;
-        }
-
-        public SSTVEvents Event  { get; }
-        public string     Message{ get; set; }
-        public int        ParamInt { get; set; }
-        public object     ParamObj { get; set; }
+        public SSTVEvents Event    { get; }
+        public string     Message  { get; }
+        public int        ParamInt { get; }
+        public object     ParamObj { get; }
     }
 
     /// <summary>
@@ -460,7 +453,7 @@ namespace Play.SSTV {
         protected Mpg123FFTSupport FileDecoder   { get; set; }
 
         // This is where our image and diagnostic image live.
-		public DocDownloadBuffer  DisplayImage { get; protected set; }
+		public DocDownloadBuffer2 DisplayImage { get; protected set; }
 		public DocDownloadBuffer  SyncImage    { get; protected set; }
         public DocSignalLevel     SignalLevel  { get; protected set; } 
 
@@ -1623,8 +1616,8 @@ namespace Play.SSTV {
                             PropertyChange?.Invoke( SSTVEvents.ModeChanged );
                         } break;
                         case SSTVEvents.ImageUpdated:
-                            DisplayImage.Raise_BufferUpdated();
-                            SyncImage   .Raise_BufferUpdated();
+                            DisplayImage.CreateImage();
+                            SyncImage   .CreateImage();
                             break;
                         case SSTVEvents.UploadTime:
                             Properties.ValueUpdate( SSTVProperties.Names.Tx_Progress, sResult.ParamInt.ToString( "D2" ) + "%", Broadcast:true );
@@ -1632,9 +1625,8 @@ namespace Play.SSTV {
                         case SSTVEvents.DownLoadTime: 
                             Properties.ValueUpdate( SSTVProperties.Names.Rx_Progress, sResult.ParamInt.ToString( "D2" ) + "%", Broadcast:true );
                             PropertyChange?.Invoke( SSTVEvents.DownLoadTime );
-
-                            DisplayImage.Raise_BufferUpdated();
-                            SyncImage   .Raise_BufferUpdated();
+                            DisplayImage.CreateImage();
+                            SyncImage   .CreateImage();
                             break;
                         case SSTVEvents.DownLoadFinished: // NOTE: This comes along unreliably in the device streaming case.
                             Properties.ValueUpdate( SSTVProperties.Names.Rx_Progress, sResult.ParamInt.ToString( "D2" ) + "% - Complete", Broadcast:true );
@@ -1909,6 +1901,18 @@ namespace Play.SSTV {
             _oSiteBase.Notify( ShellNotify.MediaStatusChanged );
         }
 
+        public void SimpleTest() {
+			DocSSTV.RxTest oTest = new DocSSTV.RxTest();
+
+            RenderComposite();
+
+			oTest.ReceiveTestBegin( 
+                TxBitmapComp.WorldDisplay,
+				TxSSTVModeDoc.SelectedMode, 
+                this, 
+                _oWorkPlace );
+        }
+
         /// <summary>
         /// This class contains the fragents of an early TV generation test. Because
         /// I've moved the transmission components to the TxState object this code
@@ -1917,8 +1921,8 @@ namespace Play.SSTV {
         /// </summary>
         private class RxTest {
             protected BufferSSTV _oSSTVBuffer;      
-		    protected SSTVDraw   _oRxSSTV;          // Only used by test code.
-            protected SSTVDEM    _oSSTVDeModulator; // Only used by test code.
+		    protected SSTVDraw   _oSSTVDraw;
+            protected SSTVDEM    _oSSTVDeModulator;
             protected SSTVMOD    _oSSTVModulator;
             protected SSTVGenerator _oSSTVGenerator;
             protected DocSSTV _oDoc;
@@ -1932,16 +1936,15 @@ namespace Play.SSTV {
             /// one will decode properly of course.</param>
 		    /// <returns>Time in ms before next call wanted.</returns>
             public IEnumerator<int> GetTaskRecordTest1( SSTVMode oMode ) {
-			    if( oMode == null )
-				    throw new ArgumentNullException( "Mode must not be Null." );
+                ArgumentNullException.ThrowIfNull(oMode);
 
-			    IEnumerator<int> oIter = _oSSTVGenerator.GetEnumerator();
+                IEnumerator<int> oIter = _oSSTVGenerator.GetEnumerator();
 
 			    oIter            .MoveNext(); // skip the VIS for now.
 			    _oSSTVDeModulator.Start( oMode );
 
                 while( oIter.MoveNext() ) {
-				    _oRxSSTV.Process();
+				    _oSSTVDraw.Process();
 				    yield return 1;
 			    };
 		    }
@@ -1958,6 +1961,8 @@ namespace Play.SSTV {
                 _oDoc = oDoc ?? throw new ArgumentNullException( nameof( oDoc ) );
 
                 try {
+                    oWorkPlace.Stop();
+
                     if( oWorkPlace.Status == WorkerStatus.FREE ) {
                         // borrow the Composite Bitmap for this test.
 			            oDoc.TxBitmapComp.Load( oDoc.TxImageList.Image, skSelect, oMode.Resolution );
@@ -1975,9 +1980,9 @@ namespace Play.SSTV {
                         _oSSTVBuffer      = new BufferSSTV( oTxSpec );
 					    _oSSTVDeModulator = oDemodTst;
 					    _oSSTVModulator   = new SSTVMOD ( 0, oFFTMode.SampFreq, _oSSTVBuffer );
-					    _oRxSSTV          = new SSTVDraw( _oSSTVDeModulator, 
-                                                          oDoc.SyncImage   .Buffer,
-                                                          oDoc.DisplayImage.Buffer,
+					    _oSSTVDraw        = new SSTVDraw( _oSSTVDeModulator, 
+                                                          oDoc.SyncImage   .Buffer, 
+                                                          oDoc.DisplayImage.Buffer, 
                                                           oDoc.RxThreadCnt );
 
                         SKColor[,] rgSnap = oDoc.TxBitmapComp.SnapShot();
@@ -1989,13 +1994,18 @@ namespace Play.SSTV {
 						    _ => throw new ArgumentOutOfRangeException("Unrecognized Mode Type."),
 					    };
 
-                        _oSSTVDeModulator.Send_NextMode += OnNextMode_SSTVDeMod;
+                        _oSSTVDeModulator.Send_NextMode  = OnNextMode_SSTVDeMod;
+                        _oSSTVDraw       .Send_TvMessage = OnTVEvents_SSTVDraw;
+                        _oSSTVDeModulator.Start( oMode );
 
                         oWorkPlace.Queue( GetTaskRecordTest1( oMode ), 0 );
                     }
                 } catch( NullReferenceException ) {
                     LogError( "Ooops didn't pick up mode (I think)" );
                 }
+            }
+
+            private void OnTVEvents_SSTVDraw(SSTVMessage message) {
             }
 
             void LogError( string strMessage ) {
@@ -2014,7 +2024,7 @@ namespace Play.SSTV {
 			    //_oDoc.DisplayImage.Bitmap = null;
 			    //_oDoc.SyncImage   .Bitmap = null;
 
-                _oRxSSTV.OnModeTransition_SSTVDeMo( tvMode, tvPrev, iPrevBase ); // bitmap allocated in here. (may throw exception...)
+                _oSSTVDraw.OnModeTransition_SSTVDeMo( tvMode, tvPrev, iPrevBase ); // bitmap allocated in here. (may throw exception...)
 
 			    _oDoc.DisplayImage.WorldDisplay = new SKRectI( 0, 0, tvMode.Resolution.Width, tvMode.Resolution.Height );
 

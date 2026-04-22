@@ -117,7 +117,7 @@ namespace Play.SSTV {
 
         public FileReadingState( 
             ConcurrentQueue<SSTVMessage> oToUIQueue, 
-            string strFileName, SKBitmap oD12, SKBitmap oRx 
+            string strFileName, SKBitmap oD12, SKColor[,] oRx 
         ) :
             base( oToUIQueue )
         {
@@ -237,7 +237,7 @@ namespace Play.SSTV {
 			    SKRectI rcWorldDisplay = new SKRectI( 0, 0, tvMode.Resolution.Width, tvMode.Resolution.Height );
 
                 // Need to snip the image since we might not be using the entire display image.
-                using SKImage oImage = SKImage.FromBitmap( _oSSTVDraw._pBitmapRX );
+                using SKImage oImage = DocDownloadBuffer2.CreateImage( _oSSTVDraw._rgBitmapRX, tvMode.Resolution );
                 if( !oSnipDoc.Load( oImage, rcWorldDisplay, rcWorldDisplay.Size ) )
                     return;
 
@@ -251,7 +251,6 @@ namespace Play.SSTV {
 
                 // Overrite any existing file!!
                 using var stream   = File.OpenWrite( strSavePath );
-                //oImage.Encode( SKEncodedImageFormat.Jpeg, 80 ).SaveTo( stream );
 
                 oSnipDoc.Save( stream );
             } catch( Exception oEx ) {
@@ -331,7 +330,7 @@ namespace Play.SSTV {
                                      ConcurrentQueue<SSTVMessage> oToUIQueue, 
                                      ConcurrentQueue<TVMessage>   oInputQueue,
                                      SKBitmap                     oD12,
-                                     SKBitmap                     oRx,
+                                     SKColor[,]                   oRx,
                                      int                          iThreadCnt ) :
             base( oToUIQueue )
         {
@@ -520,7 +519,7 @@ namespace Play.SSTV {
 			        SKRectI rcWorldDisplay = new SKRectI( 0, 0, tvMode.Resolution.Width, tvMode.Resolution.Height );
 
                     // Need to snip the image since we might not be using the entire display image.
-                    using SKImage oImage = SKImage.FromBitmap( _oSSTVDraw._pBitmapRX );
+                    using SKImage oImage = DocDownloadBuffer2.CreateImage( _oSSTVDraw._rgBitmapRX,tvMode.Resolution );
                     if( !oSnipDoc.Load( oImage, rcWorldDisplay, rcWorldDisplay.Size ) )
                         return;
 
@@ -736,7 +735,7 @@ namespace Play.SSTV {
 
         public PortListening( int iPort, int iMonitor, int iImageQuality,
                               string strFilePath,ConcurrentQueue<SSTVMessage> oToUIQueue,
-                              ConcurrentQueue<TVMessage> oInputQueue, SKBitmap oD12, SKBitmap oRx, int iThreadCnt=3 ) : 
+                              ConcurrentQueue<TVMessage> oInputQueue, SKBitmap oD12, SKColor[,] oRx, int iThreadCnt=3 ) : 
             base( iMonitor, -1, 0.0, iImageQuality, strFilePath, string.Empty, oToUIQueue,
                   oInputQueue, oD12, oRx, iThreadCnt )
         {

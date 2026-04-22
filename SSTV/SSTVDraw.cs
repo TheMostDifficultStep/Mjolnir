@@ -44,18 +44,12 @@ namespace Play.SSTV {
 			return true;
 		}
 
-		/// <summary>
-		/// We need to update our SKImage now everytime we get an
-		/// update. Fortunately it's not that frequent, (like if we
-		/// were drawing. So I don't think this'll be too bad.
-		/// </summary>
-		/// <remarks>Can't set the Image via the property accessor
-		/// since it will update the world coordinates AND make a
-		/// call to this method again. Stack overflow...</remarks>
-		public void Raise_BufferUpdated() {
+		public void CreateImage() {
 			try {
 				_skImage?.Dispose();
 				_skImage = SKImage.FromBitmap( Buffer );
+
+				Raise_ImageUpdated();
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( AccessViolationException ),
 									typeof( ArgumentException ),
@@ -65,10 +59,63 @@ namespace Play.SSTV {
 				_oSiteBase.LogError( "SSTV Download Buffer", "Race condition... :-/" );
 				_skImage = null;
 			}
-
-            base.Raise_ImageUpdated();
-        }
+		}
     }
+
+    public class DocDownloadBuffer2 :
+		DocImageBase 
+	{
+		protected readonly SKImageInfo _oInfo;
+
+        public SKColor[,] Buffer { get; protected set; }
+
+        public DocDownloadBuffer2(IPgBaseSite oSiteBase) : base(oSiteBase) {
+			_oInfo = new SKImageInfo(800, 616, SKColorType.Bgra8888, SKAlphaType.Opaque);
+        }
+
+		public override bool InitNew() {
+            if( !Initialize() )
+                return false;
+
+		    Buffer = new SKColor[_oInfo.Height, _oInfo.Width];
+			Image  = SKImage.Create( _oInfo );
+
+            // Just set it up so it looks ok to start. Gets updated for each image downloaded.
+            WorldDisplay = new SKRectI( 0, 0, _oInfo.Width, _oInfo.Height );
+			return true;
+		}
+
+		public void CreateImage() {
+			Image = CreateImage( Buffer, WorldDisplay.Size );
+		}
+
+		public static SKImage CreateImage( SKColor[,] rgBuffer, SKSizeI oRez ) {
+			if( oRez.Width  > rgBuffer.GetLength(1) ||
+				oRez.Height > rgBuffer.GetLength(0) )
+			{
+				return null;
+			}
+
+			// Well kick my butt. You need to be Bgra if you're directly
+			// loading the SKImage from a pixmap! If you look at a SKColor,
+			// Blue is the least significiant part of the integer!!!
+			SKImageInfo sInfo = new( oRez.Width, 
+									 oRez.Height, 
+									 SKColorType.Bgra8888, 
+									 SKAlphaType.Opaque );
+			SKImage oImage;
+
+			unsafe {
+				fixed( SKColor* pBuff = rgBuffer ) {
+					int iRowBytes = rgBuffer.GetLength(1) * sizeof( SKColor );
+
+					oImage = SKImage.FromPixelCopy( sInfo, (nint)pBuff, iRowBytes );
+				}
+			}
+
+			return oImage;
+		}
+	}
 
 	public struct SSTVPosition {
 		public double Position { get; init; }
@@ -352,8 +399,8 @@ namespace Play.SSTV {
 		short[]  _pCalibration = null; // Not strictly necessary yet.
 		SKCanvas _skD12Canvas;
 
-		public SKBitmap _pBitmapRX  { get; } 
-		public SKBitmap _pBitmapD12 { get; }
+		public SKColor[,] _rgBitmapRX  { get; } 
+		public SKBitmap   _pBitmapD12 { get; }
 
 		// Looks like we're only using grey scale on the D12. Look into turning into greyscale later.
 		// Need to look into the greyscale calibration height of bitmap issue. (+16 scan lines)
@@ -384,9 +431,9 @@ namespace Play.SSTV {
 		/// the Raise_ImageUpdated() event public. We raise the SSTVEvents here and the
 		/// receiver of those events will call the image document Raise event.
 		/// </remarks>
-		public SSTVDraw( SSTVDEM p_dp, SKBitmap oD12, SKBitmap oRx, int iThreadCnt=1 ) {
+		public SSTVDraw( SSTVDEM p_dp, SKBitmap oD12, SKColor[,] oRx, int iThreadCnt=1 ) {
 			_dp         = p_dp ?? throw new ArgumentNullException( "Demodulator must not be null to SSTVDraw." );
-			_pBitmapRX  = oRx  ?? throw new ArgumentNullException( "Image buffer must not be null." );
+			_rgBitmapRX = oRx  ?? throw new ArgumentNullException( "Image buffer must not be null." );
 			_pBitmapD12 = oD12 ?? throw new ArgumentNullException( "D12 bmp must not be null" );
 
 			_skD12Canvas = new( _pBitmapD12 );
@@ -421,7 +468,7 @@ namespace Play.SSTV {
 		}
 
 		public void SetPixel( int iX, int iY, SKColor sColor ) {
-			_pBitmapRX.SetPixel( iX, iY, sColor );
+			_rgBitmapRX[iY,iX ] = sColor;
 		}
 
 	/// <summary>this method get's called to initiate the processing of
@@ -453,8 +500,12 @@ namespace Play.SSTV {
         }
 
 		public void ClearImage() {
-			using SKCanvas sKCanvas = new(_pBitmapRX);
-			sKCanvas.Clear(SKColors.Gray);
+			for( int iY = 0; iY < _rgBitmapRX.GetLength( 0 ); iY++ ) {
+				for( int iX = 0; iX < _rgBitmapRX.GetLength( 1 ); iX++ ) {
+					_rgBitmapRX[iY, iX] = SKColors.Gray;
+				}
+			}
+
 			_skD12Canvas.Clear();
 
 			// Unlike the ModeChanged and DownLoadTime events. This just tell us to do a blind refresh.
