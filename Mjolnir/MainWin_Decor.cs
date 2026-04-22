@@ -34,7 +34,7 @@ namespace Mjolnir {
 
         public int SideInit  { get; set; } = 0;
 
-		public override void Paint(Graphics oGraphics) {
+		[Obsolete]public override void Paint(Graphics oGraphics) {
 			foreach( SmartRect rcChild in _rgLayout ) {
 				rcChild.Paint( oGraphics );
 			}

@@ -230,7 +230,7 @@ namespace Monitor {
             }
             if( sGuid == GlobalCommands.Pause ) {
                 _oMonDoc.CpuBreak();
-                if( _oMonDoc.Doc_Asm.FindRowAtAddress( _oMonDoc.PC, out AsmRow oAsm ) ) {
+                if( _oMonDoc.Doc_Asm.FindRowAtAddress( _oMonDoc.PC, out AsmRow? oAsm ) ) {
                     _oCacheMan.CaretReset( oAsm, AsmRow.ColumnInstr );
                 }
                 return true;
