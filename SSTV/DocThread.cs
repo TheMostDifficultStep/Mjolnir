@@ -237,7 +237,7 @@ namespace Play.SSTV {
 			    SKRectI rcWorldDisplay = new SKRectI( 0, 0, tvMode.Resolution.Width, tvMode.Resolution.Height );
 
                 // Need to snip the image since we might not be using the entire display image.
-                using SKImage oImage = DocDownloadBuffer2.CreateImage( _oSSTVDraw._rgBitmapRX, tvMode.Resolution );
+                using SKImage oImage = DocDownloadBuffer.CreateImage( _oSSTVDraw._rgBitmapRX, tvMode.Resolution );
                 if( !oSnipDoc.Load( oImage, rcWorldDisplay, rcWorldDisplay.Size ) )
                     return;
 
@@ -519,7 +519,7 @@ namespace Play.SSTV {
 			        SKRectI rcWorldDisplay = new SKRectI( 0, 0, tvMode.Resolution.Width, tvMode.Resolution.Height );
 
                     // Need to snip the image since we might not be using the entire display image.
-                    using SKImage oImage = DocDownloadBuffer2.CreateImage( _oSSTVDraw._rgBitmapRX,tvMode.Resolution );
+                    using SKImage oImage = DocDownloadBuffer.CreateImage( _oSSTVDraw._rgBitmapRX,tvMode.Resolution );
                     if( !oSnipDoc.Load( oImage, rcWorldDisplay, rcWorldDisplay.Size ) )
                         return;
 

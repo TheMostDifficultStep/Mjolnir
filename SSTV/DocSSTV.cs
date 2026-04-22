@@ -453,7 +453,7 @@ namespace Play.SSTV {
         protected Mpg123FFTSupport FileDecoder   { get; set; }
 
         // This is where our image and diagnostic image live.
-		public DocDownloadBuffer2 DisplayImage { get; protected set; }
+		public DocDownloadBuffer DisplayImage { get; protected set; }
 		public DocDownloadDiag   SyncImage    { get; protected set; }
         public DocSignalLevel    SignalLevel  { get; protected set; } 
 

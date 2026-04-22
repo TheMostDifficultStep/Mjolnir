@@ -16,14 +16,14 @@ namespace Play.SSTV {
 	/// not thread safe, and we fill the buffer in a background thread.
 	/// So the easiest thing to do is send a managed buffer back there.
 	/// </summary>
-    public class DocDownloadBuffer2 :
+    public class DocDownloadBuffer :
 		DocImageBase 
 	{
 		protected readonly SKImageInfo _oInfo;
 
         public SKColor[,] Buffer { get; protected set; } // SKColor[row,colm]
 
-        public DocDownloadBuffer2(IPgBaseSite oSiteBase) : base(oSiteBase) {
+        public DocDownloadBuffer(IPgBaseSite oSiteBase) : base(oSiteBase) {
 			_oInfo = new SKImageInfo(800, 616, SKColorType.Bgra8888, SKAlphaType.Opaque);
         }
 
@@ -71,7 +71,7 @@ namespace Play.SSTV {
 		}
 	}
 
-	public class DocDownloadDiag : DocDownloadBuffer2 {
+	public class DocDownloadDiag : DocDownloadBuffer {
 		struct DiagnosticPaint {
 			public SKColor Color;
 			public int     StrokeWidth;
@@ -150,7 +150,7 @@ namespace Play.SSTV {
 											   new SKPoint( (int)dblXCh, WorldDisplay.Height), 
 											   skPaint );
 				}
-			}
+			} // for
 		} // method
 	} // class
 
