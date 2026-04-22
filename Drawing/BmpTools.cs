@@ -232,7 +232,8 @@ namespace Play.Drawing {
         }
     }
 
-    public class DocImageBase :	ImageContainer
+    public class DocImageBase :	ImageContainer,
+        IPgLoad
 	{
         protected SKImage _skImage;
 
@@ -247,7 +248,7 @@ namespace Play.Drawing {
                     _skImage?.Dispose();
                     _skImage = value;
 
-                    if( _skImage != null ) {
+                    if( _skImage is not null ) {
                         WorldDisplay = new SKRectI( 0, 0, _skImage.Width, _skImage.Height );
                     } else {
                         WorldDisplay = new SKRectI( 0, 0, 0, 0 );
@@ -272,6 +273,10 @@ namespace Play.Drawing {
 		protected virtual bool Initialize() {
 			return true;
 		}
+
+        public virtual bool InitNew() {
+            return Initialize();
+        }
 
         public void PrintToDefault() {
             PrintDocument pd = new PrintDocument();
