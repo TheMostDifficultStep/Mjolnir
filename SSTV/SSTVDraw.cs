@@ -10,64 +10,18 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Play.SSTV {
+
 	/// <summary>
-	/// While a SKBitmap is not the best object to use for display these
-	/// days, it is great for gathering the downloading image. 
-	/// In this manner we can generate the resulting SKImage only as
-	/// we update the scan buffer.
+	/// I'd really like to use the SKBitmap as the buffer. But it is
+	/// not thread safe, and we fill the buffer in a background thread.
+	/// So the easiest thing to do is send a managed buffer back there.
 	/// </summary>
-	/// <remarks>		
-	/// NOTE: So SKBitmap is not thread safe. And I've seen
-	/// very random error show up from time to time that
-	/// the pixels are (already) locked. We can hand out a
-	/// managed "Buffer" of some type in the future.
-	/// I don't do that now b/c of the DiagnosticsOverlay
-	/// </remarks>
-	/// <seealso cref="SSTVDraw.DiagnosticsOverlay"/>
-	public class DocDownloadBuffer :
-		DocImageBase 
-	{
-        public readonly SKSizeI _szMax = new( 800, 616 );
-        public SKBitmap Buffer { get; protected set; }
-
-        public DocDownloadBuffer(IPgBaseSite oSiteBase) : base(oSiteBase) {
-        }
-
-		protected override bool Initialize() {
-			SKImageInfo oInfo = new SKImageInfo(_szMax.Width, _szMax.Height, SKColorType.Rgb888x, SKAlphaType.Unknown);
-
-		    Buffer = new SKBitmap( oInfo );
-			Image  = SKImage.Create( oInfo );
-
-            // Just set it up so it looks ok to start. Gets updated for each image downloaded.
-            WorldDisplay = new SKRectI( 0, 0, _szMax.Width, 256 );
-			return true;
-		}
-
-		public void CreateImage() {
-			try {
-				_skImage?.Dispose();
-				_skImage = SKImage.FromBitmap( Buffer );
-
-				Raise_ImageUpdated();
-			} catch( Exception oEx ) {
-				Type[] rgErrors = { typeof( AccessViolationException ),
-									typeof( ArgumentException ),
-									typeof( InvalidOperationException ) };
-				if( rgErrors.IsUnhandled( oEx ) )
-					throw;
-				_oSiteBase.LogError( "SSTV Download Buffer", "Race condition... :-/" );
-				_skImage = null;
-			}
-		}
-    }
-
     public class DocDownloadBuffer2 :
 		DocImageBase 
 	{
 		protected readonly SKImageInfo _oInfo;
 
-        public SKColor[,] Buffer { get; protected set; }
+        public SKColor[,] Buffer { get; protected set; } // SKColor[row,colm]
 
         public DocDownloadBuffer2(IPgBaseSite oSiteBase) : base(oSiteBase) {
 			_oInfo = new SKImageInfo(800, 616, SKColorType.Bgra8888, SKAlphaType.Opaque);
@@ -116,6 +70,89 @@ namespace Play.SSTV {
 			return oImage;
 		}
 	}
+
+	public class DocDownloadDiag : DocDownloadBuffer2 {
+		struct DiagnosticPaint {
+			public SKColor Color;
+			public int     StrokeWidth;
+
+			public DiagnosticPaint( SKColor skColor, int iStrokeWidth ) {
+				Color       = skColor;
+				StrokeWidth = iStrokeWidth;
+			}
+		}
+		readonly Dictionary<ScanLineChannelType, DiagnosticPaint> _rgDiagnosticColors = [];
+
+		readonly SKSurface _oSurface;
+
+		ColorChannel[] _rgSlots;
+
+		public DocDownloadDiag( IPgBaseSite oBaseSite ) : base( oBaseSite ) 
+		{
+			_oSurface = SKSurface.Create( _oInfo );
+
+            _rgDiagnosticColors.Add( ScanLineChannelType.Sync,   new( SKColors.White, 2 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.Gap,    new( SKColors.Brown, 1 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.Red,    new( SKColors.Red,   1 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.Green,  new( SKColors.Green, 1 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.Blue,   new( SKColors.Blue,  1 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.BY,     new( SKColors.Blue,  1 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.RY,     new( SKColors.Red,   1 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.BYx2,   new( SKColors.Blue,  1 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.RYx2,   new( SKColors.Red,   1 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.Y1,     new( SKColors.Gray,  1 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.Y2,     new( SKColors.Gray,  1 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.Y,      new( SKColors.Gray,  1 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.R36Y2,  new( SKColors.Gray,  1 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.R36Chr, new( SKColors.Red,   1 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.R36Cln, new( SKColors.Blue,  1 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.END,    new( SKColors.Aquamarine, 3 ) );
+		}
+
+		/// <summary>
+		/// BUG: 3/25/2022, This is broken with the new slant correction implementation.
+		/// </summary>
+		protected void DiagnosticsOverlay( double dblStartIndex, double dblSlope ) {
+			if( _rgSlots is null ) 
+				return;
+
+			SKPaint skPaint = new() { Color = SKColors.Yellow, StrokeWidth = 3 };
+
+			double dbD12XScale       = WorldDisplay.Width / dblSlope;
+			float  flScaledIntercept = (float)( dblStartIndex * dbD12XScale );
+			//double dblOffset       = ( Mode.Resolution.Height - 1 ) * _dblSlope + _dblIntercept;
+			//float  flX2            = (float)( dblOffset % _dblSlope * dbD12XScale );
+
+			SKPoint top = new( flScaledIntercept, 0 );
+			SKPoint bot = new( flScaledIntercept, WorldDisplay.Height );
+
+			_oSurface.Canvas.DrawLine( top, bot, skPaint );
+
+			float[] rgIntervals = { 2f, 5f };
+			using SKPathEffect skDash = SKPathEffect.CreateDash( rgIntervals, 0 );
+
+			foreach( ColorChannel oSlot in _rgSlots ) {
+				double dblXCh = ( dblStartIndex + oSlot.Min ) * dbD12XScale;
+				dblXCh %= WorldDisplay.Width;
+
+				if( _rgDiagnosticColors.TryGetValue( oSlot.ChannelType, out DiagnosticPaint sPaint ) ) {
+					skPaint.Color       = sPaint.Color;
+					skPaint.StrokeWidth = sPaint.StrokeWidth;
+
+					if( oSlot.ChannelType == ScanLineChannelType.Gap ||
+						oSlot.ChannelType == ScanLineChannelType.END ) {
+						skPaint.PathEffect = skDash;
+					} else {
+						skPaint.PathEffect = null;
+					}
+
+					_oSurface.Canvas.DrawLine( new SKPoint( (int)dblXCh, 0 ), 
+											   new SKPoint( (int)dblXCh, WorldDisplay.Height), 
+											   skPaint );
+				}
+			}
+		} // method
+	} // class
 
 	public struct SSTVPosition {
 		public double Position { get; init; }
@@ -358,21 +395,21 @@ namespace Play.SSTV {
 
 			public setPixel ReturnColorFunction( ScanLineChannelType eDT ) {
 				switch( eDT ) {
-					case ScanLineChannelType.BY    : return PixelSetBY;
-					case ScanLineChannelType.RY    : return PixelSetRY;
-					case ScanLineChannelType.BYx2  : return PixelSetBYx2;
-					case ScanLineChannelType.RYx2  : return PixelSetRYx2;
-					case ScanLineChannelType.Y1    : return PixelSetY1;
-					case ScanLineChannelType.Y2    : return PixelSetY2;
-					case ScanLineChannelType.Blue  : return PixelSetBlue;
-					case ScanLineChannelType.Red   : return PixelSetRed;
-					case ScanLineChannelType.Green : return PixelSetGreen;
-					case ScanLineChannelType.Y     : return PixelSetY;
-					case ScanLineChannelType.R36Y2 : return PixelSetR36Y2;
-					case ScanLineChannelType.R36Sense : return PixelSetChromaSense;
-					case ScanLineChannelType.R36Chr : return PixelSetR36Chroma;
+					case ScanLineChannelType.BY        : return PixelSetBY;
+					case ScanLineChannelType.RY        : return PixelSetRY;
+					case ScanLineChannelType.BYx2      : return PixelSetBYx2;
+					case ScanLineChannelType.RYx2      : return PixelSetRYx2;
+					case ScanLineChannelType.Y1        : return PixelSetY1;
+					case ScanLineChannelType.Y2        : return PixelSetY2;
+					case ScanLineChannelType.Blue      : return PixelSetBlue;
+					case ScanLineChannelType.Red       : return PixelSetRed;
+					case ScanLineChannelType.Green     : return PixelSetGreen;
+					case ScanLineChannelType.Y         : return PixelSetY;
+					case ScanLineChannelType.R36Y2     : return PixelSetR36Y2;
+					case ScanLineChannelType.R36Sense  : return PixelSetChromaSense;
+					case ScanLineChannelType.R36Chr    : return PixelSetR36Chroma;
 					case ScanLineChannelType.R36Branch : return PixelSetChromaCalc;
-					case ScanLineChannelType.R36Cln: return PixelSetR36Cleanup;
+					case ScanLineChannelType.R36Cln    : return PixelSetR36Cleanup;
 					default : return null;
 				}
 			}
@@ -395,12 +432,10 @@ namespace Play.SSTV {
 		bool     _fAuto          = false; // Auto slant adjust.
 		double   _dblSlope       = 0;
 		double   _dblIntercept   = 0;
-
-		short[]  _pCalibration = null; // Not strictly necessary yet.
-		SKCanvas _skD12Canvas;
+		short[]  _rgCalibration  = null; // Not strictly necessary yet.
 
 		public SKColor[,] _rgBitmapRX  { get; } 
-		public SKBitmap   _pBitmapD12 { get; }
+		public SKColor[,] _rgBitmapD12 { get; }
 
 		// Looks like we're only using grey scale on the D12. Look into turning into greyscale later.
 		// Need to look into the greyscale calibration height of bitmap issue. (+16 scan lines)
@@ -408,35 +443,21 @@ namespace Play.SSTV {
 
 		// There's only one consumer of these events so these are just a delegate
 		// onto the listener.
-		public Action<SSTVMessage>                   Send_TvMessage;
-		public Action<SSTVMode >                     Send_SavePoint;
-
-		struct DiagnosticPaint {
-			public SKColor Color;
-			public int     StrokeWidth;
-
-			public DiagnosticPaint( SKColor skColor, int iStrokeWidth ) {
-				Color       = skColor;
-				StrokeWidth = iStrokeWidth;
-			}
-		}
-		Dictionary<ScanLineChannelType, DiagnosticPaint> _rgDiagnosticColors = new();
+		public Action<SSTVMessage> Send_TvMessage;
+		public Action<SSTVMode >   Send_SavePoint;
 
 		/// <remarks>
 		/// Techically we dont need all of the demodulator but only access to the signal
 		/// and sync buffer and some signal levels. I'll see about that in the future.
-		/// Also note, 8/14/2021: We're sending the D12 and Rx bitmaps in here, we write to them.
+		/// Also note, We write to the D12 and Rx bitmaps in here, 
 		/// But the documents they live in don't know they've updated and so won't send
-		/// messages to any listening views!! Grrr.. How best to fix this? I'm going to make
-		/// the Raise_ImageUpdated() event public. We raise the SSTVEvents here and the
-		/// receiver of those events will call the image document Raise event.
+		/// updates to any listening views!! We raise the SSTVEvents here and the
+		/// receiver of those events will make sure the documents notify their views.
 		/// </remarks>
-		public SSTVDraw( SSTVDEM p_dp, SKBitmap oD12, SKColor[,] oRx, int iThreadCnt=1 ) {
-			_dp         = p_dp ?? throw new ArgumentNullException( "Demodulator must not be null to SSTVDraw." );
-			_rgBitmapRX = oRx  ?? throw new ArgumentNullException( "Image buffer must not be null." );
-			_pBitmapD12 = oD12 ?? throw new ArgumentNullException( "D12 bmp must not be null" );
-
-			_skD12Canvas = new( _pBitmapD12 );
+		public SSTVDraw( SSTVDEM p_dp, SKColor[,] oD12, SKColor[,] oRx, int iThreadCnt=1 ) {
+			_dp          = p_dp ?? throw new ArgumentNullException( "Demodulator must not be null to SSTVDraw." );
+			_rgBitmapRX  = oRx  ?? throw new ArgumentNullException( "Image buffer must not be null." );
+			_rgBitmapD12 = oD12 ?? throw new ArgumentNullException( "D12 bmp must not be null" );
 
 			int iCpuCount = Environment.ProcessorCount;
 
@@ -448,23 +469,6 @@ namespace Play.SSTV {
             for( int i = 0; i < iThreadCnt; ++i ) { // set to 1 for debug.
                 _rgBuffers.Add(new ScanBuffers(this));
             }
-
-            _rgDiagnosticColors.Add( ScanLineChannelType.Sync,   new( SKColors.White, 2 ) );
-			_rgDiagnosticColors.Add( ScanLineChannelType.Gap,    new( SKColors.Brown, 1 ) );
-			_rgDiagnosticColors.Add( ScanLineChannelType.Red,    new( SKColors.Red,   1 ) );
-			_rgDiagnosticColors.Add( ScanLineChannelType.Green,  new( SKColors.Green, 1 ) );
-			_rgDiagnosticColors.Add( ScanLineChannelType.Blue,   new( SKColors.Blue,  1 ) );
-			_rgDiagnosticColors.Add( ScanLineChannelType.BY,     new( SKColors.Blue,  1 ) );
-			_rgDiagnosticColors.Add( ScanLineChannelType.RY,     new( SKColors.Red,   1 ) );
-			_rgDiagnosticColors.Add( ScanLineChannelType.BYx2,   new( SKColors.Blue,  1 ) );
-			_rgDiagnosticColors.Add( ScanLineChannelType.RYx2,   new( SKColors.Red,   1 ) );
-			_rgDiagnosticColors.Add( ScanLineChannelType.Y1,     new( SKColors.Gray,  1 ) );
-			_rgDiagnosticColors.Add( ScanLineChannelType.Y2,     new( SKColors.Gray,  1 ) );
-			_rgDiagnosticColors.Add( ScanLineChannelType.Y,      new( SKColors.Gray,  1 ) );
-			_rgDiagnosticColors.Add( ScanLineChannelType.R36Y2,  new( SKColors.Gray,  1 ) );
-			_rgDiagnosticColors.Add( ScanLineChannelType.R36Chr, new( SKColors.Red,   1 ) );
-			_rgDiagnosticColors.Add( ScanLineChannelType.R36Cln, new( SKColors.Blue,  1 ) );
-			_rgDiagnosticColors.Add( ScanLineChannelType.END,    new( SKColors.Aquamarine, 3 ) );
 		}
 
 		public void SetPixel( int iX, int iY, SKColor sColor ) {
@@ -499,17 +503,18 @@ namespace Play.SSTV {
 			}
         }
 
-		public void ClearImage() {
-			for( int iY = 0; iY < _rgBitmapRX.GetLength( 0 ); iY++ ) {
-				for( int iX = 0; iX < _rgBitmapRX.GetLength( 1 ); iX++ ) {
-					_rgBitmapRX[iY, iX] = SKColors.Gray;
+		protected static void ClearImage( SKColor[,] rgBitmap ) {
+			for( int iY = 0; iY < rgBitmap.GetLength( 0 ); iY++ ) {
+				for( int iX = 0; iX < rgBitmap.GetLength( 1 ); iX++ ) {
+					rgBitmap[iY, iX] = SKColors.Gray;
 				}
 			}
+		}
 
-			_skD12Canvas.Clear();
+		public void ClearImage() {
+			ClearImage( _rgBitmapRX  );
+			ClearImage( _rgBitmapD12 );
 
-			// Unlike the ModeChanged and DownLoadTime events. This just tell us to do a blind refresh.
-			// that is implicit in the other events. So might want to sort that out.
 			Send_TvMessage( new( SSTVEvents.ImageUpdated, 0 ) );
 		}
 
@@ -596,13 +601,13 @@ namespace Play.SSTV {
 		/// <param name="ip">frequency as a level value.</param>
 		/// <returns></returns>
 		protected short GetPixelLevel(short ip)	{
-			if( _dp.Sys.m_DemCalibration && (_pCalibration != null) ) {
+			if( _dp.Sys.m_DemCalibration && (_rgCalibration != null) ) {
 				int d = (ip / 8) + 2048;
 				if( d < 0 )
 					d = 0;
 				if( d > 4096 )
 					d = 4096;
-				return _pCalibration[d];
+				return _rgCalibration[d];
 			} else {
 				double d = ip - _dp.Sys.m_DemOff;
 				d *= ( d >= 0 ) ? _dp.Sys.m_DemWhite : _dp.Sys.m_DemBlack;
@@ -676,47 +681,6 @@ namespace Play.SSTV {
 		}
 
 		/// <summary>
-		/// BUG: 3/25/2022, This is probably broken with the new slant correction implementation.
-		/// </summary>
-		protected void DiagnosticsOverlay() {
-			SKPaint skPaint = new() { Color = SKColors.Yellow, StrokeWidth = 3 };
-
-			double dbD12XScale       = _pBitmapD12.Width / _dblSlope;
-			double dblStartIndex     = StartIndex;
-			float  flScaledIntercept = (float)( dblStartIndex * dbD12XScale );
-			//double dblOffset       = ( Mode.Resolution.Height - 1 ) * _dblSlope + _dblIntercept;
-			//float  flX2            = (float)( dblOffset % _dblSlope * dbD12XScale );
-
-			SKPoint top = new( flScaledIntercept, 0 );
-			SKPoint bot = new( flScaledIntercept, _pBitmapD12.Height );
-			_skD12Canvas.DrawLine( top, bot, skPaint );
-
-			float[] rgIntervals = { 2f, 5f };
-			using SKPathEffect skDash = SKPathEffect.CreateDash( rgIntervals, 0 );
-
-			foreach( ColorChannel oSlot in _rgSlots ) {
-				double dblXCh = ( dblStartIndex + oSlot.Min ) * dbD12XScale;
-				dblXCh %= _pBitmapD12.Width;
-
-				if( _rgDiagnosticColors.TryGetValue( oSlot.ChannelType, out DiagnosticPaint sPaint ) ) {
-					skPaint.Color       = sPaint.Color;
-					skPaint.StrokeWidth = sPaint.StrokeWidth;
-
-					if( oSlot.ChannelType == ScanLineChannelType.Gap ||
-						oSlot.ChannelType == ScanLineChannelType.END ) {
-						skPaint.PathEffect = skDash;
-					} else {
-						skPaint.PathEffect = null;
-					}
-
-					_skD12Canvas.DrawLine( new SKPoint( (int)dblXCh, 0 ), 
-										   new SKPoint( (int)dblXCh, _pBitmapD12.Height), 
-										   skPaint );
-				}
-			}
-		}
-
-		/// <summary>
 		/// This the second new scan line processor. Unlike the ProcessSync() function
 		/// this one will be re-started from the beginning after a handful of
 		/// sync lines are processed. The idea is that we slowly refine our 
@@ -733,7 +697,8 @@ namespace Play.SSTV {
 			int    rx          = -1; // Saved X pos from the Rx buffer.
 			int    ch          =  0; // current channel skimming the Rx buffer portion.
 			int    iScanWidth  = (int)Math.Round( ScanWidthInSamples );
-			double dbD12XScale = _pBitmapD12.Width / ScanWidthInSamples;
+			int    iD12Width   = _rgBitmapD12.GetLength(1);
+			double dbD12XScale = iD12Width / ScanWidthInSamples;
 
 			try { 
 				// Used to try to track scan line start. This seems better see above.
@@ -753,9 +718,9 @@ namespace Play.SSTV {
 					int   iSx = rBase + i;                // Offset into the data @ _dp
 					int iD12x = (int)( i * dbD12XScale ); // Offset onto the D12 (sync) bitmamp
 
-					if( iD12x < _pBitmapD12.Width) {
-						int d = Limit256((short)(_dp.SyncGet( iSx ) * 256F / 4096F));
-						_skD12Canvas.DrawPoint( iD12x, iScanLine, new SKColor( (byte)d, (byte)d, (byte)d ) );
+					if( iD12x < iD12Width ) {
+						int d = Limit256((short)( _dp.SyncGet( iSx ) * 256F / 4096F ));
+						_rgBitmapD12[ iScanLine, iD12x ] = new SKColor( (byte)d, (byte)d, (byte)d );
 					}
 
 					do {
@@ -920,9 +885,9 @@ namespace Play.SSTV {
 
 			ProcessCollection( this );
 
-            if( _dp.Synced ) {
-				DiagnosticsOverlay();
-			}
+            //if( _dp.Synced ) {
+			//	DiagnosticsOverlay();
+			//}
 			Send_TvMessage?.Invoke( new( SSTVEvents.DownLoadTime, 100 ) );
 		}
 
@@ -1033,7 +998,7 @@ namespace Play.SSTV {
 		/// <seealso cref="Start" />
 		public void OnModeTransition_SSTVDeMo( SSTVMode oCurrMode, SSTVMode oPrevMode, int iPrevBase ) {
 			if( oCurrMode == null ) {
-				DiagnosticsOverlay();
+				//DiagnosticsOverlay();
 				Send_TvMessage?.Invoke( new( SSTVEvents.ModeChanged, -1 ) );
 				return;
 			}
@@ -1068,7 +1033,7 @@ namespace Play.SSTV {
 			}
 
 			Start(); 
-		}
+		} // method
 
 		/// <summary>
 		/// This goes back and finishes out the slots so their Min and Max
@@ -1126,7 +1091,7 @@ namespace Play.SSTV {
 			PixelsPerMs = iBmpWidth / dblChannelWidthInMs;
 
 			Min = dbStart;
-			Max = dbStart + ( _dbScanWidthCorrected );
+			Max = dbStart + _dbScanWidthCorrected;
 
 			return Max;
 		}
@@ -1134,6 +1099,5 @@ namespace Play.SSTV {
         public override string ToString() {
             return Max.ToString() + " " + ChannelType.ToString();
         }
-    }
-
+    } // class
 }

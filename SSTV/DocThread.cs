@@ -117,7 +117,7 @@ namespace Play.SSTV {
 
         public FileReadingState( 
             ConcurrentQueue<SSTVMessage> oToUIQueue, 
-            string strFileName, SKBitmap oD12, SKColor[,] oRx 
+            string strFileName, SKColor[,] oD12, SKColor[,] oRx 
         ) :
             base( oToUIQueue )
         {
@@ -329,8 +329,8 @@ namespace Play.SSTV {
                                      string                       strFileName,
                                      ConcurrentQueue<SSTVMessage> oToUIQueue, 
                                      ConcurrentQueue<TVMessage>   oInputQueue,
-                                     SKBitmap                     oD12,
-                                     SKColor[,]                   oRx,
+                                     SKColor[,]                   rgD12,
+                                     SKColor[,]                   rgRx,
                                      int                          iThreadCnt ) :
             base( oToUIQueue )
         {
@@ -343,8 +343,8 @@ namespace Play.SSTV {
             _iMicrophone   = iMicrophone;
             _dblSampRate   = dblSampleRate;
 
-            _oSSTVDeMo = new SSTVDEM ( new SYSSET(), dblSampleRate );
-			_oSSTVDraw = new SSTVDraw( _oSSTVDeMo, oD12, oRx, iThreadCnt );
+            _oSSTVDeMo     = new SSTVDEM ( new SYSSET(), dblSampleRate );
+			_oSSTVDraw     = new SSTVDraw( _oSSTVDeMo, rgD12, rgRx, iThreadCnt );
         }
 
         /// <summary>
@@ -735,9 +735,11 @@ namespace Play.SSTV {
 
         public PortListening( int iPort, int iMonitor, int iImageQuality,
                               string strFilePath,ConcurrentQueue<SSTVMessage> oToUIQueue,
-                              ConcurrentQueue<TVMessage> oInputQueue, SKBitmap oD12, SKColor[,] oRx, int iThreadCnt=3 ) : 
+                              ConcurrentQueue<TVMessage> oInputQueue, 
+                              SKColor[,] rgD12, SKColor[,] rgRx, int iThreadCnt=3 
+                            ) : 
             base( iMonitor, -1, 0.0, iImageQuality, strFilePath, string.Empty, oToUIQueue,
-                  oInputQueue, oD12, oRx, iThreadCnt )
+                  oInputQueue, rgD12, rgRx, iThreadCnt )
         {
             int iBytesNeeded = (_iBitRate / 8) * (_iSleepMS / 1000) + 1000;
 

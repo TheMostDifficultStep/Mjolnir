@@ -454,8 +454,8 @@ namespace Play.SSTV {
 
         // This is where our image and diagnostic image live.
 		public DocDownloadBuffer2 DisplayImage { get; protected set; }
-		public DocDownloadBuffer  SyncImage    { get; protected set; }
-        public DocSignalLevel     SignalLevel  { get; protected set; } 
+		public DocDownloadDiag   SyncImage    { get; protected set; }
+        public DocSignalLevel    SignalLevel  { get; protected set; } 
 
         // Some test stuff. 
         //private DataTester _oDataTester;
