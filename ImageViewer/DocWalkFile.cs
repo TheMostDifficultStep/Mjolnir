@@ -1204,6 +1204,8 @@ namespace Play.ImageViewer {
 
         protected void Raise_TextParsed() {
             TextParsed?.Invoke();
+            FileList.Raise_BufferEvent( BUFFEREVENTS.FORMATTED );
+            ThumbsUpdated?.Invoke();
         }
 
         protected void Raise_TextLoaded() {
