@@ -478,7 +478,12 @@ namespace Play.ImageViewer {
                 MAX
             }
 
+            readonly protected IPgRoundRobinWork _oWorkPlace; 
+
             public ImageProperties( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
+                IPgScheduler oSchedular = (IPgScheduler)Services;
+
+                _oWorkPlace = oSchedular.CreateWorkPlace() ?? throw new InvalidOperationException( "Need the scheduler service in order to work. ^_^;" );
             }
 
             public override bool InitNew() {
@@ -512,6 +517,18 @@ namespace Play.ImageViewer {
 
             public DocProperties.Manipulator CreateManipulator() {
                 return new DocProperties.Manipulator( this );
+            }
+            public override void DoParse() {
+                _oWorkPlace.Queue( GetParseEnum(), iWaitMS:2000 );
+            }
+
+            public IEnumerator<int> GetParseEnum() {
+                RenumberAndSumate();
+                ParseColumn      ( 1 );
+
+                Raise_DocFormatted();
+
+                yield return 0;
             }
         }
 
