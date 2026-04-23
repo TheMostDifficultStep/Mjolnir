@@ -636,7 +636,7 @@ namespace Play.Edit {
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
 
-                LogError( "Unable to creat column stream." );
+                LogError( "Unable to create column stream." );
             }
 
             return null;

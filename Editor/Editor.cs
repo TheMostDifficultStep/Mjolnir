@@ -1,7 +1,3 @@
-using Play.Edit;
-using Play.Interfaces.Embedding;
-using Play.Parse;
-using Play.Parse.Impl;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -9,6 +5,9 @@ using System.IO;
 using System.Text;
 using System.Xml;
 
+using Play.Interfaces.Embedding;
+using Play.Parse;
+using Play.Parse.Impl;
 
 // These classes could be part of an editor sub namespace perhaps. Then the 
 // Line definitions could be part of a lighter module. Just trying to sort out
