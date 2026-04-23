@@ -631,7 +631,7 @@ namespace Play.ImageViewer {
                 return strTitle;
             }
         }
-        public         SKImage  Icon { get; }
+        public SKImage Icon { get; }
 
         internal void LogError( string strCatagory, string strMessage ) {
             _oSiteBase.LogError( strCatagory, strMessage );
@@ -661,12 +661,12 @@ namespace Play.ImageViewer {
 
 		public override bool InitNew() {
             if( !base.InitNew() ) 
-                return( false );
+                return false;
 
             if( !FileList.InitNew() )
-                return( false );
+                return false;
 
-            return( true );
+            return true;
         }
 
         /// <summary>
@@ -735,43 +735,6 @@ namespace Play.ImageViewer {
             }
 		}
 
-		/// <summary>
-		/// TODO: I might be able to put this one in the integration class. There is another copy out there.
-		/// </summary>
-		//protected void CreateNavPropsParser() {
-		//	IPgScheduler        oScheduler   = null;
-		//	IPgGrammers oGrammars    = null;
-		//	Grammer<char>       oTextGrammer = null;
-
-		//	try {
-		//		oScheduler   = (IPgScheduler) Services;
-		//		oGrammars    = (IPgGrammers)  Services;
-		//		oTextGrammer = (Grammer<char>)oGrammars.GetGrammer( "properties" );
-		//	} catch( Exception oEx ) {
-		//		Type[] rgError = { typeof( NullReferenceException ), 
-		//						   typeof( InvalidCastException ),
-		//						   typeof( FileNotFoundException ),
-		//						   typeof( GrammerNotFoundException ) };
-		//		if( !rgError.Contains( oEx.GetType() ))
-		//			throw;
-
-		//		_oSiteBase.LogError( "hosting", "Nav Props Parser constructor error.", true );
-		//		return; // Do nothing.
-		//	}
-			
-		//	try {
-		//		// BUG: These will never get freed becauses the worksite never gets released.
-		//		//      need to hook the parser handler to the document dispose.
-		//		new ParseHandlerBase( oScheduler.CreateWorkPlace(), EditProperties, oTextGrammer );
-		//	} catch( Exception oEx ) {
-		//		Type[] rgError = { typeof( NullReferenceException ), 
-		//						   typeof( ArgumentNullException ),
-		//						   typeof( InvalidOperationException ) };
-		//		if( !rgError.Contains( oEx.GetType() ))
-		//			throw;
-		//	}
-		//}
-  
         public virtual void DirectoryNext( int i ) {
         }
 
