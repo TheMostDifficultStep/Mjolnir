@@ -503,6 +503,7 @@ namespace Play.Integration {
     /// all in one go.
     /// </summary>
     /// <seealso cref="ParseHandlerText"/>
+    /// <seealso cref="ParseIteratorExt"/>
 	public class ParseSimpleText : IParseEvents<char> {
 		public BaseEditor Document { get; }
 

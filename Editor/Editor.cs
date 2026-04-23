@@ -1,18 +1,75 @@
+using Play.Edit;
+using Play.Interfaces.Embedding;
+using Play.Parse;
+using Play.Parse.Impl;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-
-using Play.Parse;
-using Play.Parse.Impl;
-using Play.Interfaces.Embedding;
 using System.Xml;
+
 
 // These classes could be part of an editor sub namespace perhaps. Then the 
 // Line definitions could be part of a lighter module. Just trying to sort out
 // how the Find Window get's at text views.
 namespace Play.Edit {
+    /// <summary>
+    /// Extend the parse iterator to make it easier to use the parser with
+    /// my editor objects.
+    /// </summary>
+    public class ParseIteratorExt: 
+        ParseIterator<char>,
+        IParseEvents<char> 
+    {
+        protected readonly Action<string>        _fnLogError;
+        protected readonly BaseEditor.LineStream _oLineStream;
+        public ParseIteratorExt( Action<string> fnLogError, BaseEditor.LineStream oStream, MemoryState<char> oStart ) :
+            base( oStream, oStart ) 
+        {
+            _oLineStream  = oStream;
+            _fnLogError   = fnLogError ?? throw new ArgumentNullException();
+            _oParseEvents = this;
+
+            ExceptionEvent = OnParserException;
+        }
+
+        public void OnMatch(ProdBase<char> p_oElem, int p_lStart, int p_lLength) {
+            // MemoryElem captures both terminals and states.
+            if( p_oElem is MemoryElem<char> oMemElem ) {
+                Line oLine = _oLineStream.SeekLine( oMemElem.Start, out int iLineOffset);
+
+                // Parser is totally stream based, talking to the base class. So have to do this here.
+                oMemElem.Offset = iLineOffset;
+                oLine.Formatting.Add(oMemElem);
+            }
+        }
+
+        public void OnParserError(ProdBase<char> p_oMemory, int p_iStart) {
+            Line oLine = _oLineStream.SeekLine( p_iStart, out int iOffset);
+
+			StringBuilder oBuilder = new StringBuilder();
+
+			oBuilder.Append( "Grammer error at Line: " );
+			oBuilder.Append( oLine.At.ToString() );
+			oBuilder.Append( "; Col: " );
+			oBuilder.Append( iOffset.ToString() );
+			oBuilder.Append( "; Elem: " );
+			oBuilder.Append( p_oMemory.ToString() );
+			oBuilder.Append( "; Stack: " );
+
+			_fnLogError( oBuilder.ToString() );
+        }
+
+        /// <summary>
+        /// These are exceptions handled by the compiler. But
+        /// still indicates problems that should be caught.
+        /// </summary>
+        void OnParserException( Exception oEx, int iStart ) {
+            _fnLogError( oEx.Message );
+        }
+    } // class
+
 	public enum UndoType {
         Insert,
         Delete,

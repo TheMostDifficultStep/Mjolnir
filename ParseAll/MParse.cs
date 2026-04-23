@@ -242,12 +242,12 @@ namespace Play.Parse
 	public class ParseIterator<T> :
         IEnumerable<ProdBase<T>>
 	{
-        MyStack<ProdBase<T>>             _oStack;
-        MyStack<ProdBase<T>>.MyStackEnum _oStackEnum;
+        readonly MyStack<ProdBase<T>>             _oStack;
+        readonly MyStack<ProdBase<T>>.MyStackEnum _oStackEnum;
+		protected readonly DataStream<T>          _oStream;
 
-		DataStream<T>   _oStream;
 		int             _iInput;
-		IParseEvents<T> _oParseEvents;
+		protected IParseEvents<T> _oParseEvents;
 
         public OnProduction<T>   ProductionEvent;
         public OnParserException ExceptionEvent;
@@ -257,6 +257,7 @@ namespace Play.Parse
             IParseEvents<T> p_oParseEvents,
             MemoryState<T>  p_oMemStart ) 
 		{
+            ArgumentNullException.ThrowIfNull( p_oMemStart );
 			_oParseEvents = p_oParseEvents ?? throw new ArgumentNullException();
 			_oStream      = p_oStream      ?? throw new ArgumentNullException();
 
@@ -264,13 +265,24 @@ namespace Play.Parse
             _oStack       = new MyStack<ProdBase<T>>();
             _oStackEnum   = _oStack.GetEnumerator();
 
-            if( p_oMemStart == null ) {
-                _oParseEvents.OnParserError( null, 0 );
-            } else {
-                _oStack.Push( new MemoryBinder<T>( 0, p_oMemStart ) );
-                _oStack.Push( p_oMemStart );
-            }
+            _oStack.Push( new MemoryBinder<T>( 0, p_oMemStart ) );
+            _oStack.Push( p_oMemStart );
         } // ParseIterator()
+
+		protected ParseIterator( 
+            DataStream<T>   p_oStream, 
+            MemoryState<T>  p_oMemStart ) 
+		{
+            ArgumentNullException.ThrowIfNull( p_oMemStart );
+			_oStream      = p_oStream ?? throw new ArgumentNullException();
+
+            _iInput       = 0;
+            _oStack       = new MyStack<ProdBase<T>>();
+            _oStackEnum   = _oStack.GetEnumerator();
+
+            _oStack.Push( new MemoryBinder<T>( 0, p_oMemStart ) );
+            _oStack.Push( p_oMemStart );
+        } 
 
 		/// <remarks>
 		/// Looks handy, especially since I don't actually have a proper site. But
@@ -420,6 +432,4 @@ namespace Play.Parse
             return GetEnumerator();
         }
     } // End Class ParseIterator
-
-
 }

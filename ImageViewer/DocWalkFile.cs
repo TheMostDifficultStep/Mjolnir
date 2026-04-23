@@ -567,7 +567,7 @@ namespace Play.ImageViewer {
             _oWorkPlace     = oScheduler.CreateWorkPlace() ?? throw new InvalidOperationException( "Could not create a worksite from scheduler." );
 
             if( Services is IPgGrammers oGrammars ) {
-				_oGrammar = oGrammars.GetGrammer( "directory" ) as Grammer<char>; 
+				_oGrammar = oGrammars.GetGrammer( "filename" ) as Grammer<char>; 
 				if( _oGrammar == null )
 					throw new GrammerNotFoundException( "Could not find directory grammer for image walker" );
 			}
@@ -1257,10 +1257,10 @@ namespace Play.ImageViewer {
         /// </summary>
         /// <seealso cref="Integration.ParseHandlerText"/>
         /// <seealso cref="Integration.ParseSimpleText"/>
-		public class ParseHandler : IParseEvents<char> {
+		public class ParseHandler {
             ImageWalkerDoc        _oHost;
             BaseEditor.LineStream _oStream;
-            public ParseIterator<char> Parser { get; }
+            public ParseIteratorExt Parser { get; }
 
             public ParseHandler( State<char> oStart, ImageWalkerDoc oHost ) {
                 ArgumentNullException.ThrowIfNull( oStart );
@@ -1271,50 +1271,17 @@ namespace Play.ImageViewer {
 
                 MemoryState<char> oMStart = new MemoryState<char>( new ProdState<char>( oStart ), null );
 
-                Parser = new ParseIterator<char>( _oStream, this, oMStart ) {
-                    ExceptionEvent = OnParserException
-                };
+                Parser = new ParseIteratorExt( LogError, _oStream, oMStart );
             }
 
-            protected void LogError( string strCatagory, string strDetails ) {
-                _oHost.LogError( strCatagory, strDetails );
-            }
-
-            public void OnMatch(ProdBase<char> p_oElem, int p_lStart, int p_lLength) {
-                // MemoryElem captures both terminals and states.
-                if( p_oElem is MemoryElem<char> oMemElem ) {
-                    Line oLine = _oStream.SeekLine( oMemElem.Start, out int iLineOffset);
-
-                    // Parser is totally stream based, talking to the base class. So have to do this here.
-                    oMemElem.Offset = iLineOffset;
-                    oLine.Formatting.Add(oMemElem);
-                }
-            }
-
-            public void OnParserError(ProdBase<char> p_oMemory, int p_iStart) {
-                Line oLine = _oStream.SeekLine( p_iStart, out int iOffset);
-
-			    StringBuilder oBuilder = new StringBuilder();
-
-			    oBuilder.Append( "Grammer error at Line: " );
-			    oBuilder.Append( oLine.At.ToString() );
-			    oBuilder.Append( "; Col: " );
-			    oBuilder.Append( iOffset.ToString() );
-			    oBuilder.Append( "; Elem: " );
-			    oBuilder.Append( p_oMemory.ToString() );
-			    oBuilder.Append( "; Stack: " );
-
-			    LogError( "parsing", oBuilder.ToString() );
-            }
-
-            /// <summary>
-            /// These are exceptions handled by the compiler. But
-            /// still indicates problems that should be caught.
-            /// </summary>
-            void OnParserException( Exception oEx, int iStart ) {
-                LogError( "Image Walker", oEx.Message );
+            protected void LogError(string strDetails ) {
+                _oHost.LogError( "Image Walker", strDetails );
             }
         } // class
+
+        protected void LogError( string strError ) {
+            LogError( "Image Walker", strError );
+        }
 
         public IEnumerator<int> CreateParseWorker() {
             FileList.ClearFormatting();
@@ -1326,9 +1293,10 @@ namespace Play.ImageViewer {
                 yield break;
             }
 
-            ParseHandler oHandler = new( oStart, this );
+            MemoryState<char> oMStart = new MemoryState<char>( new ProdState<char>( oStart ), null );
+            ParseIteratorExt  Parser  = new ( LogError, FileList.CreateStream(), oMStart );
 
-            while( oHandler.Parser.MoveNext() ) {
+            while( Parser.MoveNext() ) {
                 yield return 0;
             }
 
