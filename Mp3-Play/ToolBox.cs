@@ -314,7 +314,8 @@ namespace Play.Sound {
 						_ulBuffUsed     = 0;
 						_ulBuffered = BufferReload( uiCopy );
 					} catch( Exception oEx ) {
-						Type[] rgErrors = { typeof( InvalidOperationException ),
+						Type[] rgErrors = { typeof( IndexOutOfRangeException ),
+											typeof( InvalidOperationException ),
 											typeof( NullReferenceException ),
 											typeof( IOException ) };
 						if( !rgErrors.Contains( oEx.GetType() ) )
@@ -381,7 +382,8 @@ namespace Play.Sound {
 						_ulBuffUsed = 0; 
 						_ulBuffered = BufferReload( (uint)_rgBuffer.Length ) / (uint)iBytesPerSample;
 					} catch( Exception oEx ) {
-						Type[] rgErrors = { typeof( InvalidOperationException ),
+						Type[] rgErrors = { typeof( IndexOutOfRangeException ),
+											typeof( InvalidOperationException ),
 											typeof( NullReferenceException ),
 											typeof( IOException ) };
 						if( !rgErrors.Contains( oEx.GetType() ) )

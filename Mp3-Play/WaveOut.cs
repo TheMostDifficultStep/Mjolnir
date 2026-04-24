@@ -479,7 +479,8 @@ namespace Play.Sound {
 					// Copy our managed structure to the unmanaged header.
 					Marshal.StructureToPtr( _oWaveHeader, _ipUnManagedHeader, false);
 				} catch( Exception oEx ) {
-					Type[] rgErrors = {	typeof( ArgumentException ),
+					Type[] rgErrors = {	typeof( IndexOutOfRangeException ),
+										typeof( ArgumentException ),
 										typeof( NullReferenceException ),
 										typeof( InvalidOperationException ) };
 					// If it's not something we can handle, just re-throw.
