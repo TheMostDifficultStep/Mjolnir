@@ -369,7 +369,7 @@ namespace Mjolnir {
 		}
 
         public string AppDataLocal=> Environment.GetFolderPath( Environment.SpecialFolder.LocalApplicationData);
-        public string AppDataPath => AppDataLocal + "\\pg\\mjolnir";
+        public string AppDataPath => Path.Combine( AppDataLocal, "pg\\mjolnir" );
         public string UserProfile => Environment.ExpandEnvironmentVariables("%USERPROFILE%");
         public string UserDocs    => Environment.GetFolderPath(Environment.SpecialFolder.Personal);
         public string OSInstall   => Environment.GetFolderPath(Environment.SpecialFolder.Windows);
@@ -928,8 +928,12 @@ namespace Mjolnir {
             ClockSlot.IsInternal = true;
             _rgDocSites.Add(ClockSlot);
 
+            string strFManSettings = Path.Combine( this.AppDataPath, "fileman-settings2.xml" );
             HomeSlot.CreateDocument();
-            HomeSlot.InitNew();
+            if( File.Exists( strFManSettings ) )
+                HomeSlot.Load( strFManSettings );
+            else
+                HomeSlot.InitNew();
             HomeSlot.IsInternal = true;
             _rgDocSites.Add(HomeSlot);
 

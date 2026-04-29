@@ -1,13 +1,14 @@
-﻿using Play.Drawing;
+﻿using System.Reflection;
+using System.Xml;
+using System.Xml.XPath;
+using System.Web;
+
+using SkiaSharp;
+
+using Play.Drawing;
 using Play.Edit;
 using Play.Forms;
 using Play.Interfaces.Embedding;
-using SkiaSharp;
-using System.IO;
-using System.Reflection;
-using System.Xml;
-using System.Xml.XPath;
-using static Play.FileManager.FileManager.FMRow;
 
 namespace Play.FileManager {
     public class FileProperties :
@@ -354,19 +355,22 @@ namespace Play.FileManager {
                 if( oXmlRoot.SelectNodes("favorites/dir") is XmlNodeList oList ) {
                     foreach( XmlNode xmlNode in oList ) {
                         if( xmlNode is XmlElement oDir ) {
-                            string strName = oDir.GetAttribute( "name" );
-                            string strDir  = System.Web.HttpUtility.HtmlDecode( oDir.InnerText );
+                            string strDir = HttpUtility.HtmlDecode( oDir.InnerText );
 
-                            if( string.IsNullOrEmpty( strName ) ) {
+                            // Pick off the first one as home.
+                            if( string.IsNullOrEmpty( strDirStart ) ) {
                                 strDirStart = strDir;
-                            } else {
+                            }
+
+                            if( !string.IsNullOrEmpty( strDir ) ) {
                                 DocFavs.Append( oDir.GetAttribute( "emoji" ),
-                                                strName,
+                                                oDir.GetAttribute( "name"  ),
                                                 strDir );
                             }
                         }
                     }
                 }
+
                 ReadDir( strDirStart );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( XPathException ),

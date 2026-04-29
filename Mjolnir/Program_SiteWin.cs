@@ -1,12 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using Play.Interfaces.Embedding;
+using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.IO;
-using System.Xml;
+using System.Text;
 using System.Web;
 using System.Windows.Forms;
-
-using Play.Interfaces.Embedding;
+using System.Xml;
 
 namespace Mjolnir {
 	public partial class Program {
@@ -80,6 +80,8 @@ namespace Mjolnir {
             IXmlSlot
         {
             protected IPgSave<XmlNode> _oGuestSave;
+            protected IPgLoad<TextReader> _oGuestLoad;
+            Encoding _oEncoding;
 
             public XmlSlotRefCount2( Program oProgram, PgDocDescr oDescriptor, string strName ) : 
                 base( oProgram, oDescriptor.Controller, oDescriptor.FileExtn ) 
@@ -97,6 +99,7 @@ namespace Mjolnir {
                 base.GuestSet( value );
 
                 _oGuestSave = (IPgSave<XmlNode>)value;
+                _oGuestLoad = (IPgLoad<TextReader>)value;
             }
 
             public override string LastPath {
@@ -136,30 +139,69 @@ namespace Mjolnir {
             /// <summary>
             /// DocSlot want's this....
             /// </summary>
-            public override bool Load( string strFilename ) {
+            public override bool Load( string strFileName ) {
+                Encoding utf8NoBom = new UTF8Encoding(false);
+
+                try {
+                    FileInfo oFile = new FileInfo(strFileName);
+
+                    FileStream oByteStream = oFile.OpenRead(); // by default StreamReader closes the stream.
+                    // Overridable versions of StreamReader can prevent that in higher versions of .net
+                    using( StreamReader oReader = new StreamReader( oByteStream, utf8NoBom ) ) {
+                        try {
+							FilePath = oFile.FullName; // Guests sometimes need this when loading.
+
+							if( oFile.IsReadOnly )
+								_eFileStats = FILESTATS.READONLY;
+							else
+								_eFileStats = FILESTATS.READWRITE;
+
+                            bool fLoaded = _oGuestLoad.Load( oReader );
+                            if( fLoaded ) {
+                                // Make sure you get the encoding AFTER you've read the file, else it'll be
+                                // uninitialized. Not sure if encoding can change multiple times? This might
+                                // bomb if I have a weird unicode file with no BOM.
+                                bool fNoBOM = Equals(oReader.CurrentEncoding, utf8NoBom);
+				                _oEncoding = fNoBOM ? utf8NoBom : oReader.CurrentEncoding;
+                            }
+                            return fLoaded;
+						} catch( Exception oEx ) {
+							if( _rgFileErrors.IsUnhandled( oEx ) )
+								throw;
+
+                            LogError( "Died trying to load : " + strFileName );
+                        }
+                    }
+                } catch( Exception oEx ) {
+					if( _rgFileErrors.IsUnhandled( oEx ) )
+						throw;
+
+                    LogError( "Could not find or session is currently open :" + strFileName );
+                }
+
                 return false;
             }
 
             public bool Load( XmlNode xmlParent ) {
                 if( xmlParent == null ) {
                     LogError( "Missing Parent XML node to load from" );
-                    return( false );
+                    return false;
                 }
 
                 IPgLoad<TextReader> oGuestLoad = _oGuestSave as IPgLoad<TextReader>;
                 if( oGuestLoad == null ) {
-                    LogError( "Guest does not support IPgLoad<STextReader>." );
-                    return( false );
+                    LogError( "Guest does not support IPgLoad<TextReader>." );
+                    return false;
                 }
 
                 using( TextReader oReader = new StringReader(HttpUtility.HtmlDecode( xmlParent.InnerXml )) ) {
                     if( !oGuestLoad.Load( oReader ) ) {
                         LogError( "Couldn't save favorites into session." );
-                        return( false );
+                        return false;
                     }
                 }
 
-                return( true );
+                return true;
             }
 
             /// <summary>
