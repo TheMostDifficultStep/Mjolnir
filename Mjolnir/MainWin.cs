@@ -19,6 +19,7 @@ using Play.Edit;
 using Play.Parse;
 using Play.Forms;
 using Play.Controls;
+using Play.Integration;
 
 namespace Mjolnir {
     /// <summary>
@@ -272,9 +273,10 @@ namespace Mjolnir {
             _oDoc_ViewSelector     = new EditorForViews( _oSlot_ViewSelectorDoc );
             _oSlot_ViewSelectorDoc.Guest = _oDoc_ViewSelector;
             _oSlot_ViewSelectorDoc.InitNew();
+            new ParseHandlerText( _oDoc_ViewSelector, "text" );
 
             // This needs to follow the view selector document assignment.
-            Tabs = new(new WinSlot(this), _oDoc_ViewSelector) { Parent = this, Visible = true };
+            Tabs = new(new WinSlot(this), _oDoc_ViewSelector ) { Parent = this, Visible = true };
             Tabs.Layout.Padding.SetRect( 5, 5, 5, 0 );
             Tabs.InitNew();
             Tabs.CreateControl();
@@ -2587,6 +2589,11 @@ namespace Mjolnir {
             return( -1 );
         }
 
+        /// <summary>
+        /// 5/5/2026: We used to have hyper text on the view title to select it
+        /// in the Views decor. Won't do it that way. I'll change to
+        /// select the line with a CR or space bar.
+        /// </summary>
         private void OnHyperViewSwitch( Line oLine, IPgWordRange oRange ) {
             try { 
                 if( oLine is ViewSlot oViewLine ) {
@@ -2631,7 +2638,6 @@ namespace Mjolnir {
                     // See ViewSelectorSlot. I want to move that behavior into a EditWindow2 subclass.
                     ViewSelectorList oEditWin = new(oViewSite, _oDoc_ViewSelector, fReadOnly:true, fSingleLine:false);
                         
-                    oEditWin.HyperLinks.Add( "ViewSwitch", OnHyperViewSwitch );
                     oEditWin.ToolSelect = 1;
                     oEditWin.Wrap       = false;
 

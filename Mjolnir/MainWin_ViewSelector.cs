@@ -12,22 +12,6 @@ using Play.Parse;
 // obsolete and I want to replace with a home view.
 
 namespace Mjolnir {
-    public class VLHyperText : IPgWordRange {
-        int _iColor = 4;
-
-        public VLHyperText( int iColor ) {
-            _iColor = iColor;
-        }
-
-        public bool   IsWord     => true;
-        public bool   IsTerm     => true;
-        public string StateName  => "ViewSwitch";
-        public int    ColorIndex => _iColor;
-
-        public int Offset { get => 0; set { } }
-        public int Length { get => 4; set { } }
-    }
-
    	/// <summary>
 	/// An editor for view sites. This is a bit of an experiment with my non mutiple buffer
 	/// version of the editor.
@@ -62,11 +46,6 @@ namespace Mjolnir {
         public bool Add( ViewSlot oViewSite ) {
             int  iLine = this.ElementCount;
             Line oLine = oViewSite;
-
-            // BUG: Technically to set these colors I need to find the language on the editor
-            //      and get it from the grammar. But this will do for now.
-            oLine.Formatting.Add( new VLHyperText( 1 ) );
-            oLine.Formatting.Add( new ColorRange( 0, int.MaxValue, 0 ) );
 
             _rgLines.Insert( iLine, oLine );
 
