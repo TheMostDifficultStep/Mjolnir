@@ -110,7 +110,9 @@ namespace Play.Forms {
                     oInfo = oMainWin.MainDisplayInfo;
                 }
 
-                _uStdFont = _oStdUI.FontCacheNew(_oStdUI.FaceCacheNew(@"C:\windows\fonts\consola.ttf"), 10, oInfo.pntDpi );
+                // Match the Decor Fase, but make the font a little smaller.
+                UInt16 uiTabFace = _oStdUI.StdFaceAt( StdUIFaces.Decor );
+                _uStdFont = _oStdUI.FontCacheNew( uiTabFace, 10, oInfo.pntDpi );
 
 			    foreach( Line oLine in Document ) {
                     if( AcceptItem( oLine ) ) {

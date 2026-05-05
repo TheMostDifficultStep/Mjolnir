@@ -646,21 +646,23 @@ namespace Play.Rectangles {
 			try {
                 _oRowStack.Track = 0;
 
-                foreach ( LayoutStack oRowItem in _oRowStack ) {
-                    // Find the max cell height for the row.
-                    int iColumn = 0; // which cell on the row we're looking at.
-                    oRowItem.Track  = 0;
-                    foreach( LayoutRect oCell in oRowItem ) {
-                        int  iLeft   = _oColStack.Item(iColumn             ).Left;
-                        int  iRight  = _oColStack.Item(iColumn + oCell.Span).Right;
-						int  iSpan   = iRight - iLeft;
-                        uint uiTrack = oCell.TrackDesired( TRACK.VERT, iSpan );
-						// Update the row track size if cell is bigger.
-						if( uiTrack > oRowItem.Track )
-							oRowItem.Track = uiTrack;
-                        iColumn += oCell.Span + 1; // Make sure we skip over the spanned cell!!
+                foreach ( LayoutRect oItem in _oRowStack ) {
+					// Find the max cell height for the row.
+					int iColumn = 0; // which cell on the row we're looking at.
+					oItem.Track  = 0;
+					if( oItem is LayoutStack oRowItem ) {
+						foreach( LayoutRect oCell in oRowItem ) {
+							int  iLeft   = _oColStack.Item(iColumn             ).Left;
+							int  iRight  = _oColStack.Item(iColumn + oCell.Span).Right;
+							int  iSpan   = iRight - iLeft;
+							uint uiTrack = oCell.TrackDesired( TRACK.VERT, iSpan );
+							// Update the row track size if cell is bigger.
+							if( uiTrack > oRowItem.Track )
+								oRowItem.Track = uiTrack;
+							iColumn += oCell.Span + 1; // Make sure we skip over the spanned cell!!
+						}
 					}
-                    _oRowStack.Track += oRowItem.Track + Spacing; // BUG: Margins are all messed up.
+					_oRowStack.Track += oItem.Track + Spacing; // BUG: Margins are all messed up.
                 }
             } catch ( Exception oEx ) {
 				Type[] rgErrors = { 
@@ -684,7 +686,6 @@ namespace Play.Rectangles {
         /// <returns></returns>
         public override bool LayoutChildren() {
             try {
-
                 if( Style == CSS.Flex ) {
 					_oColStack.Width  = Width;
 					_oColStack.Height = 10000;
