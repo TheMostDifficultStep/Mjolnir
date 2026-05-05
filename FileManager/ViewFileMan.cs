@@ -268,6 +268,10 @@ namespace Play.FileManager {
                 ClipboardCopyTo();
                 return true;
             }
+            if( gCommand == GlobalCommands.Recycle ) {
+                Document. ReadDir( Document.CurrentURL );
+
+            }
             return false;// none of the base operations are applicable.
         }
     }
