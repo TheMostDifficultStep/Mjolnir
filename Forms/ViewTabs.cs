@@ -110,7 +110,7 @@ namespace Play.Forms {
                     oInfo = oMainWin.MainDisplayInfo;
                 }
 
-                // Match the Decor Fase, but make the font a little smaller.
+                // Match the Decor Face, but make the font a little smaller.
                 UInt16 uiTabFace = _oStdUI.StdFaceAt( StdUIFaces.Decor );
                 _uStdFont = _oStdUI.FontCacheNew( uiTabFace, 10, oInfo.pntDpi );
 

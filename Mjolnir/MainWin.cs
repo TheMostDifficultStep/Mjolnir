@@ -2034,9 +2034,13 @@ namespace Mjolnir {
                 // Now with the focus on the new client go ahead and hide everyone
                 // else for good measure. BUG: what happens in the VIEW ALL case. O.o;;;
                 // Note: Changed this to look at the viewslot and  NOT the guest.
-				for( IEnumerator<ViewSlot> oEnum = ViewEnumerator(); oEnum.MoveNext(); ) {
-					oEnum.Current.Guest.Visible = oEnum.Current == _oSelectedWinSite;
-				}
+                foreach( Control oGuest in EnumAllViews ) {
+                    if( _eLayout == TOPLAYOUT.Solo ) {
+                        oGuest.Visible = oGuest == _oSelectedWinSite.Guest;
+                    } else {
+                        oGuest.Visible = true;
+                    }
+                }
 				
 				LayoutFrame();
 
@@ -2903,19 +2907,6 @@ namespace Mjolnir {
 
             return( true );
         }
-
-        /// <summary>
-        /// Use EnumAllViews
-        /// </summary>
-        /// <see cref="EnumAllViews"/>
-		[Obsolete]public IEnumerator<ViewSlot> ViewEnumerator() {
-            if( _oDoc_ViewSelector == null )
-                yield break;
-
-			foreach( ViewSlot oLine in _oDoc_ViewSelector ) {
-				yield return oLine;
-			}
-		}
-	}
+	} // end class
 
 }
