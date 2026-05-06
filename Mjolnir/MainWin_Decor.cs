@@ -1,15 +1,15 @@
-﻿using System;
+﻿using Play.Edit;
+using Play.Interfaces.Embedding;
+using Play.Rectangles;
+using SkiaSharp;
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
 using System.Xml;
-using System.Collections;
-
-using SkiaSharp;
-
-using Play.Interfaces.Embedding;
-using Play.Rectangles;
-using Play.Edit;
+using static Mjolnir.LayoutExclusive;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace Mjolnir {
     /// <summary>
@@ -53,7 +53,7 @@ namespace Mjolnir {
 
 		public LayoutRect Last { get { return _rgLayout[Count-1]; } }
 
-		public int Load( IEnumerable<SmartHerderBase> rgSource ) {
+		public int SummateChildTrack( IEnumerable<SmartHerderBase> rgSource ) {
             int iTrack = 0;
 
 			foreach( SmartHerderBase oChild in rgSource ) {
@@ -660,7 +660,7 @@ namespace Mjolnir {
 			}
 
 			oSide.Clear         ();
-			oSide.Load          ( rgSort );
+			oSide.SummateChildTrack          ( rgSort );
 			oSide.PercentReset  ( fNormalize:true );
 			oSide.LayoutChildren();  // BUG: If rail distance is zero, no layout happens!!
 		}
@@ -692,10 +692,14 @@ namespace Mjolnir {
         public void DecorSave(  XmlDocumentFragment xmlOurRoot ) {
             try {
 			    XmlElement xmlDecors = xmlOurRoot.OwnerDocument.CreateElement( "Decors" );
+                XmlElement xmlSides  = xmlOurRoot.OwnerDocument.CreateElement( "Sides" );
                 foreach( KeyValuePair<SideIdentify,SideRect> oPair in _rgSideInfo ) {
                     int i = 0;
+                    // On this side, see if there are any decor/herder that has 
+                    // it's menu vis set. NOTE: it might not be currently show b/c
+                    // the current view does not support any decor on this side!!!!
                     foreach( SmartHerderBase oHerder in oPair.Value ) {
-                        if( !oHerder.Hidden ) {
+                        if( oHerder.DesiresVisiblity ) {
                             XmlElement xmlDecor =xmlOurRoot.OwnerDocument.CreateElement( "Decor" );
 
 				            xmlDecor.SetAttribute( "decor", oHerder.Decor.ToString() );
@@ -707,18 +711,27 @@ namespace Mjolnir {
                             ++i;
                         }
                     }
+                    // Somebody was open on the side, so let's save the side's size. 
                     if( i > 0 ) {
                         XmlElement xmlSide =xmlOurRoot.OwnerDocument.CreateElement( "Side" );
 
-                        xmlSide.SetAttribute( "name", oPair.Key.ToString() );
+                        xmlSide.SetAttribute( "name", oPair.Key.ToString().ToLower() );
                         xmlSide.SetAttribute( "rail", oPair.Value.Track.ToString() );
+
+                        xmlSides.AppendChild( xmlSide );
                     }
                 }
-                xmlOurRoot.AppendChild( xmlDecors );
+                if( xmlDecors.HasChildNodes ) {
+                    xmlOurRoot.AppendChild( xmlDecors );
+                }
+                if( xmlSides.HasChildNodes ) {
+                    xmlOurRoot.AppendChild( xmlSides );
+                }
             } catch ( Exception oEx ) {
                 Type[] rgErrors = { typeof( XmlException ),
                                     typeof( ArgumentException ),
-                                    typeof( ArgumentNullException ) };
+                                    typeof( ArgumentNullException ),
+                                    typeof( NullReferenceException )};
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
                 LogError( null, "Main Window Save", "Couldn't Save decor configuration" );
@@ -783,6 +796,7 @@ namespace Mjolnir {
         public void DecorLoad( XmlElement xmlRoot ) {
             try {
 				XmlNodeList                       rgXmlDecors = xmlRoot.SelectNodes( "Decors/Decor");
+                XmlNodeList                       rgXmlSides  = xmlRoot.SelectNodes( "Sides/Side" );
                 Dictionary<string, SideIdentify>  dctFindSide = new(); // search side enum by a string.
                 Dictionary<SideIdentify, bool>    dctSides    = new();
                 Dictionary<Guid, MenuReset>       dctDecor    = new(); // search decor by string.
@@ -796,10 +810,21 @@ namespace Mjolnir {
                 foreach( IPgMenuVisibility oDecorVis in _rgDecorEnum ) {
                     dctDecor.Add( oDecorVis.Shepard.Decor, new MenuReset( oDecorVis ) );
                 }
+                foreach( XmlElement xmlSide in rgXmlSides ) {
+                    string strName = xmlSide.GetAttribute( "name" );
+                    string strRail = xmlSide.GetAttribute( "rail" );
+                    if( dctFindSide.TryGetValue( strName, out SideIdentify eSide ) &&
+                        uint.TryParse( strRail, out uint uiRail ) ) {
+                        _rgSideInfo[eSide].Track    = uiRail;
+                        _rgSideInfo[eSide].SideInit = (int)uiRail;
+                    }
+                }
+
+                bool fFoundAtLeastOne = false;
                 // If we find a decor specified as shown, flag it that we want it on.
 				foreach( XmlElement xmlDecor in rgXmlDecors ) {
                     try {
-                        Guid   gDecor = Guid.Empty;
+                        Guid gDecor = Guid.Empty;
 
                         string strDecorName = xmlDecor.GetAttribute( "name" );
                         string strDecorGuid = xmlDecor.GetAttribute( "decor" );
@@ -817,6 +842,19 @@ namespace Mjolnir {
                         oReset._eNewSide = dctFindSide[ strDecorSide ];
                         oReset._iOrder   = int .Parse( strDecorOrdr );
                         oReset._uiTrack  = uint.Parse( strDecorTrak );
+
+                        IPgMenuVisibility oMenu = oReset._oDecorMenu;
+
+                        // Menu shows we want decor visible. But if the current view
+                        // doesn't support it, the side doesn't need to open.
+                        oMenu.Checked             = true;
+                        oMenu.Shepard.Track       = oReset._uiTrack; // check CSS style.
+					    oMenu.Shepard.Hidden      = false;
+                        oMenu.Shepard.Orientation = oReset._eNewSide;
+
+                        dctSides[ oReset._eNewSide ] = true;
+
+                        fFoundAtLeastOne  =  true;
                     } catch( Exception oEx ) {
                         Type[] rgErrors = { typeof( KeyNotFoundException ),
                                             typeof( FormatException ),
@@ -828,31 +866,32 @@ namespace Mjolnir {
                     // if we fail to find side we'll still dock the decor
                     // but it won't be on the correct side or right order.
                 }
-                // Now go thru all the menu items and see if the .pvs visibility matches it's current visibility.
-                bool fFoundAtLeastOne = false;
-                foreach( KeyValuePair< Guid,MenuReset> oPair in dctDecor ) {
-                    IPgMenuVisibility oMenuVis = oPair.Value._oDecorMenu;
-                    SideIdentify      eOrient  = oPair.Value._eNewSide;   // oMenuVis.Shepard.Orientation;
 
-                    if( oPair.Value._fVisible != oMenuVis.Checked ||
-                        oPair.Value._eNewSide != oMenuVis.Shepard.Orientation ) 
-                    {
-                        oMenuVis.Checked             =  oPair.Value._fVisible;
-					    oMenuVis.Shepard.Hidden      = !oPair.Value._fVisible;
-                        oMenuVis.Shepard.Orientation =  eOrient;
-                        dctSides[ eOrient ]          =  oPair.Value._fVisible;
-                        fFoundAtLeastOne             =  true;
-                    }
-                    // Always load the track value from saved value.
-                    oMenuVis.Shepard.Track = oPair.Value._uiTrack; // check CSS style.
-                }
+                // Now go thru all the menu items and see if the .pvs visibility matches it's current visibility.
+                //foreach( KeyValuePair< Guid,MenuReset> oPair in dctDecor ) {
+                //    IPgMenuVisibility oMenuVis = oPair.Value._oDecorMenu;
+                //    SideIdentify      eOrient  = oPair.Value._eNewSide;   // oMenuVis.Shepard.Orientation;
+
+                //    if( oPair.Value._fVisible != oMenuVis.Checked ||
+                //        oPair.Value._eNewSide != oMenuVis.Shepard.Orientation ) 
+                //    {
+                //        oMenuVis.Checked             =  oPair.Value._fVisible;
+				//	      oMenuVis.Shepard.Hidden      = !oPair.Value._fVisible;
+                //        oMenuVis.Shepard.Orientation =  eOrient;
+                //        dctSides[ eOrient ]          =  oPair.Value._fVisible;
+                //        fFoundAtLeastOne             =  true;
+                //    }
+                //    Always load the track value from saved value.
+                //    oMenuVis.Shepard.Track = oPair.Value._uiTrack; // check CSS style.
+                //}
+
                 // If anything is found reset the UI.
                 if( fFoundAtLeastOne ) {
 			        List<MenuReset> rgSort   = new ( 10 );
                     CompareOrder    oCompare = new ();
                     foreach( KeyValuePair< SideIdentify, bool > oPair in dctSides ) {
                         if( oPair.Value ) { // If the side was touched...
-			                rgSort.Clear();
+			                rgSort.Clear(); // reset for decor of this side.
                             // load everthing we want on that side into our sorter.
                             foreach( MenuReset oHerder in dctDecor.Values ) {
                                 if( oHerder._eNewSide == oPair.Key &&
@@ -868,7 +907,7 @@ namespace Mjolnir {
 
 			                oSide.Clear();
                             // Check the track %'s seem reasonable. If not, reset them.
-                            int iTrack = oSide.Load( new EnumerateHerders( rgSort ) );
+                            int iTrack = oSide.SummateChildTrack( new EnumerateHerders( rgSort ) );
                             if( iTrack < 90 || iTrack > 110 )
                                 oSide.PercentReset( fNormalize:true );
 

@@ -480,6 +480,7 @@ namespace Mjolnir {
             set {
                 _oMenuVis = value;
             }
+
         }
 
         /// <summary>
