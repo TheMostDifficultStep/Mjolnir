@@ -97,6 +97,10 @@ namespace Play.Clock {
             return fValue ? CheckMarkValue : string.Empty;
         }
 
+        public void SetCheck( string strCheck ) {
+            this[DCol.Check].TryReplace( strCheck );
+        }
+
         public bool IsChecked {
             get {
                 return !this[DCol.Check].IsEmpty;
@@ -120,12 +124,18 @@ namespace Play.Clock {
         public bool InitNew() {
 			try {
                 var rgZones = TimeZoneInfo.GetSystemTimeZones();
+                TimeZoneInfo oLocalZone = TimeZoneInfo.Local;
+
                 foreach( TimeZoneInfo oZone in rgZones ) {
                     int    iOffset = oZone.BaseUtcOffset.Hours;
                     string strClip = oZone.DisplayName[12..];
                     // BUG: won't work in other languages.
                     if( !strClip.StartsWith( "Coordinated" ) ) {
-                        _rgRows.Add( new RowZone( strClip, iOffset, oZone ) );
+                        RowZone oRowNew = new RowZone( strClip, iOffset, oZone );
+                        if( oLocalZone.Equals( oZone ) ) {
+                            oRowNew.SetCheck( CheckSetValue );
+                        }
+                        _rgRows.Add( oRowNew );
                     }
                 }
 
@@ -171,12 +181,16 @@ namespace Play.Clock {
             _rgRows.Clear();
 
             _rgRows.Add( new RowClock( string.Empty,  "utc"   ) );
-            _rgRows.Add( new RowClock( string.Empty,  "local" ) );
-            _rgRows.Add( new RowClock( "12 hr clock", "local" ) );
+            //_rgRows.Add( new RowClock( string.Empty,  "local" ) );
+            //_rgRows.Add( new RowClock( "12 hr clock", "local" ) );
+
+            DateTime oUtc = DateTime.Now.ToUniversalTime();
 
             foreach( Row oRow in _rgRows ) {
-                if( oRow is RowClock oRClock ) {
-                    SetTimeOnRow( oDT, oRClock );
+                if( oRow is RowClock oCRow ) {
+                    if( oRow is RowClock oRClock ) {
+                        oCRow.SetTime( oUtc );
+                    }
                 }
             }
         }
@@ -258,27 +272,19 @@ namespace Play.Clock {
             }
         }
 
-        public static void SetTimeOnRow( DateTime oDt, RowClock oRow ) {
-            switch( oRow.At ) {
-                default:
-                case 0:
-                    oRow.SetTime( oDt.ToUniversalTime() );
-                    break;
-                case 1:
-                    oRow.SetTime( oDt );
-                    break;
-                case 2:
-                    oRow.SetLocal12( oDt );
-                    break;
-            }
-        }
-
+        /// <summary>
+        /// BUG: Let's move the worker to the container doc so we
+        /// can unify the time update code to one place.
+        /// </summary>
+        /// <returns></returns>
         public IEnumerator<int> CreateWorker() {
             while( true ) {
-                DateTime oDT = DateTime.Now;
+                DateTime oDT = DateTime.Now.ToUniversalTime();
                 
-                foreach( RowClock oRow in _rgRows ) {
-                    SetTimeOnRow( oDT, oRow );
+                foreach( Row oRow in _rgRows ) {
+                    if( oRow is RowClock oCRow ) {
+                        oCRow.SetTime( oDT );
+                    }
                 }
 
                 ClockEvent?.Invoke();
@@ -348,6 +354,8 @@ namespace Play.Clock {
                 return false;
             }
 
+            ReLoad();
+
             return true;
         }
 
@@ -362,7 +370,7 @@ namespace Play.Clock {
         }
 
         public void ReLoad() {
-            DateTime oDT = DateTime.Now;
+            DateTime oDT = DateTime.Now.ToUniversalTime();
 
             DocClock.Reset(oDT);
 
@@ -378,7 +386,7 @@ namespace Play.Clock {
                                                       strZone,
                                                       iOffset, 
                                                       oZone.Zone );
-                        DocumentClock.SetTimeOnRow(oDT, oNew );
+                        oNew.SetTime( oDT );
                         DocClock.Append( oNew );
                     } else {
                         _oSiteBase.LogError( "Clock", "Bad Zone offset" );
