@@ -88,7 +88,7 @@ namespace Play.Clock {
         /// <remarks>
         /// BUG: Probably should have a call on the cache manager
         /// that gets the row's fonts for each column (and
-        /// possibly each row back here. This is very hacky.
+        /// possibly each row) back on our view. This is very hacky.
         /// </remarks>
         public override void OnDocLoaded() {
             base.OnDocLoaded(); // This updates the cache

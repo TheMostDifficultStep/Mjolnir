@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-
-using Play.Interfaces.Embedding;
-using Play.Edit;
 using System.Xml;
+
+using Play.Edit;
+using Play.Interfaces.Embedding;
 
 namespace Play.Clock {
     public class RowClock : Row {
@@ -27,40 +27,42 @@ namespace Play.Clock {
             _oZone   = oZone;
         }
 
-        public void SetTime( DateTime sUTC ) {
-            int iOffset = _iOffset;
+        public DateTime Time {
+            set {
+                int iOffset = _iOffset;
 
-            if( _oZone is not null && _oZone.IsDaylightSavingTime( sUTC ) ) {
-                iOffset += 1;
-            }
-            DateTime dtOffset = sUTC.AddHours( iOffset );
-            string   strTime;
-
-            if( Is24Hour ) {
-                strTime = dtOffset.Hour  .ToString( "D2" ) + ":" + 
-                          dtOffset.Minute.ToString( "D2");
-            } else {
-                int    iHour     = dtOffset.Hour;
-                string strMidDay = "am"; 
-
-                if( iHour > 12 ) {
-                    strMidDay = "pm";
-                    iHour    -= 12;
+                if( _oZone is not null && _oZone.IsDaylightSavingTime( value ) ) {
+                    iOffset += 1;
                 }
-                if( iHour == 0 ) {
-                    iHour    += 12;
+                DateTime dtOffset = value.AddHours( iOffset );
+                string   strTime;
+
+                if( Is24Hour ) {
+                    strTime = dtOffset.Hour  .ToString( "D2" ) + ":" + 
+                              dtOffset.Minute.ToString( "D2");
+                } else {
+                    int    iHour     = dtOffset.Hour;
+                    string strMidDay = "am"; 
+
+                    if( iHour > 12 ) {
+                        strMidDay = "pm";
+                        iHour    -= 12;
+                    }
+                    if( iHour == 0 ) {
+                        iHour    += 12;
+                    }
+                    strTime = iHour.ToString( "D2" ) + ":" +
+                              dtOffset.Minute.ToString( "D2" ) + strMidDay;
                 }
-                strTime = iHour.ToString( "D2" ) + ":" +
-                          dtOffset.Minute.ToString( "D2" ) + strMidDay;
+
+                Line oTime = this[0];
+                oTime.Empty();
+                oTime.TryAppend( strTime );
+
+                Line oDate = this[1];
+                oDate.Empty();
+                oDate.TryAppend( dtOffset.ToShortDateString() );
             }
-
-            Line oTime = this[0];
-            oTime.Empty();
-            oTime.TryAppend( strTime );
-
-            Line oDate = this[1];
-            oDate.Empty();
-            oDate.TryAppend( dtOffset.ToShortDateString() );
         }
     }
 
@@ -78,15 +80,26 @@ namespace Play.Clock {
 
         public static string CheckMarkValue {get;} = "\x2714";
 
-        public RowZone( string strTimeZone, int iOffset, TimeZoneInfo oZone ) {
+        public RowZone( string strTimeZone, TimeZoneInfo oZone ) {
+            Zone = oZone ?? throw new ArgumentNullException();
+
             _rgColumns = new Line[ColumnCount];
 
             CreateColumn( DCol.Check,  GetCheck( false ) );
-            CreateColumn( DCol.Offset, iOffset.ToString() );
+            CreateColumn( DCol.Offset, Offset.ToString() );
             CreateColumn( DCol.Zone,   strTimeZone );
 
-            Zone = oZone ?? throw new ArgumentNullException();
         }
+
+        public int Offset {
+            get {
+                if( Zone is not null )
+                    return Zone.BaseUtcOffset.Hours;
+
+                return 0;
+            }
+        }
+
 
         /// <summary>
         /// I should make this templatized. I do the same thing in the fileman viewer.
@@ -129,11 +142,10 @@ namespace Play.Clock {
                 TimeZoneInfo oLocalZone = TimeZoneInfo.Local;
 
                 foreach( TimeZoneInfo oZone in rgZones ) {
-                    int    iOffset = oZone.BaseUtcOffset.Hours;
                     string strClip = oZone.DisplayName[12..];
                     // BUG: won't work in other languages.
                     if( !strClip.StartsWith( "Coordinated" ) ) {
-                        RowZone oRowNew = new RowZone( strClip, iOffset, oZone );
+                        RowZone oRowNew = new RowZone( strClip, oZone );
                         if( oLocalZone.Equals( oZone ) ) {
                             oRowNew.SetCheck( CheckSetValue );
                         }
@@ -317,25 +329,18 @@ namespace Play.Clock {
             DateTime oDT = DateTime.Now.ToUniversalTime();
 
             DocClock.Clear();
-
-            RowClock oNew = new RowClock( "UTC", 0 );
-            oNew.SetTime( oDT );
-            DocClock.Append(oNew);
+            DocClock.Append( new RowClock( "UTC", 0 ) { Time = oDT });
 
             foreach( Row oRow in DocZones ) {
                 if( oRow is RowZone oRowZone && oRowZone.IsChecked ) {
-                    if( int.TryParse( oRowZone[RowZone.DCol.Offset].AsSpan, out int iOffset ) ) {
-                        string strZone = oRowZone[RowZone.DCol.Zone].ToString();
-                        const int iMaxTitle = 10;
-                        if( strZone.Length > iMaxTitle ) {
-                            strZone = strZone[0..iMaxTitle];
-                        }
-                        oNew = new RowClock( strZone, iOffset, oRowZone.Zone );
-                        oNew.SetTime( oDT );
-                        DocClock.Append( oNew );
-                    } else {
-                        _oSiteBase.LogError( "Clock", "Bad Zone offset" );
+                    string strZone = oRowZone[RowZone.DCol.Zone].ToString();
+                    const int iMaxTitle = 10;
+                    if( strZone.Length > iMaxTitle ) {
+                        strZone = strZone[0..iMaxTitle];
                     }
+                    DocClock.Append( new RowClock( strZone, 
+                                                   oRowZone.Offset, 
+                                                   oRowZone.Zone ) { Time = oDT } );
                 }
             }
 
