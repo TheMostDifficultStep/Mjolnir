@@ -57,7 +57,7 @@ namespace Play.Clock {
 
         protected override void Dispose( bool disposing ) {
             if( disposing ) {
-                Document.ClockEvent -= OnClockUpdated;
+                Document.DocClock.ClockEvent -= OnClockUpdated;
             }
             base.Dispose(disposing);
         }
@@ -66,7 +66,7 @@ namespace Play.Clock {
             if( !base.Initialize() ) 
                 return false;
 
-            Document.ClockEvent += OnClockUpdated;
+            Document.DocClock.ClockEvent += OnClockUpdated;
 
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex ), RowClock.ColumnTime); // time
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex ), RowClock.ColumnZone); // zones.
@@ -85,16 +85,6 @@ namespace Play.Clock {
             return false;
         }
 
-        /// <remarks>
-        /// BUG: Probably should have a call on the cache manager
-        /// that gets the row's fonts for each column (and
-        /// possibly each row) back on our view. This is very hacky.
-        /// </remarks>
-        public override void OnDocLoaded() {
-            base.OnDocLoaded(); // This updates the cache
-            OnClockUpdated();   // So this will have values in the cache.
-        }
-
         protected override void OnSizeChanged(EventArgs e) {
             foreach( CacheRow oCRow in _oCacheMan ) {
                 oCRow[0].FontID = ClockFont;
@@ -111,7 +101,7 @@ namespace Play.Clock {
         }
 
         public void OnClockUpdated() {
-            // This remeasures all the items.
+            OnDocLoaded  (); // This updates the cache
             OnSizeChanged( new EventArgs() );
         }
     }
@@ -169,7 +159,14 @@ namespace Play.Clock {
         }
 
         protected override void Dispose(bool disposing) {
-            DocContainer.ClockEvent -= ClockEvent;
+            DocContainer.DocClock.ClockEvent -= ClockEvent;
+        }
+
+        public bool InitNew() {
+            DocContainer.DocClock.ClockEvent += ClockEvent;
+            InitFace();
+
+            return true;
         }
 
         protected override void OnGotFocus(EventArgs e) {
@@ -186,13 +183,6 @@ namespace Play.Clock {
 
         public bool Load(XmlElement oStream) {
             return InitNew();
-        }
-
-        public bool InitNew() {
-            DocContainer.ClockEvent += ClockEvent;
-            InitFace();
-
-            return true;
         }
 
         protected abstract class Hand {

@@ -59,7 +59,7 @@ namespace Play.Clock {
 
         public override bool Execute(Guid gCommand) {
             if( gCommand == GlobalCommands.Recycle ) {
-                _oDocContainer.ReLoad();
+                _oDocContainer.Reset();
             }
 
             return base.Execute(gCommand);

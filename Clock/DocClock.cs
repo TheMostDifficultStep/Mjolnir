@@ -178,6 +178,9 @@ namespace Play.Clock {
         EditMultiColumn,
         IPgLoad
     {
+
+        public event Action ClockEvent;
+
         public DocumentClock( IPgBaseSite oSite ) :
             base( oSite )
         {
@@ -190,6 +193,18 @@ namespace Play.Clock {
 
         public void Clear() {
             _rgRows.Clear();
+        }
+
+        public void UpdateTime() {
+            DateTime oUtc = DateTime.UtcNow.ToUniversalTime();
+
+            foreach( Row oRow in _rgRows ) {
+                if( oRow is RowClock oCRow ) {
+                    oCRow.Time = oUtc;
+                }
+            }
+
+            ClockEvent?.Invoke();
         }
 
         public bool InitNew(){
@@ -206,8 +221,6 @@ namespace Play.Clock {
     {
         protected IPgRoundRobinWork _oWorkPlace;
         protected int               _iTimoutInMillisecs = 60000;
-
-        public event Action ClockEvent;
 
         public bool      IsDirty   => false;
         public IPgParent Parentage => _oSiteBase.Host;
@@ -261,7 +274,7 @@ namespace Play.Clock {
 			_oWorkPlace = ((IPgScheduler)Services).CreateWorkPlace();
             _oWorkPlace.Queue( CreateWorker(), 0 );
 
-            // ReLoad(); only need if no worker task
+            Reset();
 
             return true;
         }
@@ -316,16 +329,14 @@ namespace Play.Clock {
         /// <returns></returns>
         public IEnumerator<int> CreateWorker() {
             while( true ) {
-                ReLoad();
-
-                ClockEvent?.Invoke();
+                DocClock.UpdateTime();
 
                 // Note: Changing this doesn't seem to effect anything.
                 //       You need to restart the workplace.
                 yield return TimoutInMillisecs;
             }
         }
-        public void ReLoad() {
+        public void Reset() {
             DateTime oDT = DateTime.Now.ToUniversalTime();
 
             DocClock.Clear();
@@ -345,7 +356,7 @@ namespace Play.Clock {
             }
 
             DocClock.RenumberAndSumate();
-            DocClock.Raise_DocLoaded  ();
+            DocClock.UpdateTime       ();
         }
 
     }
