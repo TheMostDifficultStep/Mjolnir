@@ -14,26 +14,45 @@ namespace Play.Clock {
 
         protected int          _iOffset;
         protected TimeZoneInfo _oZone; 
-        public RowClock( string strDate, string strLabel, int iOffset = 0, TimeZoneInfo oZone = null ) {
+
+        public bool Is24Hour { get; set; } = false;
+
+        public RowClock( string strLabel, int iOffset = 0, TimeZoneInfo oZone = null ) {
             _rgColumns    = new Line[3];
-            _rgColumns[0] = new TextLine( 0, string.Empty );
-            _rgColumns[1] = new TextLine( 1, strDate );
-            _rgColumns[2] = new TextLine( 2, strLabel );
+            _rgColumns[ColumnTime] = new TextLine( 0, string.Empty );
+            _rgColumns[ColumnDate] = new TextLine( 1, string.Empty );
+            _rgColumns[ColumnZone] = new TextLine( 2, strLabel );
 
             _iOffset = iOffset;
             _oZone   = oZone;
         }
 
-        public void SetTime( DateTime oDT ) {
+        public void SetTime( DateTime sUTC ) {
             int iOffset = _iOffset;
 
-            if( _oZone is not null && _oZone.IsDaylightSavingTime( oDT ) ) {
+            if( _oZone is not null && _oZone.IsDaylightSavingTime( sUTC ) ) {
                 iOffset += 1;
             }
-            DateTime dtOffset = oDT.AddHours( iOffset );
+            DateTime dtOffset = sUTC.AddHours( iOffset );
+            string   strTime;
 
-            string strTime = dtOffset.Hour  .ToString( "D2" ) + ":" + 
-                             dtOffset.Minute.ToString( "D2");
+            if( Is24Hour ) {
+                strTime = dtOffset.Hour  .ToString( "D2" ) + ":" + 
+                          dtOffset.Minute.ToString( "D2");
+            } else {
+                int    iHour     = dtOffset.Hour;
+                string strMidDay = "am"; 
+
+                if( iHour > 12 ) {
+                    strMidDay = "pm";
+                    iHour    -= 12;
+                }
+                if( iHour == 0 ) {
+                    iHour    += 12;
+                }
+                strTime = iHour.ToString( "D2" ) + ":" +
+                          dtOffset.Minute.ToString( "D2" ) + strMidDay;
+            }
 
             Line oTime = this[0];
             oTime.Empty();
@@ -42,23 +61,6 @@ namespace Play.Clock {
             Line oDate = this[1];
             oDate.Empty();
             oDate.TryAppend( dtOffset.ToShortDateString() );
-        }
-
-        public void SetLocal12( DateTime oDT ) {
-            int    iHour     = oDT.Hour;
-            string strMidDay = "am"; 
-
-            if( iHour > 12 ) {
-                strMidDay = "pm";
-                iHour    -= 12;
-            }
-            if( iHour == 0 ) {
-                iHour    += 12;
-            }
-
-            Line oTime = this[0];
-            oTime.Empty();
-            oTime.TryAppend( iHour.ToString( "D2" ) + ":" + oDT.Minute.ToString( "D2" ) + strMidDay );
         }
     }
 
@@ -167,55 +169,21 @@ namespace Play.Clock {
         IPgLoad<XmlNode>,
         IPgSave<XmlNode>
     {
-        protected IPgRoundRobinWork _oWorkPlace;
-        protected int               _iTimoutInMillisecs = 60000;
-
-        public event Action ClockEvent;
-
         public DocumentClock( IPgBaseSite oSite ) :
             base( oSite )
         {
         }
 
-        public void Reset( DateTime oDT ) {
-            _rgRows.Clear();
-
-            _rgRows.Add( new RowClock( string.Empty,  "utc"   ) );
-            //_rgRows.Add( new RowClock( string.Empty,  "local" ) );
-            //_rgRows.Add( new RowClock( "12 hr clock", "local" ) );
-
-            DateTime oUtc = DateTime.Now.ToUniversalTime();
-
-            foreach( Row oRow in _rgRows ) {
-                if( oRow is RowClock oCRow ) {
-                    if( oRow is RowClock oRClock ) {
-                        oCRow.SetTime( oUtc );
-                    }
-                }
-            }
-        }
-
-        // Todo: use a manuplator in the future...
+        // Todo: use a manupulator in the future...
         public void Append( RowClock oNew ) {
             _rgRows.Add( oNew );
         }
 
+        public void Clear() {
+            _rgRows.Clear();
+        }
+
         public bool InitNew(){
-			try {
-                Reset( DateTime.Now );
-                RenumberAndSumate();
-
-				_oWorkPlace = ((IPgScheduler)Services).CreateWorkPlace();
-                _oWorkPlace.Queue( CreateWorker(), 0 );
-			} catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( ArgumentNullException ),
-                                    typeof( NullReferenceException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
-                    throw;
-
-				LogError( "Can't set up time update worker." );
-			}
-
             return true;
         }
 
@@ -239,61 +207,6 @@ namespace Play.Clock {
             return true;
         }
 
-        public enum ClockUpdateInterval {
-            Slow,
-            Fast
-        }
-
-        public int TimoutInMillisecs {
-            set {
-                _iTimoutInMillisecs = value;
-                _oWorkPlace.Start( _iTimoutInMillisecs );
-            }
-            get {
-                return _iTimoutInMillisecs;
-            }
-        }
-
-        /// <summary>
-        /// Speed up the clock updates if focused. Else
-        /// slow down.
-        /// </summary>
-        /// <remarks>BUG: This actually doesn't make sense on the
-        /// document level. The views should set their own pace.
-        /// I'll fix that later...</remarks>
-        public void SetTimeout( ClockUpdateInterval eSpeed ) {
-            switch( eSpeed ) {
-                case ClockUpdateInterval.Slow:
-                    TimoutInMillisecs = 60000;
-                    break;
-                case ClockUpdateInterval.Fast:
-                    TimoutInMillisecs = 1000;
-                    break;
-            }
-        }
-
-        /// <summary>
-        /// BUG: Let's move the worker to the container doc so we
-        /// can unify the time update code to one place.
-        /// </summary>
-        /// <returns></returns>
-        public IEnumerator<int> CreateWorker() {
-            while( true ) {
-                DateTime oDT = DateTime.Now.ToUniversalTime();
-                
-                foreach( Row oRow in _rgRows ) {
-                    if( oRow is RowClock oCRow ) {
-                        oCRow.SetTime( oDT );
-                    }
-                }
-
-                ClockEvent?.Invoke();
-
-                // Note: Changing this doesn't seem to effect anything.
-                //       You need to restart the workplace.
-                yield return TimoutInMillisecs;
-            }
-        }
     }
 
     public class DocumentContainer :
@@ -303,10 +216,13 @@ namespace Play.Clock {
         IPgSave<XmlNode>,
         IPgLoad<TextReader>
     {
-        public bool IsDirty => false;
+        protected IPgRoundRobinWork _oWorkPlace;
+        protected int               _iTimoutInMillisecs = 60000;
 
+        public event Action ClockEvent;
+
+        public bool      IsDirty   => false;
         public IPgParent Parentage => _oSiteBase.Host;
-
         public IPgParent Services  => Parentage;
 
         protected readonly IPgBaseSite _oSiteBase;
@@ -354,7 +270,10 @@ namespace Play.Clock {
                 return false;
             }
 
-            ReLoad();
+			_oWorkPlace = ((IPgScheduler)Services).CreateWorkPlace();
+            _oWorkPlace.Queue( CreateWorker(), 0 );
+
+            // ReLoad(); only need if no worker task
 
             return true;
         }
@@ -369,23 +288,73 @@ namespace Play.Clock {
             return true;
         }
 
+        public enum ClockUpdateInterval {
+            Slow,
+            Fast
+        }
+
+        public int TimoutInMillisecs {
+            set {
+                _iTimoutInMillisecs = value;
+                _oWorkPlace.Start( _iTimoutInMillisecs );
+            }
+            get {
+                return _iTimoutInMillisecs;
+            }
+        }
+
+        /// <summary>
+        /// Speed up the clock updates if focused. Else
+        /// slow down.
+        /// </summary>
+        /// <remarks>BUG: This actually doesn't make sense on the
+        /// document level. The views should set their own pace.
+        /// I'll fix that later...</remarks>
+        public void SetTimeout( ClockUpdateInterval eSpeed ) {
+            switch( eSpeed ) {
+                case ClockUpdateInterval.Slow:
+                    TimoutInMillisecs = 60000;
+                    break;
+                case ClockUpdateInterval.Fast:
+                    TimoutInMillisecs = 1000;
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// BUG: Let's move the worker to the container doc so we
+        /// can unify the time update code to one place.
+        /// </summary>
+        /// <returns></returns>
+        public IEnumerator<int> CreateWorker() {
+            while( true ) {
+                ReLoad();
+
+                ClockEvent?.Invoke();
+
+                // Note: Changing this doesn't seem to effect anything.
+                //       You need to restart the workplace.
+                yield return TimoutInMillisecs;
+            }
+        }
         public void ReLoad() {
             DateTime oDT = DateTime.Now.ToUniversalTime();
 
-            DocClock.Reset(oDT);
+            DocClock.Clear();
+
+            RowClock oNew = new RowClock( "UTC", 0 );
+            oNew.SetTime( oDT );
+            DocClock.Append(oNew);
 
             foreach( Row oRow in DocZones ) {
-                if( oRow is RowZone oZone && oZone.IsChecked ) {
-                    if( int.TryParse( oZone[RowZone.DCol.Offset].AsSpan, out int iOffset ) ) {
-                        string strZone = oZone[RowZone.DCol.Zone].ToString();
-                        const int iMax = 10;
-                        if( strZone.Length > iMax ) {
-                            strZone = strZone[0..iMax];
+                if( oRow is RowZone oRowZone && oRowZone.IsChecked ) {
+                    if( int.TryParse( oRowZone[RowZone.DCol.Offset].AsSpan, out int iOffset ) ) {
+                        string strZone = oRowZone[RowZone.DCol.Zone].ToString();
+                        const int iMaxTitle = 10;
+                        if( strZone.Length > iMaxTitle ) {
+                            strZone = strZone[0..iMaxTitle];
                         }
-                        RowClock oNew = new RowClock( string.Empty, 
-                                                      strZone,
-                                                      iOffset, 
-                                                      oZone.Zone );
+                        oNew = new RowClock( strZone, iOffset, oRowZone.Zone );
                         oNew.SetTime( oDT );
                         DocClock.Append( oNew );
                     } else {

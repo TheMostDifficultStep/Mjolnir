@@ -31,12 +31,12 @@ namespace Play.Clock {
         public SKImage   Icon      { get; }
         protected uint   ClockFont { get; }
 
-        protected DocumentClock Document { get; }
+        protected DocumentContainer Document { get; }
 
-        public ViewDigitalClock( IPgViewSite oViewSite, DocumentClock oDocClock ) : 
-            base( oViewSite, oDocClock ) 
+        public ViewDigitalClock( IPgViewSite oViewSite, DocumentContainer oDocContainer ) : 
+            base( oViewSite, oDocContainer.DocClock ) 
         {
-            Document   = oDocClock ?? throw new ArgumentNullException( "Clock document must not be null." );
+            Document   = oDocContainer ?? throw new ArgumentNullException( "Clock document must not be null." );
             _oViewSite = oViewSite;
 
 			Icon       = SKImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strViewIcon );
@@ -132,14 +132,15 @@ namespace Play.Clock {
 		IPgSave<XmlDocumentFragment>,
         IPgCommandView
     {
-        private readonly string      _strViewIcon  = "Play.Clock.Content.icon_clock.gif";
+        private readonly string _strViewIcon  = "Play.Clock.Content.icon_clock.gif";
+
         protected readonly IPgViewSite   _oViewSite;
         protected readonly IPgViewNotify _oViewNotify;
 
         protected readonly List<Hand> _rgFace = new();
 
 		public static Guid Guid { get; } = Guid.Empty;
-        public DocumentClock DocClock { get; }
+        public DocumentContainer DocContainer { get; }
 
         public IPgParent Parentage => _oViewSite.Host;
 
@@ -153,8 +154,8 @@ namespace Play.Clock {
 
         public Guid Catagory => Guid;
 
-        public ViewAnalogClock( IPgViewSite oViewSite, DocumentClock oDocClock ) {
-            DocClock     = oDocClock ?? throw new ArgumentNullException();
+        public ViewAnalogClock( IPgViewSite oViewSite, DocumentContainer oDoc ) {
+            DocContainer = oDoc ?? throw new ArgumentNullException();
             _oViewSite   = oViewSite ?? throw new ArgumentNullException();
 
             _oViewNotify = _oViewSite.EventChain;
@@ -163,18 +164,18 @@ namespace Play.Clock {
         }
 
         protected override void Dispose(bool disposing) {
-            DocClock.ClockEvent -= ClockEvent;
+            DocContainer.ClockEvent -= ClockEvent;
         }
 
         protected override void OnGotFocus(EventArgs e) {
             _oViewNotify.NotifyFocused( true );
-            DocClock.SetTimeout( DocumentClock.ClockUpdateInterval.Fast );
+            DocContainer.SetTimeout( DocumentContainer.ClockUpdateInterval.Fast );
             Invalidate();
         }
 
         protected override void OnLostFocus(EventArgs e) {
 			_oViewNotify.NotifyFocused( false );
-            DocClock.SetTimeout( DocumentClock.ClockUpdateInterval.Slow );
+            DocContainer.SetTimeout( DocumentContainer.ClockUpdateInterval.Slow );
             Invalidate();
         }
 
@@ -183,7 +184,7 @@ namespace Play.Clock {
         }
 
         public bool InitNew() {
-            DocClock.ClockEvent += ClockEvent;
+            DocContainer.ClockEvent += ClockEvent;
             InitFace();
 
             return true;

@@ -69,14 +69,14 @@ namespace Play.Clock {
 			try {
                 switch( guidViewType ) {
                     case Guid r when r == ViewAnalogClock.Guid:
-                        return new ViewAnalogClock ( oBaseSite, oDocContainer.DocClock );
+                        return new ViewAnalogClock ( oBaseSite, oDocContainer );
                     case Guid r when r == ViewDigitalClock.Guid:
-                        return new ViewDigitalClock( oBaseSite, oDocContainer.DocClock );
+                        return new ViewDigitalClock( oBaseSite, oDocContainer );
                     case Guid r when r == ViewTimeZones   .Guid:
                         return new ViewTimeZones   ( oBaseSite, oDocContainer );
 
                     default:
-                        return new ViewDigitalClock( oBaseSite, oDocContainer.DocClock );
+                        return new ViewDigitalClock( oBaseSite, oDocContainer );
                 }
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
