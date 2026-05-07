@@ -578,7 +578,7 @@ namespace Play.Edit {
             }
         }
 
-        protected void Raise_DocLoaded() {
+        public void Raise_DocLoaded() {
             foreach( IPgEditEvents oListener in _rgListeners ) {
                 oListener.OnDocLoaded();
             }

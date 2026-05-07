@@ -7,19 +7,33 @@ using Play.Edit;
 using System.Xml;
 
 namespace Play.Clock {
-    public class ClockRow : Row {
+    public class RowClock : Row {
         public const int ColumnTime = 0;
         public const int ColumnDate = 1;
         public const int ColumnZone = 2;
-        public ClockRow( string strDate, string strLabel ) {
+
+        protected int          _iOffset;
+        protected TimeZoneInfo _oZone; 
+        public RowClock( string strDate, string strLabel, int iOffset = 0, TimeZoneInfo oZone = null ) {
             _rgColumns    = new Line[3];
             _rgColumns[0] = new TextLine( 0, string.Empty );
             _rgColumns[1] = new TextLine( 1, strDate );
             _rgColumns[2] = new TextLine( 2, strLabel );
+
+            _iOffset = iOffset;
+            _oZone   = oZone;
         }
 
         public void SetTime( DateTime oDT ) {
-            string strTime = oDT.Hour.ToString( "D2" ) + ":" + oDT.Minute.ToString( "D2");
+            int iOffset = _iOffset;
+
+            if( _oZone is not null && _oZone.IsDaylightSavingTime( oDT ) ) {
+                iOffset += 1;
+            }
+            DateTime dtOffset = oDT.AddHours( iOffset );
+
+            string strTime = dtOffset.Hour  .ToString( "D2" ) + ":" + 
+                             dtOffset.Minute.ToString( "D2");
 
             Line oTime = this[0];
             oTime.Empty();
@@ -27,7 +41,7 @@ namespace Play.Clock {
 
             Line oDate = this[1];
             oDate.Empty();
-            oDate.TryAppend( oDT.ToShortDateString() );
+            oDate.TryAppend( dtOffset.ToShortDateString() );
         }
 
         public void SetLocal12( DateTime oDT ) {
@@ -58,14 +72,18 @@ namespace Play.Clock {
         static int ColumnCount = Enum.GetValues(typeof(DCol)).Length;
         public Line this[DCol eValue] => this[(int)eValue];
 
+        public TimeZoneInfo Zone {get; }
+
         public static string CheckMarkValue {get;} = "\x2714";
 
-        public RowZone( string strTimeZone, int iOffset, bool fChecked = false ) {
+        public RowZone( string strTimeZone, int iOffset, TimeZoneInfo oZone ) {
             _rgColumns = new Line[ColumnCount];
 
-            CreateColumn( DCol.Check,  GetCheck( fChecked) );
+            CreateColumn( DCol.Check,  GetCheck( false ) );
             CreateColumn( DCol.Offset, iOffset.ToString() );
             CreateColumn( DCol.Zone,   strTimeZone );
+
+            Zone = oZone ?? throw new ArgumentNullException();
         }
 
         /// <summary>
@@ -79,12 +97,9 @@ namespace Play.Clock {
             return fValue ? CheckMarkValue : string.Empty;
         }
 
-        public bool Checked {
+        public bool IsChecked {
             get {
                 return !this[DCol.Check].IsEmpty;
-            }
-            set {
-                this[DCol.Check].TryReplace( GetCheck( value ) );
             }
         }
     }
@@ -110,7 +125,7 @@ namespace Play.Clock {
                     string strClip = oZone.DisplayName[12..];
                     // BUG: won't work in other languages.
                     if( !strClip.StartsWith( "Coordinated" ) ) {
-                        _rgRows.Add( new RowZone( strClip, iOffset ) );
+                        _rgRows.Add( new RowZone( strClip, iOffset, oZone ) );
                     }
                 }
 
@@ -152,12 +167,28 @@ namespace Play.Clock {
         {
         }
 
+        public void Reset( DateTime oDT ) {
+            _rgRows.Clear();
+
+            _rgRows.Add( new RowClock( string.Empty,  "utc"   ) );
+            _rgRows.Add( new RowClock( string.Empty,  "local" ) );
+            _rgRows.Add( new RowClock( "12 hr clock", "local" ) );
+
+            foreach( Row oRow in _rgRows ) {
+                if( oRow is RowClock oRClock ) {
+                    SetTimeOnRow( oDT, oRClock );
+                }
+            }
+        }
+
+        // Todo: use a manuplator in the future...
+        public void Append( RowClock oNew ) {
+            _rgRows.Add( oNew );
+        }
+
         public bool InitNew(){
 			try {
-                _rgRows.Add( new ClockRow( string.Empty,  "utc"   ) );
-                _rgRows.Add( new ClockRow( string.Empty,  "local" ) );
-                _rgRows.Add( new ClockRow( "12 hr clock", "local" ) );
-
+                Reset( DateTime.Now );
                 RenumberAndSumate();
 
 				_oWorkPlace = ((IPgScheduler)Services).CreateWorkPlace();
@@ -227,22 +258,27 @@ namespace Play.Clock {
             }
         }
 
+        public static void SetTimeOnRow( DateTime oDt, RowClock oRow ) {
+            switch( oRow.At ) {
+                default:
+                case 0:
+                    oRow.SetTime( oDt.ToUniversalTime() );
+                    break;
+                case 1:
+                    oRow.SetTime( oDt );
+                    break;
+                case 2:
+                    oRow.SetLocal12( oDt );
+                    break;
+            }
+        }
+
         public IEnumerator<int> CreateWorker() {
             while( true ) {
                 DateTime oDT = DateTime.Now;
                 
-                foreach( ClockRow row in _rgRows ) {
-                    switch( row.At ) {
-                        case 0:
-                            row.SetTime( oDT.ToUniversalTime() );
-                            break;
-                        case 1:
-                            row.SetTime( oDT );
-                            break;
-                        case 2:
-                            row.SetLocal12( oDT );
-                            break;
-                    }
+                foreach( RowClock oRow in _rgRows ) {
+                    SetTimeOnRow( oDT, oRow );
                 }
 
                 ClockEvent?.Invoke();
@@ -323,6 +359,35 @@ namespace Play.Clock {
         }
         public bool Save(XmlNode oStream) {
             return true;
+        }
+
+        public void ReLoad() {
+            DateTime oDT = DateTime.Now;
+
+            DocClock.Reset(oDT);
+
+            foreach( Row oRow in DocZones ) {
+                if( oRow is RowZone oZone && oZone.IsChecked ) {
+                    if( int.TryParse( oZone[RowZone.DCol.Offset].AsSpan, out int iOffset ) ) {
+                        string strZone = oZone[RowZone.DCol.Zone].ToString();
+                        const int iMax = 10;
+                        if( strZone.Length > iMax ) {
+                            strZone = strZone[0..iMax];
+                        }
+                        RowClock oNew = new RowClock( string.Empty, 
+                                                      strZone,
+                                                      iOffset, 
+                                                      oZone.Zone );
+                        DocumentClock.SetTimeOnRow(oDT, oNew );
+                        DocClock.Append( oNew );
+                    } else {
+                        _oSiteBase.LogError( "Clock", "Bad Zone offset" );
+                    }
+                }
+            }
+
+            DocClock.RenumberAndSumate();
+            DocClock.Raise_DocLoaded  ();
         }
 
     }

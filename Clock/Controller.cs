@@ -73,7 +73,7 @@ namespace Play.Clock {
                     case Guid r when r == ViewDigitalClock.Guid:
                         return new ViewDigitalClock( oBaseSite, oDocContainer.DocClock );
                     case Guid r when r == ViewTimeZones   .Guid:
-                        return new ViewTimeZones   ( oBaseSite, oDocContainer.DocZones );
+                        return new ViewTimeZones   ( oBaseSite, oDocContainer );
 
                     default:
                         return new ViewDigitalClock( oBaseSite, oDocContainer.DocClock );

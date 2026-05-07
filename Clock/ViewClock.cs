@@ -68,9 +68,9 @@ namespace Play.Clock {
 
             Document.ClockEvent += OnClockUpdated;
 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex ), ClockRow.ColumnTime); // time
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex ), ClockRow.ColumnZone); // zones.
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None ), ClockRow.ColumnDate); // date
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex ), RowClock.ColumnTime); // time
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex ), RowClock.ColumnZone); // zones.
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None ), RowClock.ColumnDate); // date
 
             return true;
         }

@@ -13,8 +13,7 @@ namespace Play.Clock {
     public class ViewTimeZones : WindowMultiColumn,
         IPgCommandView
     {
-      //public readonly DocumentClock _oDocClock;
-        public readonly DocumentZones _oDocZones;
+        public readonly DocumentContainer _oDocContainer;
 
         public static Guid Guid { get; } = new Guid("{48FA5562-FC69-49F2-87F6-3A4C86A42D8B}");
 
@@ -25,10 +24,10 @@ namespace Play.Clock {
         public Guid Catagory => Guid;
 
         public ViewTimeZones(IPgViewSite oViewSite, object oDocument) : 
-            base(oViewSite, oDocument) 
+            base(oViewSite,  ((DocumentContainer)oDocument).DocZones ) 
         {
             // embed our own just for starters.
-            _oDocZones =  (DocumentZones)oDocument;
+            _oDocContainer = (DocumentContainer)oDocument;
         }
 
 
@@ -36,11 +35,8 @@ namespace Play.Clock {
             if( !base.Initialize() )
                 return false;
 
-            if( !_oDocZones.InitNew() )
-                return false;
-
             List<ColumnInfo> rgCols = new List<ColumnInfo> {
-                new ( (int)DClmn.Check,   new LayoutRect() { Style=LCss.Flex, Track=33 } ),
+                new ( (int)DClmn.Check,  new LayoutRect() { Style=LCss.Flex, Track=33 } ),
                 new ( (int)DClmn.Offset, new LayoutRect() { Style=LCss.Flex, Track=30 } ),       
                 new ( (int)DClmn.Zone,   new LayoutRect() { Style=LCss.None } ),
             };
@@ -59,6 +55,14 @@ namespace Play.Clock {
 
         public object Decorate(IPgViewSite oBaseSite, Guid sGuid) {
             return null;
+        }
+
+        public override bool Execute(Guid gCommand) {
+            if( gCommand == GlobalCommands.Recycle ) {
+                _oDocContainer.ReLoad();
+            }
+
+            return base.Execute(gCommand);
         }
     }
 }
