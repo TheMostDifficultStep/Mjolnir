@@ -164,10 +164,7 @@ namespace Play.Clock {
     }
     public class DocumentClock :
         EditMultiColumn,
-        IPgSave<TextWriter>,
-        IPgLoad<TextReader>,
-        IPgLoad<XmlNode>,
-        IPgSave<XmlNode>
+        IPgLoad
     {
         public DocumentClock( IPgBaseSite oSite ) :
             base( oSite )
@@ -186,27 +183,6 @@ namespace Play.Clock {
         public bool InitNew(){
             return true;
         }
-
-        public bool Load(TextReader oStream) {
-            return InitNew();
-        }
-
-        public bool Save(TextWriter oStream) {
-            return true;
-        }
-
-        /// <summary>
-        /// At present we don't do much more than init.
-        /// </summary>
-        /// <param name="oStream">It's ok for this one to be null!</param>
-        public bool Load(XmlNode oStream) {
-            return InitNew();
-        }
-
-        public bool Save(XmlNode oStream) {
-            return true;
-        }
-
     }
 
     public class DocumentContainer :

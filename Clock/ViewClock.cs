@@ -72,6 +72,8 @@ namespace Play.Clock {
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex ), RowClock.ColumnZone); // zones.
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None ), RowClock.ColumnDate); // date
 
+            OnClockUpdated();
+
             return true;
         }
 
@@ -81,6 +83,16 @@ namespace Play.Clock {
 
         public override bool Execute(Guid sGuid) {
             return false;
+        }
+
+        /// <remarks>
+        /// BUG: Probably should have a call on the cache manager
+        /// that gets the row's fonts for each column (and
+        /// possibly each row back here. This is very hacky.
+        /// </remarks>
+        public override void OnDocLoaded() {
+            base.OnDocLoaded(); // This updates the cache
+            OnClockUpdated();   // So this will have values in the cache.
         }
 
         protected override void OnSizeChanged(EventArgs e) {
@@ -94,13 +106,6 @@ namespace Play.Clock {
                     }
                 }
             }
-
-            //Figure this out later...
-            //foreach( CacheRow oRow in _oCacheMan ) {
-            //    foreach( IPgCacheRender oCache in oRow ) {
-            //        oCache.BgColor = _oStdUI.ColorsStandardAt(StdUIColors.BGNoEditText);
-            //    }
-            //}
 
             base.OnSizeChanged(e);
         }
