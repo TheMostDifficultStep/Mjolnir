@@ -92,8 +92,8 @@ namespace Play.Clock {
     public class DocumentZones :
         EditMultiColumn,
         IPgLoad<XmlNode>,
-        IPgSave<XmlNode> {
-
+        IPgSave<XmlNode>
+    {
         public DocumentZones(IPgBaseSite oSiteBase) : base(oSiteBase) {
             CheckColumn   = (int)RowZone.DCol.Check;
             CheckSetValue = RowZone.CheckMarkValue;
@@ -106,7 +106,7 @@ namespace Play.Clock {
 			try {
                 var rgZones = TimeZoneInfo.GetSystemTimeZones();
                 foreach( TimeZoneInfo oZone in rgZones ) {
-                    int iOffset = oZone.BaseUtcOffset.Hours;
+                    int    iOffset = oZone.BaseUtcOffset.Hours;
                     string strClip = oZone.DisplayName[12..];
                     // BUG: won't work in other languages.
                     if( !strClip.StartsWith( "Coordinated" ) ) {
@@ -142,25 +142,6 @@ namespace Play.Clock {
         IPgLoad<XmlNode>,
         IPgSave<XmlNode>
     {
-		public class DocSlot : 
-			IPgBaseSite
-		{
-			protected readonly DocumentClock _oDoc;
-
-			public DocSlot( DocumentClock oDoc ) {
-				_oDoc = oDoc ?? throw new ArgumentNullException( "Document must not be null." );
-			}
-
-			public void LogError( string strMessage, string strDetails, bool fShow=true ) {
-				_oDoc._oSiteBase.LogError( strMessage, "PropDocSlot : " + strDetails );
-			}
-
-			public void Notify( ShellNotify eEvent ) {
-			}
-
-			public IPgParent Host => _oDoc;
-		}
-
         protected IPgRoundRobinWork _oWorkPlace;
         protected int               _iTimoutInMillisecs = 60000;
 
@@ -271,5 +252,78 @@ namespace Play.Clock {
                 yield return TimoutInMillisecs;
             }
         }
+    }
+
+    public class DocumentContainer :
+        IDisposable,
+        IPgParent,
+        IPgLoad<XmlNode>,
+        IPgSave<XmlNode>,
+        IPgLoad<TextReader>
+    {
+        public bool IsDirty => false;
+
+        public IPgParent Parentage => _oSiteBase.Host;
+
+        public IPgParent Services  => Parentage;
+
+        protected readonly IPgBaseSite _oSiteBase;
+
+        public DocumentClock DocClock { get; }
+        public DocumentZones DocZones { get; }
+
+        public class DocSlot : 
+			IPgBaseSite
+		{
+			protected readonly DocumentContainer _oDoc;
+
+			public DocSlot( DocumentContainer oDoc ) {
+				_oDoc = oDoc ?? throw new ArgumentNullException( "Document must not be null." );
+			}
+
+			public void LogError( string strMessage, string strDetails, bool fShow=true ) {
+				_oDoc._oSiteBase.LogError( strMessage, "PropDocSlot : " + strDetails );
+			}
+
+			public void Notify( ShellNotify eEvent ) {
+			}
+
+			public IPgParent Host => _oDoc;
+		}
+
+        public DocumentContainer( IPgBaseSite oSiteBase ) {
+            _oSiteBase = oSiteBase ?? throw new ArgumentNullException();
+
+            DocClock = new( new DocSlot( this ) );
+            DocZones = new( new DocSlot( this ) );
+        }
+
+        public void Dispose() {
+            DocClock.Dispose();
+            DocZones.Dispose();
+        }
+
+        public bool InitNew() {
+            if( !DocClock.InitNew() ) {
+                return false;
+            }
+
+            if( !DocZones.InitNew() ) {
+                return false;
+            }
+
+            return true;
+        }
+
+        public bool Load(XmlNode oStream) {
+            return InitNew();
+        }
+        public bool Load(TextReader oStream) {
+            return InitNew();
+        }
+        public bool Save(XmlNode oStream) {
+            return true;
+        }
+
     }
 }

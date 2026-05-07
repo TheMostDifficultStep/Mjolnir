@@ -55,7 +55,7 @@ namespace Play.Clock {
 
         public override IDisposable CreateDocument( IPgBaseSite oSite, string strExtension ) {
 			if( strExtension.ToLower() == ".clock" ) {
-				return( new DocumentClock( oSite ) );
+				return( new DocumentContainer( oSite ) );
 			}
 
 			return null;
@@ -64,23 +64,19 @@ namespace Play.Clock {
         /// <exception cref="InvalidOperationException"></exception>
         /// <exception cref="InvalidCastException"></exception>
         public override IDisposable CreateView( IPgViewSite oBaseSite, object oDocument, Guid guidViewType ) {
-            DocumentClock oDocClock = (DocumentClock)oDocument;
+            DocumentContainer oDocContainer = (DocumentContainer)oDocument;
 
 			try {
                 switch( guidViewType ) {
                     case Guid r when r == ViewAnalogClock.Guid:
-                        return new ViewAnalogClock( oBaseSite, oDocClock );
+                        return new ViewAnalogClock ( oBaseSite, oDocContainer.DocClock );
                     case Guid r when r == ViewDigitalClock.Guid:
-                        return new ViewDigitalClock( oBaseSite, oDocClock );
+                        return new ViewDigitalClock( oBaseSite, oDocContainer.DocClock );
                     case Guid r when r == ViewTimeZones   .Guid:
-                        {
-                        DocumentZones oDocZones = new( new DocumentClock.DocSlot( oDocClock ) );
-
-                        return new ViewTimeZones   ( oBaseSite, oDocZones );
-                        }
+                        return new ViewTimeZones   ( oBaseSite, oDocContainer.DocZones );
 
                     default:
-                        return new ViewDigitalClock( oBaseSite, oDocClock );
+                        return new ViewDigitalClock( oBaseSite, oDocContainer.DocClock );
                 }
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
