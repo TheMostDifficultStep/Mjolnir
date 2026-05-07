@@ -49,8 +49,8 @@ namespace Play.Clock {
     }
 
     public class RowZone : Row {
-        public enum DCol :int {
-            Chck =0,
+        public enum DCol : int {
+            Check =0,
             Offset,
             Zone,
         }
@@ -58,10 +58,12 @@ namespace Play.Clock {
         static int ColumnCount = Enum.GetValues(typeof(DCol)).Length;
         public Line this[DCol eValue] => this[(int)eValue];
 
+        public static string CheckMarkValue {get;} = "\x2714";
+
         public RowZone( string strTimeZone, int iOffset, bool fChecked = false ) {
             _rgColumns = new Line[ColumnCount];
 
-            CreateColumn( DCol.Chck,   fChecked ? "*" : string.Empty );
+            CreateColumn( DCol.Check,  GetCheck( fChecked) );
             CreateColumn( DCol.Offset, iOffset.ToString() );
             CreateColumn( DCol.Zone,   strTimeZone );
         }
@@ -73,13 +75,31 @@ namespace Play.Clock {
 			_rgColumns[(int)eCol] = new TextLine( (int)eCol, strValue );
         }
 
+        public static string GetCheck( bool fValue ) {
+            return fValue ? CheckMarkValue : string.Empty;
+        }
+
+        public bool Checked {
+            get {
+                return !this[DCol.Check].IsEmpty;
+            }
+            set {
+                this[DCol.Check].TryReplace( GetCheck( value ) );
+            }
+        }
     }
 
     public class DocumentZones :
         EditMultiColumn,
         IPgLoad<XmlNode>,
         IPgSave<XmlNode> {
+
         public DocumentZones(IPgBaseSite oSiteBase) : base(oSiteBase) {
+            CheckColumn   = (int)RowZone.DCol.Check;
+            CheckSetValue = RowZone.CheckMarkValue;
+            CheckClrValue = string.Empty;
+
+            _bIsSingleCheck = false;
         }
 
         public bool InitNew() {
@@ -87,7 +107,11 @@ namespace Play.Clock {
                 var rgZones = TimeZoneInfo.GetSystemTimeZones();
                 foreach( TimeZoneInfo oZone in rgZones ) {
                     int iOffset = oZone.BaseUtcOffset.Hours;
-                    _rgRows.Add( new RowZone( oZone.DisplayName[12..], iOffset ) );
+                    string strClip = oZone.DisplayName[12..];
+                    // BUG: won't work in other languages.
+                    if( !strClip.StartsWith( "Coordinated" ) ) {
+                        _rgRows.Add( new RowZone( strClip, iOffset ) );
+                    }
                 }
 
                 RenumberAndSumate();

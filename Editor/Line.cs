@@ -209,19 +209,21 @@ namespace Play.Edit {
         public static bool IsNullOrEmpty( Line oLine ) {
             if( oLine == null )
                 return true;
-            if( oLine.IsEmpty() )
+            if( oLine.IsEmpty )
                 return true;
 
             return false;
         }
 
-        public bool IsEmpty() {
-            if( At < 0 )
-                return true;
-            if( ElementCount <= 0 )
-                return true;
+        public bool IsEmpty {
+            get {
+                if( At < 0 )
+                    return true;
+                if( ElementCount <= 0 )
+                    return true;
 
-            return false;
+                return false;
+            }
         }
 
         /// <summary>

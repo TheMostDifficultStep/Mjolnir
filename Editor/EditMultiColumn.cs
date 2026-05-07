@@ -1,11 +1,11 @@
-﻿using System;
+﻿using Play.Interfaces.Embedding;
+using Play.Parse;
+using Play.Parse.Impl;
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.DirectoryServices.ActiveDirectory;
 using System.Text;
-
-using Play.Parse;
-using Play.Interfaces.Embedding;
-using Play.Parse.Impl;
 
 namespace Play.Edit {
     public interface IPgSelection :
@@ -397,7 +397,10 @@ namespace Play.Edit {
         /// <summary>
         /// It's a bit of busy work to allow set, so don't allow for now.
         /// </summary>
-        public bool IsSingleCheck { get => _bIsSingleCheck; set => throw new NotImplementedException(); }
+        public bool IsSingleCheck {
+            get => _bIsSingleCheck; 
+            set => throw new NotImplementedException(); 
+        }
         public string CheckSetValue {
             get => _strCheckValue;
             set {
@@ -479,29 +482,36 @@ namespace Play.Edit {
 
                 Raise_DocUpdateBegin();
 
-                foreach( Row oReset in _rgRows ) {
-                    // Just want an exact match or bust.
-                    if( IsRowChecked( oReset ) ) {
-                        oOld = oReset;
+                if( IsSingleCheck ) {
+                    foreach( Row oReset in _rgRows ) {
+                        // Just want an exact match or bust.
+                        if( IsRowChecked( oReset ) ) {
+                            oOld = oReset;
+                        }
+                        if( oReset != oCheck ) {
+                            oReset[CheckColumn].TryReplace( _strCheckClear );
+                        } else {
+                            oNew = oReset;
+                            oReset[CheckColumn].TryReplace( _strCheckValue );
+                        }
                     }
-                    if( oReset != oCheck ) {
-                        oReset[CheckColumn].TryReplace( _strCheckClear );
-                    } else {
-                        oNew = oReset;
-                        oReset[CheckColumn].TryReplace( _strCheckValue );
+                    if( oNew is null ) {
+                        // In this case we will have cleared all the check marks.
+                        throw new ArgumentOutOfRangeException();
                     }
-                }
-                if( oNew is null ) {
-                    // In this case we will have cleared all the check marks.
-                    throw new ArgumentOutOfRangeException();
-                }
 
-                // The check mark has moved
-                if( oOld != oNew ) {
-                    // Window's DON'T register for this. They pick up the
-                    // UI change via OnFormatChange() gen'd by DoParse()
-                    if( IsSingleCheck )
+                    // The check mark has moved
+                    if( oOld != oNew ) {
+                        // Window's DON'T register for this. They pick up the
+                        // UI change via OnFormatChange() gen'd by DoParse()
                         Event_Check?.Invoke( oCheck );
+                    }
+                } else {
+                    if( oCheck[(int)CheckColumn].IsEmpty ) {
+                        oCheck[CheckColumn].TryReplace( _strCheckValue );
+                    } else {
+                        oCheck[CheckColumn].TryReplace( _strCheckClear );
+                    }
                 }
                 Raise_DocUpdateEnd( IPgEditEvents.EditType.Rows, null );
             } catch( Exception oEx ) {

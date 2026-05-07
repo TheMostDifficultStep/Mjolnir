@@ -5,6 +5,7 @@ using Play.Edit;
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using SkiaSharp;
+using System.Windows.Forms;
 
 namespace Play.Clock {
     using DClmn = RowZone.DCol;
@@ -39,7 +40,7 @@ namespace Play.Clock {
                 return false;
 
             List<ColumnInfo> rgCols = new List<ColumnInfo> {
-                new ( (int)DClmn.Chck,   new LayoutRect() { Style=LCss.Flex, Track=33 } ),
+                new ( (int)DClmn.Check,   new LayoutRect() { Style=LCss.Flex, Track=33 } ),
                 new ( (int)DClmn.Offset, new LayoutRect() { Style=LCss.Flex, Track=30 } ),       
                 new ( (int)DClmn.Zone,   new LayoutRect() { Style=LCss.None } ),
             };
@@ -50,6 +51,10 @@ namespace Play.Clock {
             SelectionSet( 0, (int)DClmn.Zone, 0, 0 );
 
             return true;
+        }
+
+        protected override void OnMouseDown(MouseEventArgs e) {
+            base.OnMouseDown(e);
         }
 
         public object Decorate(IPgViewSite oBaseSite, Guid sGuid) {

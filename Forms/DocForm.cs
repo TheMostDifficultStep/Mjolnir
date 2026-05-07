@@ -255,7 +255,7 @@ namespace Play.Forms {
         }
 
         public bool   IsValueEmpty( int iIndex ) {
-            return _rgRows[iIndex][1].IsEmpty();
+            return _rgRows[iIndex][1].IsEmpty;
         }
 
         protected struct ValueEnumerator :

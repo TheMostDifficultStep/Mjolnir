@@ -1,14 +1,12 @@
 ﻿using System;
-using System.Xml;
 using System.Drawing;
 
 using SkiaSharp;
+using SkiaSharp.Views.Desktop;
 
 using Play.Forms;
 using Play.Interfaces.Embedding;
-using Play.Rectangles;
 using Play.Edit;
-using SkiaSharp.Views.Desktop;
 
 namespace Play.SSTV {
     /// <summary>
