@@ -48,6 +48,69 @@ namespace Play.Clock {
         }
     }
 
+    public class RowZone : Row {
+        public enum DCol :int {
+            Chck =0,
+            Offset,
+            Zone,
+        }
+
+        static int ColumnCount = Enum.GetValues(typeof(DCol)).Length;
+        public Line this[DCol eValue] => this[(int)eValue];
+
+        public RowZone( string strTimeZone, int iOffset, bool fChecked = false ) {
+            _rgColumns = new Line[ColumnCount];
+
+            CreateColumn( DCol.Chck,   fChecked ? "*" : string.Empty );
+            CreateColumn( DCol.Offset, iOffset.ToString() );
+            CreateColumn( DCol.Zone,   strTimeZone );
+        }
+
+        /// <summary>
+        /// I should make this templatized. I do the same thing in the fileman viewer.
+        /// </summary>
+        void CreateColumn( DCol eCol, string strValue ) {
+			_rgColumns[(int)eCol] = new TextLine( (int)eCol, strValue );
+        }
+
+    }
+
+    public class DocumentZones :
+        EditMultiColumn,
+        IPgLoad<XmlNode>,
+        IPgSave<XmlNode> {
+        public DocumentZones(IPgBaseSite oSiteBase) : base(oSiteBase) {
+        }
+
+        public bool InitNew() {
+			try {
+                var rgZones = TimeZoneInfo.GetSystemTimeZones();
+                foreach( TimeZoneInfo oZone in rgZones ) {
+                    int iOffset = oZone.BaseUtcOffset.Hours;
+                    _rgRows.Add( new RowZone( oZone.DisplayName[12..], iOffset ) );
+                }
+
+                RenumberAndSumate();
+
+                return true;
+			} catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( ArgumentNullException ),
+                                    typeof( NullReferenceException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+			}
+
+            return false;
+        }
+
+        public bool Load(XmlNode oStream) {
+            return InitNew();
+        }
+
+        public bool Save(XmlNode oStream) {
+            return true;
+        }
+    }
     public class DocumentClock :
         EditMultiColumn,
         IPgSave<TextWriter>,

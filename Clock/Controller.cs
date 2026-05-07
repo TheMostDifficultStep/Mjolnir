@@ -72,6 +72,12 @@ namespace Play.Clock {
                         return new ViewAnalogClock( oBaseSite, oDocClock );
                     case Guid r when r == ViewDigitalClock.Guid:
                         return new ViewDigitalClock( oBaseSite, oDocClock );
+                    case Guid r when r == ViewTimeZones   .Guid:
+                        {
+                        DocumentZones oDocZones = new( new DocumentClock.DocSlot( oDocClock ) );
+
+                        return new ViewTimeZones   ( oBaseSite, oDocZones );
+                        }
 
                     default:
                         return new ViewDigitalClock( oBaseSite, oDocClock );
@@ -91,6 +97,7 @@ namespace Play.Clock {
         public override IEnumerator<IPgViewType> GetEnumerator() {
             yield return new ViewType( "Time Zones",   ViewDigitalClock.Guid );
             yield return new ViewType( "Analog Clock", ViewAnalogClock .Guid );
+            yield return new ViewType( "All Zones",    ViewTimeZones   .Guid );
         }
     }
 

@@ -28,9 +28,8 @@ namespace Play.FileManager {
                                     return Document.Moniker;
                                 } }
 		public SKImage  Icon { get; protected set; }
-        public                  Guid Catagory => _sGuid;
-        public           static Guid GUID     => _sGuid;
-        private readonly static Guid _sGuid   = new( "{1224D243-93EA-4314-97CB-7C7F48F2E679}" );
+        public                  Guid Catagory => GUID;
+        public           static Guid GUID     => new( "{1224D243-93EA-4314-97CB-7C7F48F2E679}" );
 
         protected readonly IPgMainWindow _oShellWin;
         public FileManager    Document { get; protected set; }
