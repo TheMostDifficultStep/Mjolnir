@@ -352,7 +352,7 @@ namespace Play.FileManager {
 
             try {
                 string strDirStart = string.Empty;
-                if( oXmlRoot.SelectNodes("favorites/dir") is XmlNodeList oList ) {
+                if( oXmlRoot.SelectNodes("fileman/favorites/dir") is XmlNodeList oList ) {
                     foreach( XmlNode xmlNode in oList ) {
                         if( xmlNode is XmlElement oDir ) {
                             string strDir = HttpUtility.HtmlDecode( oDir.InnerText );

@@ -188,20 +188,27 @@ namespace Mjolnir {
                     return false;
                 }
 
-                IPgLoad<TextReader> oGuestLoad = _oGuestSave as IPgLoad<TextReader>;
-                if( oGuestLoad == null ) {
-                    LogError( "Guest does not support IPgLoad<TextReader>." );
-                    return false;
-                }
-
-                using( TextReader oReader = new StringReader(HttpUtility.HtmlDecode( xmlParent.InnerXml )) ) {
-                    if( !oGuestLoad.Load( oReader ) ) {
-                        LogError( "Couldn't save favorites into session." );
-                        return false;
+                IPgLoad<XmlNode> oGuestXmlLoad = _oGuestSave as IPgLoad<XmlNode>;
+                if( oGuestXmlLoad is not null ) {
+                    if( oGuestXmlLoad.Load( xmlParent ) ) {
+                        return true;
                     }
+                    LogError( "Couldn't load embedded txt document." );
                 }
 
-                return true;
+                // TODO: I can probably remove this case now since both our
+                // xml persisters, the clock and the fileman now correctl persist
+                // as xml.
+                IPgLoad<TextReader> oGuestTxtLoad = _oGuestSave as IPgLoad<TextReader>;
+                if( oGuestTxtLoad is not null ) {
+                    using TextReader oReader = new StringReader(HttpUtility.HtmlDecode( xmlParent.InnerXml ));
+                    if( oGuestTxtLoad.Load( oReader ) ) {
+                        return true;
+                    }
+                    LogError( "Couldn't load embedded xml document." );
+                }
+
+                return false;
             }
 
             /// <summary>

@@ -1,10 +1,10 @@
-﻿using System;
+﻿using Play.Edit;
+using Play.Interfaces.Embedding;
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Xml;
-
-using Play.Edit;
-using Play.Interfaces.Embedding;
 
 namespace Play.Clock {
     public class RowClock : Row {
@@ -173,6 +173,10 @@ namespace Play.Clock {
         public bool Save(XmlNode oStream) {
             return true;
         }
+
+        public void SetCheck( RowZone oZone ) {
+            oZone.SetCheck( CheckSetValue );
+        }
     }
     public class DocumentClock :
         EditMultiColumn,
@@ -231,6 +235,26 @@ namespace Play.Clock {
         public DocumentClock DocClock { get; }
         public DocumentZones DocZones { get; }
 
+        public struct EnumCheckedIDs : IEnumerable<string> {
+            DocumentZones DocZones {get; }
+            public EnumCheckedIDs( DocumentZones oDocZones ) {
+                DocZones = oDocZones;
+            }
+
+            public IEnumerator<string> GetEnumerator() {
+                foreach( Row oRow in DocZones ) {
+                    if( oRow is RowZone oRowZone ) {
+                        if( oRowZone.IsChecked ) {
+                            yield return oRowZone.Zone.Id;
+                        }
+                    }
+                }
+            }
+
+            IEnumerator IEnumerable.GetEnumerator() {
+                return GetEnumerator();
+            }
+        }
         public class DocSlot : 
 			IPgBaseSite
 		{
@@ -262,7 +286,7 @@ namespace Play.Clock {
             DocZones.Dispose();
         }
 
-        public bool InitNew() {
+        public bool Initialize() {
             if( !DocClock.InitNew() ) {
                 return false;
             }
@@ -274,19 +298,72 @@ namespace Play.Clock {
 			_oWorkPlace = ((IPgScheduler)Services).CreateWorkPlace();
             _oWorkPlace.Queue( CreateWorker(), 0 );
 
+            return true;
+        }
+
+        public bool InitNew() {
+            if( !Initialize() )
+                return false;
+
             Reset();
 
             return true;
         }
 
-        public bool Load(XmlNode oStream) {
-            return InitNew();
-        }
         public bool Load(TextReader oStream) {
             return InitNew();
         }
-        public bool Save(XmlNode oStream) {
+
+        public bool Load(XmlNode oStream) {
+            if( !Initialize() )
+                return false;
+
+            List<string> rgZoneIDs = new ();
+
+            foreach( XmlNode oNode in oStream.SelectNodes( "Zones/Zone" ) ) {
+                if( oNode is XmlElement oXmlNode ) {
+                    string strID = oXmlNode.GetAttribute( "id" );
+                    if( !string.IsNullOrEmpty( strID ) ) {
+                        rgZoneIDs.Add( strID );
+                    }
+                }
+            }
+
+            if( rgZoneIDs.Count > 0 ) {
+                foreach( Row oRow in DocZones ) {
+                    if( oRow is RowZone oRowZone ) {
+                        foreach( string strID in rgZoneIDs ) {
+                            if( string.Compare( oRowZone.Zone.Id, strID ) == 0 ) {
+                                DocZones.SetCheck( oRowZone );
+                            }
+                        }
+                    }
+                }
+            }
+
+            Reset();
+
             return true;
+        }
+        public EnumCheckedIDs ZoneClxn => new EnumCheckedIDs( DocZones );
+
+        public bool Save(XmlNode oStream) {
+            try {
+                XmlDocument oRoot = oStream.OwnerDocument;
+
+                XmlElement oXmlZones = oRoot.CreateElement( "Zones" );
+
+                foreach( string strZoneID in ZoneClxn ) {
+                    XmlElement oXmlZone = oRoot.CreateElement( "Zone" );
+                    oXmlZone.SetAttribute( "id", strZoneID );
+                    oXmlZones.AppendChild( oXmlZone );
+                }
+
+                oStream.AppendChild( oXmlZones );
+                return true;
+            } catch( NullReferenceException ) {
+            }
+            return false;
         }
 
         public enum ClockUpdateInterval {
