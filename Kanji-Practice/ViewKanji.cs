@@ -32,6 +32,12 @@ namespace Kanji_Practice {
         protected override void OnSizeChanged(EventArgs e) {
             base.OnSizeChanged(e);
 
+            _rctViewPort.SetRect( 0, 0, Right, Bottom );
+
+            _pntAspect = new SKPoint( _oDocSurface.ImageSize.Width  / (float)_rctViewPort.Width,
+							          _oDocSurface.ImageSize.Height / (float)_rctViewPort.Height );
+
+
             /*
             SKPoint skCenter = new SKPoint( _oDocSurface.ImageSize.Width  / 2,
                                             _oDocSurface.ImageSize.Height / 2 );

@@ -267,40 +267,6 @@ namespace Play.ImageViewer {
 			ImageHelpers.ViewPortSizeMax( _sBorder, new Size( Width, Height ), rctBitmap, rctViewPort );
         }
 
-        /// <summary>
-        /// Just center the viewport in the middle of the window, same size as bitmap.
-        /// </summary>
-        protected bool ViewPortSizeCenter( Bitmap oImage, SmartRect rctViewPort ) 
-        {
-            // If we don't have a bitmap we can't do much about setting our error viewport.
-            if( oImage == null )
-                return( false );
-
-			if( oImage.Width > Width || oImage.Height > Height ) {
-				ViewPortSizeMax( oImage, rctViewPort );
-				return( true );
-			}
-
-            rctViewPort.SetRect( LOCUS.CENTER, Width / 2, Height / 2, oImage.Width, oImage.Height );
-
-            return( true );
-        }
-
-        protected bool ViewPortSizeCenter( SKBitmap oImage, SmartRect rctViewPort ) 
-        {
-            // If we don't have a bitmap we can't do much about setting our error viewport.
-            if( oImage == null )
-                return false;
-
-			if( oImage.Width > Width || oImage.Height > Height ) {
-				ViewPortSizeMax( oImage, rctViewPort );
-				return true;
-			}
-
-            rctViewPort.SetRect( LOCUS.CENTER, Width / 2, Height / 2, oImage.Width, oImage.Height );
-
-            return true ;
-		}
         protected bool ViewPortSizeCenter( SKImage oImage, SmartRect rctViewPort ) 
         {
             // If we don't have a bitmap we can't do much about setting our error viewport.
@@ -340,7 +306,6 @@ namespace Play.ImageViewer {
 	{
 		public bool _fDisposed { get; private set; } = false;
 
-
 		public SmartRect Selection { get; } = new SmartRect();   // selection in Bmp coordinates.
 
         protected readonly SmartRect _rctViewPort  = new SmartRect( LOCUS.UPPERLEFT, 0, 0, 0, 0 );
@@ -377,7 +342,8 @@ namespace Play.ImageViewer {
 		}
 
 		/// <summary>
-		/// Hmmmm... I put world coords on my base image doc. That's probably wrong.
+		/// I've got a world coordinates on the document AS WELL as on 
+		/// the view. It's weird but necessary.
 		/// </summary>
  		public SmartRect WorldCoordinates {
 			set {
