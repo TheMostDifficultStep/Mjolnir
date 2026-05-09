@@ -340,10 +340,11 @@ namespace Play.ImageViewer {
 	{
 		public bool _fDisposed { get; private set; } = false;
 
+
 		public SmartRect Selection { get; } = new SmartRect();   // selection in Bmp coordinates.
 
-        protected readonly SmartRect _rctViewPort    = new SmartRect( LOCUS.UPPERLEFT, 0, 0, 0, 0 );
-        protected readonly SmartRect _rctWorldPort   = new SmartRect( LOCUS.UPPERLEFT, 0, 0, 0, 0 );
+        protected readonly SmartRect _rctViewPort  = new SmartRect( LOCUS.UPPERLEFT, 0, 0, 0, 0 );
+        protected readonly SmartRect _rctWorldPort = new SmartRect( LOCUS.UPPERLEFT, 0, 0, 0, 0 );
 
 		IPgImageDocument _oDocBase;
 

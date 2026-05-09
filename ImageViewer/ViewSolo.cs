@@ -23,6 +23,8 @@ namespace Play.ImageViewer {
 	/// <seealso cref="ViewSingleImage"/>
 	public class ViewSurface : ViewSinglePerportional {
 		protected readonly DocSurfaceBase _oDocSurface;
+		protected          SKPoint        _pntAspect = SKPoint.Empty;
+
 		public ViewSurface( IPgViewSite oSiteView, DocSurfaceBase oDocBase ) :
 			base( oSiteView, oDocBase ) 
 		{
@@ -32,6 +34,23 @@ namespace Play.ImageViewer {
 		public override Size GetPreferredSize( Size sProposed ) {
 			//Size oPrefered = new Size( Width, 800 );
 			return sProposed;
+		}
+
+        protected SKPoint ClientToWorld( int iX, int iY ) {
+                return new SKPoint( _pntAspect.X * ( iX - _rctViewPort.Left), 
+                                    _pntAspect.Y * ( iY - _rctViewPort.Top ) );
+        }
+
+		/// <remarks>
+		/// I'd rather this calculation be at the ViewSinglePerportional but
+		/// since I need the surface atm I'll put it here. Later I'll add
+		/// an abstract metheod to get the image size...
+		/// </remarks>
+        protected override void OnSizeChanged(EventArgs e) {
+			base.OnSizeChanged( e );
+
+			_pntAspect = new SKPoint( _oDocSurface.ImageSize.Width  / (float)_rctViewPort.Width,
+							          _oDocSurface.ImageSize.Height / (float)_rctViewPort.Height );
 		}
 
         protected override void OnPaintSurface( SKPaintSurfaceEventArgs e ) {

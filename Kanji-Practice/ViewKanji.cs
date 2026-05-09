@@ -1,6 +1,9 @@
 ﻿using System.Xml;
 using System.Windows.Forms;
 using System.Text;
+using System.Reflection;
+
+using SkiaSharp;
 
 using Play.Interfaces.Embedding;
 using Play.Edit;
@@ -9,13 +12,9 @@ using Play.Rectangles;
 using Play.ImageViewer;
 using Play.Drawing;
 
-using SkiaSharp;
-using System.Reflection;
-
 namespace Kanji_Practice {
     public class ViewScratchPad : ViewSurface {
         readonly SKPaint  _oPaint;
-        protected SKPoint _pntAspect   = SKPoint.Empty;
         protected SKPoint _pntPrevious = SKPoint.Empty;
         public ViewScratchPad(IPgViewSite oSiteBase, KanjiScratch oDocSolo) : 
             base(oSiteBase, oDocSolo) 
@@ -33,8 +32,6 @@ namespace Kanji_Practice {
         protected override void OnSizeChanged(EventArgs e) {
             base.OnSizeChanged(e);
 
-			_pntAspect = new SKPoint( _oDocSurface.ImageSize.Width  / (float)_rctViewPort.Width,
-									  _oDocSurface.ImageSize.Height / (float)_rctViewPort.Height );
             /*
             SKPoint skCenter = new SKPoint( _oDocSurface.ImageSize.Width  / 2,
                                             _oDocSurface.ImageSize.Height / 2 );
@@ -60,14 +57,14 @@ namespace Kanji_Practice {
             base.OnMouseDown(e);
 
             if( e.Button == MouseButtons.Left ) {
-                _pntPrevious = new SKPoint( e.X * _pntAspect.X, e.Y * _pntAspect.Y );
+                _pntPrevious = ClientToWorld( e.X, e.Y );
             }
         }
 
         protected override void OnMouseMove(MouseEventArgs e) {
             Cursor = Cursors.Arrow;
             if( e.Button == MouseButtons.Left ) {
-                SKPoint pntNext = new SKPoint( e.X * _pntAspect.X, e.Y * _pntAspect.Y );
+                SKPoint pntNext = ClientToWorld( e.X, e.Y );
 
                 _oDocSurface.Surface.Canvas.DrawLine( _pntPrevious, pntNext, _oPaint );
                 _pntPrevious = pntNext;
