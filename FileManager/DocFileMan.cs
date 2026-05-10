@@ -337,8 +337,15 @@ namespace Play.FileManager {
                     return false;
 
                 Load( oRoot );
-            } catch( XmlException ) {
-                return false;
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( XmlException ),
+                                    typeof( NullReferenceException ),
+                                    typeof( ArgumentException ),
+                                    typeof( InvalidCastException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+                LogError( "Couldn't load File Manager settings, using defaults." );
+                ReadDir( GetHomeURL() );
             }
 
             return true;
