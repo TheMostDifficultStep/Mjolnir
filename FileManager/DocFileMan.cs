@@ -323,20 +323,24 @@ namespace Play.FileManager {
             return true;
         }
 
+        public override void LogError( string strMessage ) {
+            _oSiteBase.LogError( "File Manager", strMessage );
+        }
+
         public bool Load( TextReader oReader ) {
             ArgumentNullException.ThrowIfNull( oReader );
 
-            XmlDocument oDoc = new XmlDocument();
+            XmlDocument oXmlDoc = new XmlDocument();
 
             try {
-                oDoc.Load( oReader );
+                oXmlDoc.Load( oReader );
 
-                XmlDocumentFragment oXmlFragment = oDoc.CreateDocumentFragment( );
+                if( Load( oXmlDoc ) )
+                    return true;
 
-                if( oDoc.SelectSingleNode( "fileman" ) is not XmlNode oRoot ) 
-                    return false;
+                LogError( "XML settings read error. trying defaults..." );
 
-                Load( oRoot );
+                return ReadDir( GetHomeURL() );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( XmlException ),
                                     typeof( NullReferenceException ),
@@ -344,11 +348,9 @@ namespace Play.FileManager {
                                     typeof( InvalidCastException ) };
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
-                LogError( "Couldn't load File Manager settings, using defaults." );
-                ReadDir( GetHomeURL() );
+                LogError( "XML settings load error, trying defaults..." );
+                return ReadDir( GetHomeURL() );
             }
-
-            return true;
         }
         
         public bool Load(XmlNode oXmlRoot ) {
@@ -361,24 +363,30 @@ namespace Play.FileManager {
                 string strDirStart = string.Empty;
                 if( oXmlRoot.SelectNodes("fileman/favorites/dir") is XmlNodeList oList ) {
                     foreach( XmlNode xmlNode in oList ) {
-                        if( xmlNode is XmlElement oDir ) {
-                            string strDir = HttpUtility.HtmlDecode( oDir.InnerText );
+                        if( xmlNode is XmlElement oXmlDir ) {
+                            string        strDir = HttpUtility.HtmlDecode( oXmlDir.InnerText );
+                            DirectoryInfo oDir   = new( strDir );
 
                             // Pick off the first one as home.
-                            if( string.IsNullOrEmpty( strDirStart ) ) {
+                            if( string.IsNullOrEmpty( strDirStart ) && oDir.Exists ) {
                                 strDirStart = strDir;
                             }
 
                             if( !string.IsNullOrEmpty( strDir ) ) {
-                                DocFavs.Append( oDir.GetAttribute( "emoji" ),
-                                                oDir.GetAttribute( "name"  ),
+                                DocFavs.Append( oXmlDir.GetAttribute( "emoji" ),
+                                                oXmlDir.GetAttribute( "name"  ),
                                                 strDir );
                             }
                         }
                     }
                 }
 
-                ReadDir( strDirStart );
+                if( string.IsNullOrEmpty( strDirStart ) ) {
+                    LogError( "No Starting Directory Found, trying Home." );
+                    return ReadDir( GetHomeURL() );
+                }
+
+                return ReadDir( strDirStart );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( XPathException ),
                                     typeof( NullReferenceException ) };
@@ -421,7 +429,7 @@ namespace Play.FileManager {
             ReadDir( strPath );
         }
 
-        public void ReadDir( string? strFilePath ) {
+        public bool ReadDir( string? strFilePath ) {
 			DirectoryInfo oDirectory;
 
             try {
@@ -429,19 +437,22 @@ namespace Play.FileManager {
                     strFilePath = Path.GetDirectoryName( strFilePath );
 
                 if( string.IsNullOrEmpty( strFilePath ) ) {
+                    // This can happen if we have a problem reading
+                    // our settings file.
                     LogError( "Problem locating desired directory." );
-                    return;
+                    return false;
                 }
 
                 oDirectory = new DirectoryInfo( strFilePath );
 
-                ReadDir( oDirectory );
+                return ReadDir( oDirectory );
             } catch( Exception oEx ) {
                 if( IsUnhandled( oEx ) )
                     throw new ApplicationException( "Unrecognized Directory Read Error", oEx );
 
                 _oSiteBase.LogError( "alert", "Couldn't use the directory given." ); 
             }
+            return false;
         }
 
         protected static bool IsUnhandled( Exception oEx ) {
@@ -461,7 +472,7 @@ namespace Play.FileManager {
 			return rgErrors.IsUnhandled( oEx );
         }
 
-        protected void ReadDir( DirectoryInfo oDir ) {
+        protected bool ReadDir( DirectoryInfo oDir ) {
             try {
                 Clear();
 
@@ -513,7 +524,10 @@ namespace Play.FileManager {
 
 				LogError( "Couldn't use the directory given." ); 
                 Clear();
+
+                return false;
             }
+            return true;
         }
 
         public bool Save() {
