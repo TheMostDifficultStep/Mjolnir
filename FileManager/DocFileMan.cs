@@ -1,7 +1,10 @@
 ﻿using System.Reflection;
+using System.Security.AccessControl;
+using System.Security.Principal;
 using System.Xml;
 using System.Xml.XPath;
 using System.Web;
+
 
 using SkiaSharp;
 
@@ -142,8 +145,6 @@ namespace Play.FileManager {
         IPgSave<XmlNode>,
         IPgLoad<TextReader>
     {
-        //public string HomeURL => Environment.GetFolderPath(Environment.SpecialFolder.Personal);
-
         /// <summary>
         /// Find the URL to get the NON OneDrive path to my prefered home directory! ;-)
         /// </summary>
@@ -154,7 +155,7 @@ namespace Play.FileManager {
         }
 
         public readonly IPgStandardUI2 _oStdUI;
-        //public event Action? Event_UpdateBanner;
+
         public class FMRow : Row {
             public enum DCol :int {
                 Chck =0,
@@ -226,10 +227,32 @@ namespace Play.FileManager {
                 CheckForNulls(); 
 
                 this[DCol.Type].Formatting.Add( new FileRange( 0, 10, 5 ) );
+            }
 
+            /// <summary>
+            /// Turns out figuring out if you can traverse into a directory
+            /// is more difficult than you would think. Trying to read the ACL's
+            /// wasn't working and so I just do this. :-/
+            /// </summary>
+            public static bool CanTraverse( DirectoryInfo oDir ) {
+                try {
+                    oDir.GetDirectories();
+                    oDir.GetFiles();
+
+                    return true;
+                } catch( Exception oEx ) {
+                    Type[] rgErrors = { typeof( UnauthorizedAccessException ),
+                                        typeof( IOException ) };
+                    if( rgErrors.IsUnhandled( oEx ) )
+                        throw;
+
+                    return false;
+                }
             }
 
             public FMRow( DirectoryInfo oDir ) {
+                bool fIsHidden = oDir.Attributes.HasFlag( FileAttributes.Hidden );
+
                 _rgColumns = new Line[ColumnCount];
 
                 CreateColumn( DCol.Chck, string.Empty );
@@ -241,9 +264,25 @@ namespace Play.FileManager {
 
                 CheckForNulls();
 
+                IsClosed = !CanTraverse(oDir);
+
               //We parse the files names now. So don't need name formatting.
               //this[DCol.Name].Formatting.Add( new ColorRange( 0, 256,  1 ) );
-                this[DCol.Type].Formatting.Add( new DirRange  ( 0,  10, 11 ) );
+              //But we do need to figure out a way to specify known color.
+                const int iRed    = 2;
+                const int iGreen  = 4;
+                const int iManila = 12;// 11 on Intel Lappie, 12 on my Snap Lappie
+
+                int iColor = iManila;
+
+                if( fIsHidden )
+                    iColor = iGreen;
+                //if( oDir.Attributes.HasFlag( FileAttributes.System ) )
+                //    iColor = iGreen; // green
+                if( IsClosed )
+                    iColor = iRed;
+
+                this[DCol.Type].Formatting.Add( new DirRange( 0,  10, iColor ) );
 
                 IsDirectory = true;
             }
@@ -253,6 +292,7 @@ namespace Play.FileManager {
             }
 
             public bool IsDirectory { get; } = false;
+            public bool IsClosed  { get; } = true;
         }
         // So the ? suppositely tells the compiler that it is OK
         // for this value to be null, thus we need to check it in
@@ -430,8 +470,6 @@ namespace Play.FileManager {
         }
 
         public bool ReadDir( string? strFilePath ) {
-			DirectoryInfo oDirectory;
-
             try {
                 if( Path.HasExtension( strFilePath ) )
                     strFilePath = Path.GetDirectoryName( strFilePath );
@@ -443,9 +481,26 @@ namespace Play.FileManager {
                     return false;
                 }
 
-                oDirectory = new DirectoryInfo( strFilePath );
+                return ReadDir( new DirectoryInfo( strFilePath ) );
+            } catch( Exception oEx ) {
+                if( IsUnhandled( oEx ) )
+                    throw new ApplicationException( "Unrecognized Directory Read Error", oEx );
 
-                return ReadDir( oDirectory );
+                _oSiteBase.LogError( "alert", "Couldn't use the directory given." ); 
+            }
+            return false;
+        }
+
+        public bool ReadDirVerified( string? strFilePath ) {
+            try {
+                if( string.IsNullOrEmpty( strFilePath ) ) {
+                    // This can happen if we have a problem reading
+                    // our settings file.
+                    LogError( "Problem locating desired directory." );
+                    return false;
+                }
+
+                return ReadDir( new DirectoryInfo( strFilePath ) );
             } catch( Exception oEx ) {
                 if( IsUnhandled( oEx ) )
                     throw new ApplicationException( "Unrecognized Directory Read Error", oEx );
@@ -482,9 +537,7 @@ namespace Play.FileManager {
                 // bg thread. Start up will be quicker.
                 List<FileInfo> rgFiles = new List<FileInfo>();
                 foreach( FileInfo oFile in oDir.GetFiles( "*.*", SearchOption.TopDirectoryOnly ) ) {
-					if( !oFile.Attributes.HasFlag( FileAttributes.Hidden)) {
-						rgFiles.Add( oFile );
-					}
+					rgFiles.Add( oFile );
                 }
 
                 // Insert the directories first so they are at the top. Sort with NaturalCompare
@@ -493,10 +546,8 @@ namespace Play.FileManager {
                 rgDirList.Sort((x,y) => FindStuff<string>.NaturalCompare( x.Name, y.Name ) );
 
                 foreach( DirectoryInfo oDirChild in rgDirList ) {
-					if( !oDirChild.Attributes.HasFlag( FileAttributes.Hidden)) {
-                        FMRow oRow = new FMRow( oDirChild );
-                        _rgRows.Add( oRow );
-					}
+                    FMRow oRow = new FMRow( oDirChild );
+                    _rgRows.Add( oRow );
                 }
 
                 // Sort so newest files are at the top. Hence the "negative sign"

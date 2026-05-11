@@ -153,10 +153,14 @@ namespace Play.FileManager {
 
                 if( string.IsNullOrEmpty( strDir ) )
                     return;
+                if( oRow is FileManager.FMRow oFmRow &&
+                    oFmRow.IsClosed )
+                    return;
+
                 if( Document.CurrentURL is string strUrl ) {
                     string strPath = Path.Combine( strUrl, strDir );
 
-                    Document.ReadDir( strPath );
+                    Document.ReadDirVerified( strPath );
                 }
             } catch( Exception oEx ) {
                 if( _rgErrors.IsUnhandled(oEx) )
