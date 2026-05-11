@@ -22,7 +22,7 @@ namespace Play.FileManager {
                 return false;
 
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex, 20, 1L ), (int)FileFavorites.DRow.Col.Emoji ); 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None, 10, 1L ), (int)FileFavorites.DRow.Col.ShortcutName ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None, 10, 1L ), (int)FileFavorites.DRow.Col.Name ); 
 
             // Do this so we can return a desired height. O.o;;
             _oCacheMan.CacheRepair();
@@ -38,7 +38,7 @@ namespace Play.FileManager {
 
         protected void OnDirJump( Row oRow, int iColumn, IPgWordRange oRange ) {
             try {
-                Line    oColm  = oRow[(int)FileFavorites.DRow.Col.FilePath];
+                Line    oColm  = oRow[(int)FileFavorites.DRow.Col.Path];
                 string? strDir = oColm.ToString();
 
                 if( string.IsNullOrEmpty( strDir ) )

@@ -1135,6 +1135,7 @@ namespace Mjolnir {
                         xmlFile.SetAttribute( "extn", oDocSite.Controller.PrimaryExtension );
                     }
                     if( oDocSite.IsInternal ) {
+                        xmlFile.SetAttribute( "extn", oDocSite.Controller.PrimaryExtension );
                         xmlFile.SetAttribute( "internal", "yes" );
                         if( oDocSite is IXmlSlot oXmlSlot ) {
                             oXmlSlot.Save( xmlFile );

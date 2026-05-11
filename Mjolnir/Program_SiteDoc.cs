@@ -868,7 +868,7 @@ namespace Mjolnir {
                     LogError( "Session", "Missing session file node arg." );
                     return false;
                 }
-                if( !_oGuestLoad.Load( oFileNode.FirstChild ) ) {
+                if( !_oGuestLoad.Load( oFileNode ) ) {
                     LogError( "Session", "Couldn't load embedded data." );
                     return false;
                 }

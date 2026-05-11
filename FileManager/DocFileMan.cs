@@ -1,19 +1,21 @@
-﻿using System.Reflection;
-using System.Security.AccessControl;
-using System.Security.Principal;
-using System.Xml;
-using System.Xml.XPath;
-using System.Web;
-
-
-using SkiaSharp;
-
-using Play.Drawing;
+﻿using Play.Drawing;
 using Play.Edit;
 using Play.Forms;
 using Play.Interfaces.Embedding;
 
+using SkiaSharp;
+
+using System.Reflection;
+using System.Web;
+using System.Xml;
+using System.Xml.XPath;
+
+
 namespace Play.FileManager {
+    using static Play.FileManager.FileFavorites;
+    using static Play.FileManager.FileManager.FMRow;
+    using DClmn = FileManager.FMRow.DCol;
+
     public class FileProperties :
         DocProperties 
     {
@@ -73,21 +75,26 @@ namespace Play.FileManager {
     {
         public class DRow : Row {
             public enum Col : int {
-                Emoji =0,
-                ShortcutName,
-                FilePath
+                Emoji = 0,
+                Name,     // shortcut name.
+                Path      // filepath
             }
             static int ColumnCount = Enum.GetValues(typeof(Col)).Length;
             public Line this[Col eIndex] {
                 get { return _rgColumns[(int)eIndex]; }
                 set { _rgColumns[(int)eIndex] = value; }
             }
+
+            public string? ColumnToString( Col eValue ) {
+                return this[eValue].ToString();
+            }
+
             public DRow( string strEmoji, string strShortCut, string? strPath = "") {
                 _rgColumns = new Line[ColumnCount];
 
                 this[Col.Emoji       ] = new TextLine( 0, strEmoji );
-                this[Col.ShortcutName] = new TextLine( 0, strShortCut );
-                this[Col.FilePath    ] = new TextLine( 0, strPath );
+                this[Col.Name] = new TextLine( 0, strShortCut );
+                this[Col.Path    ] = new TextLine( 0, strPath );
 
                 this[Col.Emoji].Formatting.Add( new DirRange ( 0, strEmoji.Length, 5 ) );
             }
@@ -168,6 +175,9 @@ namespace Play.FileManager {
 
             static int ColumnCount = Enum.GetValues(typeof(DCol)).Length;
             public Line this[DCol eValue] => this[(int)eValue];
+            public string? ColumnToString( DCol eValue ) {
+                return this[eValue].ToString();
+            }
 
             public FMRow( FileInfo oFile ) {
                 _rgColumns = new Line[ColumnCount];
@@ -365,6 +375,17 @@ namespace Play.FileManager {
             _oSiteBase.LogError( "File Manager", strMessage );
         }
 
+        public bool InitNew() {
+            if( !Initialize() )
+                return false;
+
+            ReadDir( GetHomeURL() );
+
+//          DoParse();
+
+            return true;
+        }
+
         public bool Load( TextReader oReader ) {
             ArgumentNullException.ThrowIfNull( oReader );
 
@@ -398,7 +419,7 @@ namespace Play.FileManager {
             ArgumentNullException.ThrowIfNull(oXmlRoot);
 
             try {
-                string strDirStart = string.Empty;
+                string strDirFirst = string.Empty;
                 if( oXmlRoot.SelectNodes("fileman/favorites/dir") is XmlNodeList oList ) {
                     foreach( XmlNode xmlNode in oList ) {
                         if( xmlNode is XmlElement oXmlDir ) {
@@ -406,8 +427,8 @@ namespace Play.FileManager {
                             DirectoryInfo oDir   = new( strDir );
 
                             // Pick off the first one as home.
-                            if( string.IsNullOrEmpty( strDirStart ) && oDir.Exists ) {
-                                strDirStart = strDir;
+                            if( string.IsNullOrEmpty( strDirFirst ) && oDir.Exists ) {
+                                strDirFirst = strDir;
                             }
 
                             if( !string.IsNullOrEmpty( strDir ) ) {
@@ -418,13 +439,16 @@ namespace Play.FileManager {
                         }
                     }
                 }
+                if( oXmlRoot.SelectSingleNode( "fileman/current" ) is XmlNode oCurr ) {
+                    strDirFirst = oCurr.InnerText;
+                }
 
-                if( string.IsNullOrEmpty( strDirStart ) ) {
+                if( string.IsNullOrEmpty( strDirFirst ) ) {
                     LogError( "No Starting Directory Found, trying Home." );
                     return ReadDir( GetHomeURL() );
                 }
 
-                return ReadDir( strDirStart );
+                return ReadDir( strDirFirst );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( XPathException ),
                                     typeof( NullReferenceException ) };
@@ -436,13 +460,40 @@ namespace Play.FileManager {
             return true;
         }
 
-        public bool InitNew() {
-            if( !Initialize() )
+        public bool Save() {
+            return true;
+        }
+
+
+        public bool Save(XmlNode oXmlFrag) {
+            if( oXmlFrag.OwnerDocument is not XmlDocument oXmlOwner ) 
                 return false;
 
-            ReadDir( GetHomeURL() );
+            XmlNode    oXmlRoot = oXmlOwner.CreateElement( "fileman" );
+            XmlElement oXmlFavs = oXmlOwner.CreateElement( "favorites" );
+            XmlElement oXmlCurr = oXmlOwner.CreateElement( "current" );
 
-//          DoParse();
+            foreach( Row oRow in DocFavs ) {
+                if( oRow is DRow oRowFM ) {
+                    string? strFilePath = oRowFM.ColumnToString( DRow.Col.Path );
+
+                    if( !string.IsNullOrEmpty( strFilePath ) ) {
+                        XmlElement oXmlDir = oXmlOwner.CreateElement( "dir" );
+
+                        oXmlDir.SetAttribute( "emoji", oRowFM.ColumnToString( DRow.Col.Emoji ) );
+                        oXmlDir.SetAttribute( "name",  oRowFM.ColumnToString( DRow.Col.Name ));
+
+                        oXmlDir.InnerText = strFilePath;
+                        oXmlFavs.AppendChild( oXmlDir );
+                    }
+                }
+            }
+
+            oXmlCurr.InnerText = Moniker;
+
+            oXmlFrag .AppendChild( oXmlRoot );
+            oXmlRoot .AppendChild( oXmlFavs );
+            oXmlRoot .AppendChild( oXmlCurr );
 
             return true;
         }
@@ -579,10 +630,6 @@ namespace Play.FileManager {
             return true;
         }
 
-        public bool Save() {
-            return true;
-        }
-
         /// <summary>
         /// Schedule a reparse since we don't want to be parsing and updating
         /// right in the middle of typing EVERY character.
@@ -597,24 +644,6 @@ namespace Play.FileManager {
 
 				LogError( "Couldn't use the directory given." ); 
             }
-        }
-
-        public bool Save(XmlNode oXmlFrag) {
-            if( oXmlFrag.OwnerDocument is not XmlDocument oXmlOwner ) 
-                return false;
-
-            XmlNode    oXmlRoot = oXmlOwner.CreateElement( "fileman" );
-            XmlElement oXmlFaves= oXmlOwner.CreateElement( "favorites" );
-            XmlElement oXmlDir  = oXmlOwner.CreateElement( "dir" );
-
-            oXmlDir.SetAttribute( "name", string.Empty );
-            oXmlDir.InnerText = Moniker;
-
-            oXmlFrag .AppendChild( oXmlRoot );
-            oXmlRoot .AppendChild( oXmlFaves );
-            oXmlFaves.AppendChild( oXmlDir );
-
-            return true;
         }
     }
 }
