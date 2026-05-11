@@ -277,8 +277,6 @@ namespace Play.FileManager {
 
                 if( fIsHidden )
                     iColor = iGreen;
-                //if( oDir.Attributes.HasFlag( FileAttributes.System ) )
-                //    iColor = iGreen; // green
                 if( IsClosed )
                     iColor = iRed;
 

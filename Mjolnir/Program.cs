@@ -268,6 +268,24 @@ namespace Mjolnir {
 
         private FTManager _oFTManager;
 
+        public string AppDataLocal => Environment.GetFolderPath( Environment.SpecialFolder.LocalApplicationData);
+        public string AppDataPath  => Path.Combine( AppDataLocal, "pg\\mjolnir" );
+        public string UserProfile  => Environment.ExpandEnvironmentVariables("%USERPROFILE%");
+        public string UserDocs     => Environment.GetFolderPath(Environment.SpecialFolder.Personal);
+        public string OSInstall    => Environment.GetFolderPath(Environment.SpecialFolder.Windows);
+        public string FManSettings => Path.Combine( AppDataPath, "fileman-settings2.xml" );
+
+
+
+		public IPgParent Parentage => null;
+		public IPgParent Services  => this;
+        public IPgParent TopWindow => null; // Maybe change to MainWindow so there's at least one?
+
+		public ICollection<IDocSlot> DocSlots            => _rgDocSites;
+        public IPgController2        PlainTextController { get; }
+        public Editor                DocRecents          => _oDoc_Recents;
+
+
         // https://docs.microsoft.com/en-us/xamarin/xamarin-forms/platform/other/gtk?tabs=windows
         [STAThread]
         static void Main(string[] rgArgs) {
@@ -367,20 +385,6 @@ namespace Mjolnir {
             }
             DocSlots.Clear();
 		}
-
-        public string AppDataLocal=> Environment.GetFolderPath( Environment.SpecialFolder.LocalApplicationData);
-        public string AppDataPath => Path.Combine( AppDataLocal, "pg\\mjolnir" );
-        public string UserProfile => Environment.ExpandEnvironmentVariables("%USERPROFILE%");
-        public string UserDocs    => Environment.GetFolderPath(Environment.SpecialFolder.Personal);
-        public string OSInstall   => Environment.GetFolderPath(Environment.SpecialFolder.Windows);
-
-		public IPgParent Parentage => null;
-		public IPgParent Services  => this;
-        public IPgParent TopWindow => null; // Maybe change to MainWindow so there's at least one?
-
-		public ICollection<IDocSlot> DocSlots            => _rgDocSites;
-        public IPgController2        PlainTextController { get; }
-        public Editor                DocRecents          => _oDoc_Recents;
 
 		public void AlertsShow() {
 			try {
@@ -928,10 +932,9 @@ namespace Mjolnir {
             ClockSlot.IsInternal = true;
             _rgDocSites.Add(ClockSlot);
 
-            string strFManSettings = Path.Combine( this.AppDataPath, "fileman-settings2.xml" );
             HomeSlot.CreateDocument();
-            if( File.Exists( strFManSettings ) )
-                HomeSlot.Load( strFManSettings );
+            if( File.Exists( FManSettings ) )
+                HomeSlot.Load( FManSettings );
             else
                 HomeSlot.InitNew();
             HomeSlot.IsInternal = true;
@@ -1022,7 +1025,10 @@ namespace Mjolnir {
                 if( HomeSlot.Document is null ) {
                     HomeSlot.ID = ++iHighestID;
                     HomeSlot.CreateDocument();
-                    HomeSlot.InitNew();
+                    if( File.Exists( FManSettings ) )
+                        HomeSlot.Load( FManSettings );
+                    else
+                        HomeSlot.InitNew();
                     HomeSlot.IsInternal = true;
                     _rgDocSites.Add( HomeSlot );
                 }
