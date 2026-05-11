@@ -234,7 +234,10 @@ namespace Mjolnir {
             }
 
             public override bool IsDirty {
-                get { return( _oGuestSave.IsDirty ); }
+                get { if( _oGuestSave is not null )
+                        return _oGuestSave.IsDirty;
+                      return false;
+                }
             }
         }
         /// <summary>
