@@ -191,7 +191,7 @@
 	    <nont state="alphanum.ext" id="ext" />
 	  </production>
       <production>
-        <term class="myanyof" value="$%~+.-_*()[]{}&amp;&apos;," maxmatch="1" />
+        <term class="myanyof" value="+.-_*()[]{}&amp;&apos;," maxmatch="1" />
         <nont state="alphanum.cont" />
       </production>
       <production>
@@ -217,6 +217,10 @@
 	    <term class="mynumber" />
         <nont state="alphanum.ext" />
 	  </production>
+      <production>
+        <term class="myanyof" value="$~!#%@+.-_*()[]{}^&amp;&apos;" maxmatch="1" />
+        <nont state="alphanum.cont" />
+      </production>
       <production>
          <term class="myEmpty" />
       </production>
