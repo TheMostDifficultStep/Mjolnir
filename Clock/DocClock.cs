@@ -11,17 +11,24 @@ namespace Play.Clock {
         public const int ColumnTime = 0;
         public const int ColumnDate = 1;
         public const int ColumnZone = 2;
+        public const int ColumnDofW = 3;
 
         protected int          _iOffset;
         protected TimeZoneInfo _oZone; 
 
         public bool Is24Hour { get; set; } = false;
 
+        protected void SetColumn( int iColumn, string strValue ) {
+            _rgColumns[iColumn] = new TextLine( iColumn, strValue );
+        }
+
         public RowClock( string strLabel, int iOffset = 0, TimeZoneInfo oZone = null ) {
-            _rgColumns    = new Line[3];
-            _rgColumns[ColumnTime] = new TextLine( 0, string.Empty );
-            _rgColumns[ColumnDate] = new TextLine( 1, string.Empty );
-            _rgColumns[ColumnZone] = new TextLine( 2, strLabel );
+            _rgColumns = new Line[4];
+            
+            SetColumn( ColumnTime, string.Empty );
+            SetColumn( ColumnDate, string.Empty );
+            SetColumn( ColumnZone, strLabel );
+            SetColumn( ColumnDofW, string.Empty );
 
             _iOffset = iOffset;
             _oZone   = oZone;
@@ -55,13 +62,10 @@ namespace Play.Clock {
                               dtOffset.Minute.ToString( "D2" ) + strMidDay;
                 }
 
-                Line oTime = this[0];
-                oTime.Empty();
-                oTime.TryAppend( strTime );
-
-                Line oDate = this[1];
-                oDate.Empty();
-                oDate.TryAppend( dtOffset.ToShortDateString() );
+                // Zone is constant.
+                this[ColumnTime].TryReplace( strTime );
+                this[ColumnDate].TryReplace( dtOffset.ToShortDateString() );
+                this[ColumnDofW].TryReplace( dtOffset.DayOfWeek.ToString() );
             }
         }
     }

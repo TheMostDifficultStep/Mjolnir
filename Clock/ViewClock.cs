@@ -70,7 +70,8 @@ namespace Play.Clock {
 
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex ), RowClock.ColumnTime); // time
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex ), RowClock.ColumnZone); // zones.
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None ), RowClock.ColumnDate); // date
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex ), RowClock.ColumnDate); // date
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex ), RowClock.ColumnDofW); // day of week
 
             OnClockUpdated();
 
@@ -87,9 +88,9 @@ namespace Play.Clock {
 
         protected override void OnSizeChanged(EventArgs e) {
             foreach( CacheRow oCRow in _oCacheMan ) {
-                oCRow[0].FontID = ClockFont;
-                oCRow[1].FontID = ClockFont;
-                oCRow[2].FontID = ClockFont;
+                for( int i=0; i<oCRow.CacheColumns.Count; i++ ) {
+                    oCRow[i].FontID = ClockFont;
+                }
                 if( oCRow.Row.At % 2 != 1 ) { // odd
                     foreach( IPgCacheRender oElem in oCRow ) {
                         oElem.BgColor = new SKColor( 201, 250, 201);

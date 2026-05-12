@@ -1116,7 +1116,8 @@ namespace Play.Edit {
                     return false;
 
                 foreach( ColumnInfo oCol in _rgTxtCol ) {
-                    if( oCol.DataIndex == _oCacheMan.CaretColumn )
+                    if( oCol.DataIndex == _oCacheMan.CaretColumn &&
+                        _oCacheMan.CaretColumn >= 0 )
                         return true;
                 }
                 return false;
