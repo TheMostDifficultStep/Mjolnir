@@ -74,8 +74,8 @@ namespace Play.Clock {
                         return new ViewDigitalClock( oBaseSite, oDocContainer );
                     case Guid r when r == ViewTimeZones   .Guid:
                         return new ViewTimeZones   ( oBaseSite, oDocContainer );
-                    case Guid r when r == ViewScheduleRaw .Guid:
-                        return new ViewScheduleRaw ( oBaseSite, oDocContainer.DocSched );
+                    case Guid r when r == ViewSchedule    .Guid:
+                        return new ViewSchedule    ( oBaseSite, oDocContainer );
 
                     default:
                         return new ViewDigitalClock( oBaseSite, oDocContainer );
@@ -96,7 +96,7 @@ namespace Play.Clock {
             yield return new ViewType( "Digital Clocks", ViewDigitalClock.Guid );
             yield return new ViewType( "Analog Clock",   ViewAnalogClock .Guid );
             yield return new ViewType( "All Zones",      ViewTimeZones   .Guid );
-            yield return new ViewType( "Schedule",       ViewScheduleRaw .Guid );
+            yield return new ViewType( "Schedule",       ViewSchedule    .Guid );
         }
     }
 

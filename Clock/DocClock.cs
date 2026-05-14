@@ -224,6 +224,89 @@ namespace Play.Clock {
         }
     }
 
+    public class DocumentSched :
+        EditMultiColumn,
+        IPgLoad<XmlNode>,
+        IPgSave<XmlNode>
+    {
+        public class RowSched : Row {
+            public enum DCol : int {
+                Time =0,
+                Freq,
+                On,
+                Desc
+            }
+
+            static int ColumnCount = Enum.GetValues(typeof(DCol)).Length;
+            public Line this[DCol eValue] => this[(int)eValue];
+
+            public TimeZoneInfo Zone {get; }
+
+            public RowSched( 
+                TimeZoneInfo oZone, string strTime, string strFreq,
+                string strOn, string strDesc 
+            ) {
+                //Zone = oZone ?? throw new ArgumentNullException();
+
+                _rgColumns = new Line[ColumnCount];
+
+                CreateColumn( DCol.Time, strTime );
+                CreateColumn( DCol.Freq, strFreq );
+                CreateColumn( DCol.On,   strOn );
+                CreateColumn( DCol.Desc, strDesc );
+            }
+
+            public int Offset {
+                get {
+                    if( Zone is not null )
+                        return Zone.BaseUtcOffset.Hours;
+
+                    return 0;
+                }
+            }
+
+
+            /// <summary>
+            /// I should make this templatized. I do the same thing in the fileman viewer.
+            /// </summary>
+            void CreateColumn( DCol eCol, string strValue ) {
+			    _rgColumns[(int)eCol] = new TextLine( (int)eCol, strValue );
+            }
+
+        } // end class
+
+        public DocumentSched(IPgBaseSite oSiteBase) : base(oSiteBase) {
+        }
+
+        public bool InitNew() {
+            return true;
+        }
+
+        public bool Load(XmlNode oXmlRoot) {
+            ArgumentNullException.ThrowIfNull( oXmlRoot );
+
+            foreach( XmlNode oNode in oXmlRoot.SelectNodes( "Events/Event" ) ) {
+                if( oNode is XmlElement oXmlNode ) {
+                  //string strUtc  = oXmlNode.GetAttribute( "utc" );
+                    string strTime = oXmlNode.GetAttribute( "time" );
+                    string strFreq = oXmlNode.GetAttribute( "freq" );
+                    string strOn   = oXmlNode.GetAttribute( "on" );
+                    string strDesc = oXmlNode.InnerText;
+
+                    _rgRows.Add( new RowSched( null, strTime, strFreq, strOn, strDesc ));
+                }
+            }
+            RenumberAndSumate();
+            Raise_DocLoaded  ();
+
+            return true;
+        }
+
+        public bool Save(XmlNode oStream) {
+            return true;
+        }
+    } // End class
+
     public class DocumentContainer :
         IDisposable,
         IPgParent,
@@ -324,7 +407,7 @@ namespace Play.Clock {
 
                 return true;
             }
-        }
+        } // end textslot
 
         protected IPgRoundRobinWork _oWorkPlace;
         protected int               _iTimoutInMillisecs = 60000;
@@ -336,9 +419,9 @@ namespace Play.Clock {
         protected readonly IPgBaseSite _oSiteBase;
         protected readonly TextSlot    _oSlotSched; 
 
-        public DocumentClock    DocClock { get; }
-        public DocumentZones    DocZones { get; }
-        public Editor           DocSched { get; }
+        public DocumentClock DocClock { get; }
+        public DocumentZones DocZones { get; }
+        public DocumentSched DocSched { get; }
 
         public struct EnumCheckedIDs : IEnumerable<string> {
             DocumentZones DocZones {get; }
@@ -382,11 +465,9 @@ namespace Play.Clock {
         public DocumentContainer( IPgBaseSite oSiteBase ) {
             _oSiteBase = oSiteBase ?? throw new ArgumentNullException();
 
-            DocClock = new( new DocSlot ( this ) );
-            DocZones = new( new DocSlot ( this ) );
-            DocSched = new( new TextSlot( this ) );
-
-            new ParseHandlerText( DocSched, "html" );
+            DocClock = new( new DocSlot( this ) );
+            DocZones = new( new DocSlot( this ) );
+            DocSched = new( new DocSlot( this ) );
         }
 
         public void Dispose() {
@@ -442,14 +523,8 @@ namespace Play.Clock {
                     }
                 }
             }
-            if( oXmlRoot.SelectSingleNode( "Schedule" ) is XmlElement oXmlFile ) {
-                if( !_oSlotSched.Load( oXmlFile.InnerText ) ) {
-                    return false;
-                }
-            } else {
-                if( !DocSched.InitNew() ) {
-                    return false;
-                }
+            if( !DocSched.Load( oXmlRoot ) ) {
+                return false;
             }
 
             if( rgZoneIDs.Count > 0 ) {
