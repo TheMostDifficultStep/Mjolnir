@@ -393,4 +393,23 @@ namespace Play.Clock {
             return false;
         }
     }
+
+    public class ViewScheduleRaw : EditWindow2 {
+        public static Guid Guid { get; } = new Guid( "{E5A0A280-6BDB-40B3-B39D-BE16C4CAC215}" );
+
+        public ViewScheduleRaw(
+            IPgViewSite oSiteView,
+            BaseEditor p_oDocument,
+            bool fReadOnly = false, 
+            bool fSingleLine = false ) : 
+            base(oSiteView, p_oDocument, fReadOnly, fSingleLine) 
+        {
+        }
+
+        public override Guid Catagory {
+            get {
+                return Guid;
+            }
+        }
+    } // end class
 }

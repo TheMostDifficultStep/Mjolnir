@@ -1,9 +1,13 @@
 ﻿using Play.Edit;
+using Play.Forms;
+using Play.Integration;
 using Play.Interfaces.Embedding;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Security;
+using System.Text;
 using System.Xml;
 
 namespace Play.Clock {
@@ -227,6 +231,101 @@ namespace Play.Clock {
         IPgSave<XmlNode>,
         IPgLoad<TextReader>
     {
+        protected class TextSlot : IPgBaseSite {
+            readonly DocumentContainer    _oHost; 
+            protected IPgLoad<TextReader> _oGuestLoad;
+            protected IPgSave<TextWriter> _oGuestSave;
+            protected string              _strFileName;
+            protected Encoding            _oEncoding;
+
+            protected string FileName {
+                get { return _strFileName; }
+                set { _strFileName = value; }
+            }
+
+            public TextSlot( DocumentContainer oHost ) {
+                _oHost = oHost ?? throw new ArgumentNullException();
+            }
+
+            public IPgLoad<TextReader> Guest { 
+                get { return _oGuestLoad; }
+                set { 
+                    _oGuestLoad = value; 
+                    _oGuestSave = (IPgSave<TextWriter>)value;
+                }
+            }
+
+            public IPgParent Host => _oHost;
+
+            protected void LogError( string strMessage ) {
+                _oHost._oSiteBase.LogError( "schedule", strMessage );
+            }
+
+            public void Notify(ShellNotify eEvent) {
+                _oHost._oSiteBase.Notify( eEvent );
+            }
+
+            public void LogError(string strMessage, string strDetails, bool fShow = true) {
+                _oHost._oSiteBase.LogError( strMessage, strDetails );
+            }
+
+			public static readonly Type[] _rgFileErrors = { 
+				typeof( ArgumentNullException ),
+				typeof( ArgumentException ),
+				typeof( NullReferenceException ),
+				typeof( DirectoryNotFoundException ),
+				typeof( IOException ),
+				typeof( UnauthorizedAccessException ),
+				typeof( PathTooLongException ),
+				typeof( SecurityException ),
+                typeof( InvalidOperationException ),
+                typeof( NotSupportedException ),
+                typeof( FileNotFoundException ) };
+
+            public virtual bool Load( string strFileName ) {
+                if( _oGuestLoad == null ) {
+                    LogError( "Problem loading Schedule file" );
+                    return( false );
+                }
+
+                Encoding utf8NoBom = new UTF8Encoding(false);
+
+                try {
+                    FileInfo oFile = new FileInfo(strFileName);
+
+                    FileStream oByteStream = oFile.OpenRead(); // by default StreamReader closes the stream.
+                    // Overridable versions of StreamReader can prevent that in higher versions of .net
+                    using( StreamReader oReader = new StreamReader( oByteStream, utf8NoBom ) ) {
+                        try {
+							FileName = oFile.FullName; // Guests sometimes need this when loading.
+
+                            if( _oGuestLoad.Load( oReader ) ) {
+                                // Make sure you get the encoding AFTER you've read the file, else it'll be
+                                // uninitialized. Not sure if encoding can change multiple times? This might
+                                // bomb if I have a weird unicode file with no BOM.
+                                bool fNoBOM = Equals(oReader.CurrentEncoding, utf8NoBom);
+				                _oEncoding = fNoBOM ? utf8NoBom : oReader.CurrentEncoding;
+                            }
+						} catch( Exception oEx ) {
+							if( _rgFileErrors.IsUnhandled( oEx ) )
+								throw;
+
+                            LogError( "Died trying to load : " + strFileName );
+                            return false;
+                        }
+                    }
+                } catch( Exception oEx ) {
+					if( _rgFileErrors.IsUnhandled( oEx ) )
+						throw;
+
+                    LogError( "Could not find or session is currently open :" + strFileName );
+                    return false;
+                }
+
+                return true;
+            }
+        }
+
         protected IPgRoundRobinWork _oWorkPlace;
         protected int               _iTimoutInMillisecs = 60000;
 
@@ -235,9 +334,11 @@ namespace Play.Clock {
         public IPgParent Services  => Parentage;
 
         protected readonly IPgBaseSite _oSiteBase;
+        protected readonly TextSlot    _oSlotSched; 
 
-        public DocumentClock DocClock { get; }
-        public DocumentZones DocZones { get; }
+        public DocumentClock    DocClock { get; }
+        public DocumentZones    DocZones { get; }
+        public Editor           DocSched { get; }
 
         public struct EnumCheckedIDs : IEnumerable<string> {
             DocumentZones DocZones {get; }
@@ -281,13 +382,17 @@ namespace Play.Clock {
         public DocumentContainer( IPgBaseSite oSiteBase ) {
             _oSiteBase = oSiteBase ?? throw new ArgumentNullException();
 
-            DocClock = new( new DocSlot( this ) );
-            DocZones = new( new DocSlot( this ) );
+            DocClock = new( new DocSlot ( this ) );
+            DocZones = new( new DocSlot ( this ) );
+            DocSched = new( new TextSlot( this ) );
+
+            new ParseHandlerText( DocSched, "html" );
         }
 
         public void Dispose() {
             DocClock.Dispose();
             DocZones.Dispose();
+            DocSched.Dispose();
         }
 
         public bool Initialize() {
@@ -309,6 +414,10 @@ namespace Play.Clock {
             if( !Initialize() )
                 return false;
 
+            if( !DocSched.InitNew() ) {
+                return false;
+            }
+
             Reset();
 
             return true;
@@ -318,18 +427,28 @@ namespace Play.Clock {
             return InitNew();
         }
 
-        public bool Load(XmlNode oStream) {
+        public bool Load(XmlNode oXmlRoot ) {
             if( !Initialize() )
                 return false;
 
             List<string> rgZoneIDs = new ();
+            string       strFile   = string.Empty;
 
-            foreach( XmlNode oNode in oStream.SelectNodes( "Zones/Zone" ) ) {
+            foreach( XmlNode oNode in oXmlRoot.SelectNodes( "Zones/Zone" ) ) {
                 if( oNode is XmlElement oXmlNode ) {
                     string strID = oXmlNode.GetAttribute( "id" );
                     if( !string.IsNullOrEmpty( strID ) ) {
                         rgZoneIDs.Add( strID );
                     }
+                }
+            }
+            if( oXmlRoot.SelectSingleNode( "Schedule" ) is XmlElement oXmlFile ) {
+                if( !_oSlotSched.Load( oXmlFile.InnerText ) ) {
+                    return false;
+                }
+            } else {
+                if( !DocSched.InitNew() ) {
+                    return false;
                 }
             }
 
@@ -417,6 +536,12 @@ namespace Play.Clock {
                 yield return TimoutInMillisecs;
             }
         }
+
+        /// <summary>
+        /// Clear any existing zones being shown and set up again
+        /// based on the selections in DocZones. Slightly expensive
+        /// only do this when adding or removing zones. (and init)
+        /// </summary>
         public void Reset() {
             DateTime oDT = DateTime.Now.ToUniversalTime();
 
@@ -439,6 +564,5 @@ namespace Play.Clock {
             DocClock.RenumberAndSumate();
             DocClock.UpdateTime       ();
         }
-
-    }
+    } // end class
 }

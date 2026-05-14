@@ -6,7 +6,6 @@ using Play.Edit;
 using Play.Interfaces.Embedding;
 using Play.Integration;
 using Play.Rectangles;
-using Play.Parse;
 
 namespace Play.Forms {
     /// <summary>
