@@ -575,8 +575,10 @@ namespace Play.Clock {
                     oXmlZone.SetAttribute( "id", strZoneID );
                     oXmlZones.AppendChild( oXmlZone );
                 }
-
                 oStream.AppendChild( oXmlZones );
+
+                DocSched.Save( oStream );
+
                 return true;
             } catch( NullReferenceException ) {
             }
