@@ -6,6 +6,7 @@ using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Reflection.Metadata;
 using System.Windows.Forms;
 
 namespace Play.Clock {
@@ -33,7 +34,6 @@ namespace Play.Clock {
 			Icon = SKImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), "Play.Clock.Content.icons8-schedule-64.png" );
         }
 
-
         protected override bool Initialize() {
             if( !base.Initialize() )
                 return false;
@@ -41,7 +41,7 @@ namespace Play.Clock {
             List<ColumnInfo> rgCols = new List<ColumnInfo> {
                 new ( (int)DClmn.Time, new LayoutRect() { Style=LCss.Flex } ),
                 new ( (int)DClmn.Freq, new LayoutRect() { Style=LCss.Flex } ),       
-                new ( (int)DClmn.On,   new LayoutRect() { Style=LCss.Flex } ),
+                new ( (int)DClmn.Days,   new LayoutRect() { Style=LCss.Flex } ),
                 new ( (int)DClmn.Desc, new LayoutRect() { Style=LCss.None } ),
             };
 
@@ -62,6 +62,9 @@ namespace Play.Clock {
         }
 
         public override bool Execute(Guid gCommand) {
+            if( gCommand == GlobalCommands.Play ) {
+                _oDocContainer.DocSched.BuildCheckList();
+            }
             return base.Execute(gCommand);
         }
     }

@@ -5,6 +5,7 @@ using Play.Interfaces.Embedding;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Security;
 using System.Text;
@@ -229,11 +230,69 @@ namespace Play.Clock {
         IPgLoad<XmlNode>,
         IPgSave<XmlNode>
     {
-        public class RowSched : Row {
+        public class RowSched : Row
+        {
+            public struct EnumDayOfWeek : IEnumerable<DayOfWeek> {
+                private readonly RowSched _oRow;
+                public EnumDayOfWeek( RowSched oRow ) {
+                    _oRow = oRow ?? throw new ArgumentNullException();
+                }
+
+                static readonly Dictionary<string, DayOfWeek> _rgLookup = new()
+                    { {"Su", DayOfWeek.Sunday },
+                      {"M",  DayOfWeek.Monday },
+                      {"Tu", DayOfWeek.Tuesday },
+                      {"W",  DayOfWeek.Wednesday },
+                      {"Th", DayOfWeek.Thursday },
+                      {"F",  DayOfWeek.Friday },
+                      {"Sa", DayOfWeek.Saturday }
+                    };
+                static readonly string[] _rgFormats = 
+                    { "yyyy/MM/dd", "yyyy/M/d", "yyyy/MM/d", "yyyy/M/dd" };
+
+                /// <exception cref="InvalidDataException" />
+                public readonly IEnumerator<DayOfWeek> GetEnumerator() {
+                    string strDays = _oRow[DCol.Days];
+                    if( string.IsNullOrEmpty( strDays ) )
+                        yield break;
+
+                    // If we have an exact date, watch the day of week of it.
+                    // Honestly, I could do this myself. :-/
+                    if( DateTime.TryParseExact( strDays, 
+                                                _rgFormats,
+                                                CultureInfo.InvariantCulture, 
+                                                DateTimeStyles.None, 
+                                                out DateTime sDate ) )
+                    {
+                        yield return sDate.DayOfWeek;
+                        yield break;
+                    }
+
+                    // Else it's an occurance of the day of the week.
+                    for( int i=0; i<strDays.Length; ) {
+                        yield return Found( strDays[i..] , ref i );
+                    }
+                }
+
+                private static DayOfWeek Found( string strDays, ref int iAdvance ) {
+                    foreach( KeyValuePair<string,DayOfWeek> oPair in _rgLookup ) {
+                        if( strDays.StartsWith( oPair.Key ) ) {
+                            iAdvance += oPair.Key.Length;
+                            return oPair.Value;
+                        }
+                    }
+                    throw new InvalidDataException( "Day of occurrance is invalid." );
+                }
+
+                IEnumerator IEnumerable.GetEnumerator() {
+                    return GetEnumerator();
+                }
+            }
+
             public enum DCol : int {
                 Time =0,
                 Freq,
-                On,
+                Days,
                 Desc
             }
 
@@ -252,7 +311,7 @@ namespace Play.Clock {
 
                 CreateColumn( DCol.Time, strTime );
                 CreateColumn( DCol.Freq, strFreq );
-                CreateColumn( DCol.On,   strOn );
+                CreateColumn( DCol.Days,   strOn );
                 CreateColumn( DCol.Desc, strDesc );
             }
 
@@ -274,7 +333,9 @@ namespace Play.Clock {
 			    _rgColumns[(int)eCol] = new TextLine( (int)eCol, strValue );
             }
 
-        } // end class
+            public IEnumerable<DayOfWeek> Days => new EnumDayOfWeek( this );
+
+        } // end RowSched
 
         public DocumentSched(IPgBaseSite oSiteBase) : base(oSiteBase) {
         }
@@ -313,7 +374,7 @@ namespace Play.Clock {
                     XmlElement oXmlRow = oOwner.CreateElement( "Event" );
                     oXmlRow.SetAttribute( "time", oRowSched[RowSched.DCol.Time] );
                     oXmlRow.SetAttribute( "freq", oRowSched[RowSched.DCol.Freq] );
-                    oXmlRow.SetAttribute( "on"  , oRowSched[RowSched.DCol.On  ] );
+                    oXmlRow.SetAttribute( "on"  , oRowSched[RowSched.DCol.Days  ] );
                     oXmlRow.SetAttribute( "zone", oRowSched.Offset.ToString() );
 
                     oXmlRow.InnerText = oRowSched[RowSched.DCol.Desc];
@@ -324,7 +385,44 @@ namespace Play.Clock {
             oStream.AppendChild( oRoot );
             return true;
         }
-    } // End class
+
+        public static DateTime GetNthWeekday( DateTime sNow, DayOfWeek day, int iNthOccurance )
+        {
+            // Start with the 1st of the month
+            DateTime sFirstDay = new ( sNow.Year, sNow.Month, 1);
+
+            // Calculate how many days from the 1st to the first occurrence of 'day'
+            int iOffset = ((int)day - (int)sFirstDay.DayOfWeek + 7) % 7;
+
+            // The first occurrence is: firstDay + firstOccurrenceOffset
+            // The nth occurrence is: (n - 1) weeks after the first occurrence
+            DateTime result = sFirstDay.AddDays( iOffset + (iNthOccurance - 1) * 7);
+
+            // Optional: Validation to ensure we haven't rolled into the next month
+            if( result.Month != sNow.Month ) {
+                throw new ArgumentOutOfRangeException("n", "Month does not have that many occurrences.");
+            }
+
+            return result;
+        }
+
+        public void BuildCheckList() {
+            List<RowSched> rgWatch = new ();
+            DateTime sNow = DateTime.Now;
+
+            foreach( RowSched oRow in _rgRows ) {
+                try {
+                    foreach( DayOfWeek eDofW in oRow.Days ) {
+                        if( eDofW == sNow.DayOfWeek ) {
+                            rgWatch.Add( oRow );
+                        }
+                    }
+                } catch( InvalidDataException ) {
+                    _oSiteBase.LogError( "Schedule", "Invalid Day in Row(0)th: " + oRow.At.ToString() );
+                }
+            }
+        }
+    } // End class DocumentSched
 
     public class DocumentContainer :
         IDisposable,
@@ -472,7 +570,7 @@ namespace Play.Clock {
 			}
 
 			public void LogError( string strMessage, string strDetails, bool fShow=true ) {
-				_oDoc._oSiteBase.LogError( strMessage, "PropDocSlot : " + strDetails );
+				_oDoc._oSiteBase.LogError( strMessage, strDetails );
 			}
 
 			public void Notify( ShellNotify eEvent ) {
@@ -562,6 +660,7 @@ namespace Play.Clock {
 
             return true;
         }
+
         public EnumCheckedIDs ZoneClxn => new EnumCheckedIDs( DocZones );
 
         public bool Save(XmlNode oStream) {
@@ -660,5 +759,6 @@ namespace Play.Clock {
             DocClock.RenumberAndSumate();
             DocClock.UpdateTime       ();
         }
+
     } // end class
 }
