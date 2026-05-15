@@ -1343,6 +1343,10 @@ namespace Play.Edit {
 
             _oSite     .DoLayout();
             _lsNewCache.Clear   ();
+
+            if( oFirst is null ) {
+                return null;
+            }
             
             RowMeasure ( oFirst );
             FlexColumns( oFirst );
@@ -1480,10 +1484,10 @@ namespace Play.Edit {
         /// Same goes for going up...</remarks>
         /// <seealso cref="ICacheManSite.OnRefreshComplete"/>
         protected override void CacheWalker( CacheRow oSeedCache, bool fRemeasure = false ) {
-            if( oSeedCache == null ) {
-                LogError( "Cache construction error" );
-                return;
-            }
+            //if( oSeedCache == null ) {
+            //    LogError( "Cache construction error" );
+            //    return;
+            //}
             if( _oTextRect.Width <= 0 || _oTextRect.Height <= 0 ) {
                 _rgOldCache.Clear();
                 return;
@@ -1494,6 +1498,8 @@ namespace Play.Edit {
 
             try {
                 LinkedListNode<CacheRow> oSeedLink = CacheAddFirst( oSeedCache );
+                if( oSeedLink is null ) // Doc might be empty!!!
+                    return;
 
                 CacheRow oBotCache = oSeedCache;
                 while( oBotCache.Bottom < _oTextRect.Bottom ) { 

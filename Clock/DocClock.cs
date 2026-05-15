@@ -238,7 +238,7 @@ namespace Play.Clock {
             }
 
             static int ColumnCount = Enum.GetValues(typeof(DCol)).Length;
-            public Line this[DCol eValue] => this[(int)eValue];
+            public string this[DCol eValue] => this[(int)eValue].ToString();
 
             public TimeZoneInfo Zone {get; }
 
@@ -260,8 +260,9 @@ namespace Play.Clock {
                 get {
                     if( Zone is not null )
                         return Zone.BaseUtcOffset.Hours;
-
-                    return 0;
+                    else {
+                        return TimeZoneInfo.Local.BaseUtcOffset.Hours;
+                    }
                 }
             }
 
@@ -303,6 +304,24 @@ namespace Play.Clock {
         }
 
         public bool Save(XmlNode oStream) {
+            XmlDocument  oOwner  = oStream.OwnerDocument;
+            XmlElement   oRoot   = oOwner.CreateElement( "Events" );
+            TimeZoneInfo oInfo   = TimeZoneInfo.Local;// TODO: get from row.
+
+            foreach( Row oRow in _rgRows ) {
+                if( oRow is RowSched oRowSched ) {
+                    XmlElement oXmlRow = oOwner.CreateElement( "Event" );
+                    oXmlRow.SetAttribute( "time", oRowSched[RowSched.DCol.Time] );
+                    oXmlRow.SetAttribute( "freq", oRowSched[RowSched.DCol.Freq] );
+                    oXmlRow.SetAttribute( "on"  , oRowSched[RowSched.DCol.On  ] );
+                    oXmlRow.SetAttribute( "zone", oRowSched.Offset.ToString() );
+
+                    oXmlRow.InnerText = oRowSched[RowSched.DCol.Desc];
+                    oRoot.AppendChild( oXmlRow );
+                }
+            }
+
+            oStream.AppendChild( oRoot );
             return true;
         }
     } // End class
