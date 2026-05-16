@@ -300,7 +300,7 @@ namespace Play.Clock {
             }
 
             static readonly string[] _rgTimeFormats = 
-                { "h:m", "HH:mm", "h:m", "HH:m" };
+                { "H:m", "HH:mm", "H:m", "HH:m" };
 
             public bool TryParseTime( out TimeOnly sTime ) {
                 string strTime = this[DCol.Time];
@@ -540,9 +540,13 @@ namespace Play.Clock {
                 BuildWatchList();
             }
             foreach( WatchItem oItem in _rgWatch ) {
+                if( sSpan.TotalHours > 1 ) {
+                    oItem.IsValid = false;
+                }
                 if( oItem.IsValid ) {
-                    sSpan = oItem.Time - sNow;
-                    if( sSpan.TotalMinutes < 10 ) {
+                    sSpan = oItem.Time - sNow; // negative means in the past!
+                    // If less than 10 mins to go but not more than 1 hour in the past.
+                    if( sSpan.TotalMinutes < 10 && sSpan.TotalHours > -1 ) {
                         Console.Beep();
                         LogError( oItem.Row[RowSched.DCol.Desc] );
                         oItem.IsValid = false;
