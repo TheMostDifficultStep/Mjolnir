@@ -63,7 +63,7 @@ namespace Play.Clock {
 
         public override bool Execute(Guid gCommand) {
             if( gCommand == GlobalCommands.Play ) {
-                _oDocContainer.DocSched.BuildCheckList();
+                _oDocContainer.DocSched.BuildWatchList();
             }
             return base.Execute(gCommand);
         }

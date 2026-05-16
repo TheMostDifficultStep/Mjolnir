@@ -7,6 +7,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Security;
 using System.Text;
 using System.Xml;
@@ -238,18 +239,6 @@ namespace Play.Clock {
                     _oRow = oRow ?? throw new ArgumentNullException();
                 }
 
-                static readonly Dictionary<string, DayOfWeek> _rgLookup = new()
-                    { {"Su", DayOfWeek.Sunday },
-                      {"M",  DayOfWeek.Monday },
-                      {"Tu", DayOfWeek.Tuesday },
-                      {"W",  DayOfWeek.Wednesday },
-                      {"Th", DayOfWeek.Thursday },
-                      {"F",  DayOfWeek.Friday },
-                      {"Sa", DayOfWeek.Saturday }
-                    };
-                static readonly string[] _rgFormats = 
-                    { "yyyy/MM/dd", "yyyy/M/d", "yyyy/MM/d", "yyyy/M/dd" };
-
                 /// <exception cref="InvalidDataException" />
                 public readonly IEnumerator<DayOfWeek> GetEnumerator() {
                     string strDays = _oRow[DCol.Days];
@@ -258,12 +247,7 @@ namespace Play.Clock {
 
                     // If we have an exact date, watch the day of week of it.
                     // Honestly, I could do this myself. :-/
-                    if( DateTime.TryParseExact( strDays, 
-                                                _rgFormats,
-                                                CultureInfo.InvariantCulture, 
-                                                DateTimeStyles.None, 
-                                                out DateTime sDate ) )
-                    {
+                    if( _oRow.TryParseDate( out DateOnly sDate ) ) {
                         yield return sDate.DayOfWeek;
                         yield break;
                     }
@@ -274,6 +258,10 @@ namespace Play.Clock {
                     }
                 }
 
+                /// <summary>Take the days string and look for any number
+                /// of days of the week. We don't check for dupes. Example
+                /// string : "SuMTuWThFSa"</summary>
+                /// <exception cref="InvalidDataException" />
                 private static DayOfWeek Found( string strDays, ref int iAdvance ) {
                     foreach( KeyValuePair<string,DayOfWeek> oPair in _rgLookup ) {
                         if( strDays.StartsWith( oPair.Key ) ) {
@@ -289,11 +277,53 @@ namespace Play.Clock {
                 }
             }
 
+            static readonly Dictionary<string, DayOfWeek> _rgLookup = new()
+                { {"Su", DayOfWeek.Sunday },
+                    {"M",  DayOfWeek.Monday },
+                    {"Tu", DayOfWeek.Tuesday },
+                    {"W",  DayOfWeek.Wednesday },
+                    {"Th", DayOfWeek.Thursday },
+                    {"F",  DayOfWeek.Friday },
+                    {"Sa", DayOfWeek.Saturday }
+                };
+            static readonly string[] _rgDateFormats = 
+                { "yyyy/MM/dd", "yyyy/M/d", "yyyy/MM/d", "yyyy/M/dd" };
+
+            public bool TryParseDate( out DateOnly sDate ) {
+                string strDays = this[DCol.Days];
+
+                return DateOnly.TryParseExact( strDays, 
+                                               _rgDateFormats,
+                                               CultureInfo.InvariantCulture, 
+                                               DateTimeStyles.None, 
+                                               out sDate );
+            }
+
+            static readonly string[] _rgTimeFormats = 
+                { "h:m", "HH:mm", "h:m", "HH:m" };
+
+            public bool TryParseTime( out TimeOnly sTime ) {
+                string strTime = this[DCol.Time];
+
+                return TimeOnly.TryParseExact( strTime, 
+                                               _rgTimeFormats,
+                                               out sTime );
+            }
+
             public enum DCol : int {
                 Time =0,
                 Freq,
                 Days,
                 Desc
+            }
+
+            public enum Freq {
+                date,
+                weekly,
+                monthly1,
+                monthly2,
+                monthly3,
+                monthly4
             }
 
             static int ColumnCount = Enum.GetValues(typeof(DCol)).Length;
@@ -333,7 +363,77 @@ namespace Play.Clock {
 			    _rgColumns[(int)eCol] = new TextLine( (int)eCol, strValue );
             }
 
+            /// <exception cref="InvalidDataException" />
             public IEnumerable<DayOfWeek> Days => new EnumDayOfWeek( this );
+
+            public static DateTime GetNthWeekday( DateTime sNow, DayOfWeek day, int iNthOccurance )
+            {
+                // Start with the 1st of the month
+                DateTime sFirstDay = new ( sNow.Year, sNow.Month, 1);
+
+                // Calculate how many days from the 1st to the first occurrence of 'day'
+                int iOffset = ((int)day - (int)sFirstDay.DayOfWeek + 7) % 7;
+
+                // The first occurrence is: firstDay + firstOccurrenceOffset
+                // The nth occurrence is: (n - 1) weeks after the first occurrence
+                DateTime result = sFirstDay.AddDays( iOffset + (iNthOccurance - 1) * 7);
+
+                // Optional: Validation to ensure we haven't rolled into the next month
+                if( result.Month != sNow.Month ) {
+                    throw new ArgumentOutOfRangeException("n", "Month does not have that many occurrences.");
+                }
+
+                return result;
+            }
+
+            public Freq Frequency {
+                get {
+                    string strFreq = this[DCol.Freq];
+
+                    switch( strFreq ) {
+                        case "date"    : return Freq.date;
+                        case "weekly"  : return Freq.weekly;
+                        case "monthly1" : return Freq.monthly1;
+                        case "monthly2" : return Freq.monthly2;
+                        case "monthly3" : return Freq.monthly3;
+                        case "monthly4" : return Freq.monthly4;
+                    }
+
+                    throw new InvalidDataException();
+                }
+            }
+
+            public DateTime ForwardDate( DateTime sNow ) {
+                if( Frequency == Freq.date ) {
+                    if( TryParseDate(out DateOnly sDate) &&
+                        TryParseTime(out TimeOnly sTime) ) {
+                        return new DateTime(sDate, sTime);
+                    }
+                    throw new InvalidDataException();
+                }
+
+                foreach( DayOfWeek eDofW in Days ) {
+                    if( eDofW == sNow.DayOfWeek ) {
+                        switch( Frequency ) {
+                            case Freq.weekly:
+                                if( TryParseTime( out TimeOnly sTime ) ) {
+                                    return new DateTime( DateOnly.FromDateTime( sNow ), sTime );
+                                }
+                                break;
+                            case Freq.monthly1:
+                                return GetNthWeekday( sNow, eDofW, 1 );
+                            case Freq.monthly2:
+                                return GetNthWeekday( sNow, eDofW, 2 );
+                            case Freq.monthly3:
+                                return GetNthWeekday( sNow, eDofW, 3 );
+                            case Freq.monthly4:
+                                return GetNthWeekday( sNow, eDofW, 4 );
+                        }
+                    }
+                }
+
+                throw new InvalidDataException();
+            }
 
         } // end RowSched
 
@@ -359,6 +459,7 @@ namespace Play.Clock {
                 }
             }
             RenumberAndSumate();
+            BuildWatchList   ();
             Raise_DocLoaded  ();
 
             return true;
@@ -386,39 +487,66 @@ namespace Play.Clock {
             return true;
         }
 
-        public static DateTime GetNthWeekday( DateTime sNow, DayOfWeek day, int iNthOccurance )
-        {
-            // Start with the 1st of the month
-            DateTime sFirstDay = new ( sNow.Year, sNow.Month, 1);
+        protected readonly List<WatchItem> _rgWatch    = new ();
+        protected          DateTime        _sLastCheck = DateTime.Now;
 
-            // Calculate how many days from the 1st to the first occurrence of 'day'
-            int iOffset = ((int)day - (int)sFirstDay.DayOfWeek + 7) % 7;
+        /// <summary>
+        /// We don't want to check every row every time. So instead
+        /// Check if the row matches the day of week. And if so then
+        /// add it to our list of things to check.
+        /// </summary>
+        public void BuildWatchList() {
+            _sLastCheck = DateTime.Now;
+            _rgWatch    . Clear();
 
-            // The first occurrence is: firstDay + firstOccurrenceOffset
-            // The nth occurrence is: (n - 1) weeks after the first occurrence
-            DateTime result = sFirstDay.AddDays( iOffset + (iNthOccurance - 1) * 7);
-
-            // Optional: Validation to ensure we haven't rolled into the next month
-            if( result.Month != sNow.Month ) {
-                throw new ArgumentOutOfRangeException("n", "Month does not have that many occurrences.");
+            foreach( Row oRow in _rgRows ) {
+                if( oRow is RowSched oRowSched ) {
+                    try {
+                        foreach( DayOfWeek eDofW in oRowSched.Days ) {
+                            if( eDofW == _sLastCheck.DayOfWeek ) {
+                                // Make an actual forward time...
+                                DateTime sForward = oRowSched.ForwardDate( _sLastCheck );
+                                _rgWatch.Add( new( oRowSched, sForward ) );
+                            }
+                        }
+                    } catch( InvalidDataException ) {
+                        _oSiteBase.LogError( "Schedule", "Invalid Day in Row(0)th: " + oRowSched.At.ToString() );
+                    }
+                }
             }
-
-            return result;
         }
 
-        public void BuildCheckList() {
-            List<RowSched> rgWatch = new ();
-            DateTime sNow = DateTime.Now;
+        protected class WatchItem {
+            public RowSched Row     { get; protected set; }
+            public DateTime Time    { get; protected set; }
+            public bool     IsValid { get; set; } = true;
 
-            foreach( RowSched oRow in _rgRows ) {
-                try {
-                    foreach( DayOfWeek eDofW in oRow.Days ) {
-                        if( eDofW == sNow.DayOfWeek ) {
-                            rgWatch.Add( oRow );
-                        }
+            public WatchItem( RowSched oRow, DateTime oTime ) {
+                Row  = oRow;
+                Time = oTime;
+            }
+        }
+
+        /// <summary>
+        /// Check of the day of week has changed or the span of days
+        /// is greater than 0 since last check. I expect we'll do this
+        /// every second.
+        /// </summary>
+        public void CheckWatchList() {
+            DateTime sNow  = DateTime.Now;
+            TimeSpan sSpan = sNow - _sLastCheck;
+
+            if( _sLastCheck.DayOfWeek != sNow.DayOfWeek || sSpan.Days > 0 ) {
+                BuildWatchList();
+            }
+            foreach( WatchItem oItem in _rgWatch ) {
+                if( oItem.IsValid ) {
+                    sSpan = oItem.Time - sNow;
+                    if( sSpan.TotalMinutes < 10 ) {
+                        Console.Beep();
+                        LogError( oItem.Row[RowSched.DCol.Desc] );
+                        oItem.IsValid = false;
                     }
-                } catch( InvalidDataException ) {
-                    _oSiteBase.LogError( "Schedule", "Invalid Day in Row(0)th: " + oRow.At.ToString() );
                 }
             }
         }
@@ -717,15 +845,10 @@ namespace Play.Clock {
             }
         }
 
-        /// <summary>
-        /// BUG: Let's move the worker to the container doc so we
-        /// can unify the time update code to one place.
-        /// </summary>
-        /// <returns></returns>
         public IEnumerator<int> CreateWorker() {
             while( true ) {
-                DocClock.UpdateTime();
-
+                DocClock.UpdateTime    ();
+                DocSched.CheckWatchList();
                 // Note: Changing this doesn't seem to effect anything.
                 //       You need to restart the workplace.
                 yield return TimoutInMillisecs;
