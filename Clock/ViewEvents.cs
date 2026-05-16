@@ -53,6 +53,42 @@ namespace Play.Clock {
             return true;
         }
 
+        protected override void OnKeyPress(KeyPressEventArgs e) {
+            if( IsDisposed )
+                return;
+            if( _oViewEvents.IsCommandPress( e.KeyChar ) )
+                return;
+            if( IsReadOnly )
+                return;
+
+			switch( e.KeyChar ) {
+				case '\t':
+					int iDir = ModifierKeys == Keys.Shift ? -1 : 1;
+					_oCacheMan.CaretTab( iDir );
+					break;
+				case '\r':
+					// Not likely unset upon key press. But problematic if negative.
+					if( _oCacheMan.CaretAt < 0 )
+						break;
+
+					if( _oDocContainer.DocSched.InsertNew( _oCacheMan.CaretAt + 1 ) is Row oRow ) {
+						_oCacheMan.CaretReset( oRow, iColumn:0 );
+					}
+					break;
+				default:
+					base.OnKeyPress( e );
+					break;
+			}
+		}
+
+        protected override void OnKeyDown(KeyEventArgs e) {
+            if( e.KeyCode == Keys.Delete && e.Shift ) {
+                _oDocContainer.DocSched.RemoveAt( _oCacheMan.CaretAt );
+            } else {
+                base.OnKeyDown(e);
+            }
+        }
+
         protected override void OnMouseDown(MouseEventArgs e) {
             base.OnMouseDown(e);
         }
@@ -63,7 +99,7 @@ namespace Play.Clock {
 
         public override bool Execute(Guid gCommand) {
             if( gCommand == GlobalCommands.Play ) {
-                _oDocContainer.DocSched.BuildWatchList();
+                _oDocContainer.DocSched.ReBuildWatchList( DateTime.Now );
             }
             return base.Execute(gCommand);
         }

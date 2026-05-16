@@ -279,12 +279,12 @@ namespace Play.Clock {
 
             static readonly Dictionary<string, DayOfWeek> _rgLookup = new()
                 { {"Su", DayOfWeek.Sunday },
-                    {"M",  DayOfWeek.Monday },
-                    {"Tu", DayOfWeek.Tuesday },
-                    {"W",  DayOfWeek.Wednesday },
-                    {"Th", DayOfWeek.Thursday },
-                    {"F",  DayOfWeek.Friday },
-                    {"Sa", DayOfWeek.Saturday }
+                  {"M",  DayOfWeek.Monday },
+                  {"Tu", DayOfWeek.Tuesday },
+                  {"W",  DayOfWeek.Wednesday },
+                  {"Th", DayOfWeek.Thursday },
+                  {"F",  DayOfWeek.Friday },
+                  {"Sa", DayOfWeek.Saturday }
                 };
             static readonly string[] _rgDateFormats = 
                 { "yyyy/MM/dd", "yyyy/M/d", "yyyy/MM/d", "yyyy/M/dd" };
@@ -343,6 +343,16 @@ namespace Play.Clock {
                 CreateColumn( DCol.Freq, strFreq );
                 CreateColumn( DCol.Days,   strOn );
                 CreateColumn( DCol.Desc, strDesc );
+            }
+
+            public RowSched( TimeZoneInfo oZone = null ) {
+                //Zone = oZone ?? throw new ArgumentNullException();
+
+                _rgColumns = new Line[ColumnCount];
+
+                foreach( DCol eCol in Enum.GetValues(typeof(DCol))) {
+                    CreateColumn( eCol, string.Empty );
+                }
             }
 
             public int Offset {
@@ -459,7 +469,7 @@ namespace Play.Clock {
                 }
             }
             RenumberAndSumate();
-            BuildWatchList   ();
+            ReBuildWatchList ( DateTime.Now );
             Raise_DocLoaded  ();
 
             return true;
@@ -495,7 +505,7 @@ namespace Play.Clock {
         /// Check if the row matches the day of week. And if so then
         /// add it to our list of things to check.
         /// </summary>
-        public void BuildWatchList( DateTime sNow ) {
+        public void ReBuildWatchList( DateTime sNow ) {
             _sLastCheck = sNow;
             _rgWatch    . Clear();
 
@@ -541,7 +551,7 @@ namespace Play.Clock {
             TimeSpan sSpan = sNow - _sLastCheck;
 
             if( _sLastCheck.DayOfWeek != sNow.DayOfWeek || sSpan.Days > 0 ) {
-                BuildWatchList( sNow );
+                ReBuildWatchList( sNow );
             }
             foreach( WatchItem oItem in _rgWatch ) {
                 if( sSpan.TotalHours > 1 ) {
@@ -556,6 +566,53 @@ namespace Play.Clock {
                         oItem.IsValid = false;
                     }
                 }
+            }
+        }
+
+        /// <summary>
+        /// Note: It's perfectly legal to insert at the element count.
+        /// This is effectively an append.
+        /// </summary>
+        /// <remarks>I could return an actual LogRow... :-/</remarks>
+        /// <returns>Newly inserted LogRow</returns>
+        public Row InsertNew( int iRow ) {
+            try {
+                Raise_DocUpdateBegin();
+
+                Row oNew = new RowSched();
+
+                _rgRows.Insert( iRow, oNew );
+
+                RenumberAndSumate ();
+                Raise_DocUpdateEnd( IPgEditEvents.EditType.Rows, oNew );
+
+                // A little hacky but its how our outline can get some events.
+                //Event_RowAdded?.Invoke( oNew );
+
+                DoParse();
+
+                return oNew;
+            } catch( ArgumentOutOfRangeException ) {
+                LogError( "Row is out of bounds" );
+            }
+            return null;
+        }
+
+        public void RemoveAt( int iRow ) {
+            try {
+                Raise_DocUpdateBegin();
+
+                _rgRows.RemoveAt( iRow );
+
+                RenumberAndSumate ();
+                Raise_DocUpdateEnd( IPgEditEvents.EditType.Rows, null );
+
+                // A little hacky but its how our outline can get some events.
+                //Event_RowAdded?.Invoke( oNew );
+
+                DoParse();
+            } catch( ArgumentOutOfRangeException ) {
+                LogError( "Row is out of bounds" );
             }
         }
     } // End class DocumentSched
