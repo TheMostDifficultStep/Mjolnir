@@ -495,8 +495,8 @@ namespace Play.Clock {
         /// Check if the row matches the day of week. And if so then
         /// add it to our list of things to check.
         /// </summary>
-        public void BuildWatchList() {
-            _sLastCheck = DateTime.Now;
+        public void BuildWatchList( DateTime sNow ) {
+            _sLastCheck = sNow;
             _rgWatch    . Clear();
 
             foreach( Row oRow in _rgRows ) {
@@ -506,7 +506,11 @@ namespace Play.Clock {
                             if( eDofW == _sLastCheck.DayOfWeek ) {
                                 // Make an actual forward time...
                                 DateTime sForward = oRowSched.ForwardDate( _sLastCheck );
-                                _rgWatch.Add( new( oRowSched, sForward ) );
+                                TimeSpan sSpan    = sNow - sForward;
+                                // Chack that the forward time isn't too far in the past.
+                                if( sSpan.Hours < 1 ) {
+                                    _rgWatch.Add( new( oRowSched, sForward ) );
+                                }
                             }
                         }
                     } catch( InvalidDataException ) {
@@ -537,16 +541,16 @@ namespace Play.Clock {
             TimeSpan sSpan = sNow - _sLastCheck;
 
             if( _sLastCheck.DayOfWeek != sNow.DayOfWeek || sSpan.Days > 0 ) {
-                BuildWatchList();
+                BuildWatchList( sNow );
             }
             foreach( WatchItem oItem in _rgWatch ) {
                 if( sSpan.TotalHours > 1 ) {
                     oItem.IsValid = false;
                 }
                 if( oItem.IsValid ) {
-                    sSpan = oItem.Time - sNow; // negative means in the past!
+                    sSpan = sNow - oItem.Time; // positive means in the past!
                     // If less than 10 mins to go but not more than 1 hour in the past.
-                    if( sSpan.TotalMinutes < 10 && sSpan.TotalHours > -1 ) {
+                    if( -10 < sSpan.TotalMinutes && sSpan.TotalHours < 1 ) {
                         Console.Beep();
                         LogError( oItem.Row[RowSched.DCol.Desc] );
                         oItem.IsValid = false;
