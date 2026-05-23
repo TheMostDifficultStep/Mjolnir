@@ -2135,8 +2135,13 @@ namespace Mjolnir {
             try {
                 return _rgStdFaces[eFont];
             } catch( KeyNotFoundException ) {
-                LogError( "Fonts", "Couldn't find requested face. Returning 'Text'" );
-                return _rgStdFaces[StdUIFaces.Text];
+                try {
+                    LogError( "Fonts", "Couldn't find requested face. Returning 'Text'" );
+                    return _rgStdFaces[StdUIFaces.Text];
+                } catch( KeyNotFoundException ) {
+                    LogError( "Fonts", "Couldn't find requested face. Returning 0'th" );
+                    return _rgStdFaces.Values.First<ushort>();
+                }
             }
         }
 
