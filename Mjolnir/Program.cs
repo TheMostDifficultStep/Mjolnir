@@ -2130,19 +2130,23 @@ namespace Mjolnir {
             return _rgGrammarColors[i]._sColor;
         }
 
-        /// <exception cref="InvalidOperationException">Might happen if dictionary is empty.</exception>
+        /// <exception cref="KeyNotFoundException" />
         public UInt16 StdFaceAt( Guid eFont ) {
-            try {
-                return _rgStdFaces[eFont];
-            } catch( KeyNotFoundException ) {
-                try {
-                    LogError( "Fonts", "Couldn't find requested face. Returning 'Text'" );
-                    return _rgStdFaces[StdUIFaces.Text];
-                } catch( KeyNotFoundException ) {
-                    LogError( "Fonts", "Couldn't find requested face. Returning 0'th" );
-                    return _rgStdFaces.Values.First<ushort>();
-                }
+            UInt16 uiValue;
+            if( _rgStdFaces.TryGetValue( eFont, out uiValue )) {
+                return uiValue;
             }
+            if( _rgStdFaces.TryGetValue( StdUIFaces.Text, out uiValue )) {
+                LogError( "Fonts", "Couldn't find requested face. Returning 'Text'" );
+                return uiValue;
+            }
+            foreach( var oPair in _rgStdFaces ) {
+                LogError( "Fonts", "Couldn't find requested face. Returning first found." );
+                return oPair.Value;
+            }
+            LogError( "Fonts", "Font Face collection problem, :-/" );
+
+            throw new KeyNotFoundException();
         }
 
         /// <summary>After loading all the standard faces. We load a standard
