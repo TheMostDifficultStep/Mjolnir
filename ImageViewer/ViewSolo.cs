@@ -231,6 +231,11 @@ namespace Play.ImageViewer {
         /// </summary>
         /// <seealso cref="AlignViewSelectionToCurrentBmpSelection"/>
         protected void AlignBmpSelectionToViewSelection() {
+			if( Document.Image is null ) {
+				Selection.SetRect( 0, 0, 0, 0 );
+				return;
+			}
+
 			SKPoint pntAspect = new SKPoint( Document.Image.Width  / (float)_rctViewPort.Width,
 											 Document.Image.Height / (float)_rctViewPort.Height );
 
@@ -443,8 +448,11 @@ namespace Play.ImageViewer {
 
 		public virtual void SelectAll() {
 			if( Document.Image != null ) {
-				_rcSelectionView.Show = SHOWSTATE.Focused;
-			    _sBorder              = _sGrabBorder;  // Just in case not enough room.
+				// Tool might be hidden even if in select mode b/c if
+				// hidden we can start a new drag from first mouse pos.
+				_rcSelectionView.Hidden = false;
+				_rcSelectionView.Show   = SHOWSTATE.Focused;
+			    _sBorder                = _sGrabBorder;  // Just in case not enough room.
 
 				Selection.SetRect( LOCUS.UPPERLEFT ,0, 0, Document.Image.Width, Document.Image.Height );
 
@@ -792,14 +800,8 @@ namespace Play.ImageViewer {
         }
 
 		public override void SelectAll() {
-			ToolSelect = (int)Tools.Select;
-
 			base.SelectAll();
-
-			if( Document.Image != null ) {
-				ToolSelect = (int)Tools.Select;
-				// BUG: need to send the shell an event.
-			} 
+			ToolSelect = (int)Tools.Select;
 		}
 
         public override object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
@@ -855,8 +857,12 @@ namespace Play.ImageViewer {
 			set {
 				Tools eNextTool = (Tools)value;
 
-				// We show the selection if the tool is "select"
-				_rcSelectionView.Hidden = true;
+				// Don't mess with selection vis if we are in select
+				// mode since we use that to start a fresh drag if vis
+				// is hidden but tool is select.
+				if( eNextTool == Tools.Navigate ) {
+					_rcSelectionView.Hidden = true;
+				}
 				Invalidate();
 
 				_eToolCurrent = eNextTool; 
