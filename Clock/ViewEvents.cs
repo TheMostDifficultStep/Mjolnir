@@ -98,7 +98,8 @@ namespace Play.Clock {
         }
 
         public override bool Execute(Guid gCommand) {
-            if( gCommand == GlobalCommands.Play ) {
+            if( gCommand == GlobalCommands.Play ||
+                gCommand == GlobalCommands.Recycle ) {
                 _oDocContainer.DocSched.ReBuildWatchList( DateTime.Now );
             }
             return base.Execute(gCommand);
