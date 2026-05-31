@@ -1,10 +1,11 @@
-﻿using System.Collections.Generic;
-using System;
-
+﻿using Play.Drawing;
 using Play.Edit;
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using SkiaSharp;
+using System;
+using System.Collections.Generic;
+using System.Reflection;
 using System.Windows.Forms;
 
 namespace Play.Clock {
@@ -19,7 +20,8 @@ namespace Play.Clock {
 
         public string Banner => "All Time Zones";
 
-        public SKImage Icon =>  null;
+        public SKImage Icon { get; }
+        private string IconStr => "Play.Clock.Content.icons8-time-zone-64.png";
 
         public Guid Catagory => Guid;
 
@@ -28,6 +30,8 @@ namespace Play.Clock {
         {
             // embed our own just for starters.
             _oDocContainer = (DocumentContainer)oDocument;
+
+            Icon = SKImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), IconStr );
         }
 
 
@@ -58,7 +62,8 @@ namespace Play.Clock {
         }
 
         public override bool Execute(Guid gCommand) {
-            if( gCommand == GlobalCommands.Recycle ) {
+            if( gCommand == GlobalCommands.Recycle || 
+                gCommand == GlobalCommands.Play ) {
                 _oDocContainer.Reset();
             }
 

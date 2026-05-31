@@ -128,7 +128,7 @@ namespace Play.Clock {
 		IPgSave<XmlDocumentFragment>,
         IPgCommandView
     {
-        private readonly string _strViewIcon  = "Play.Clock.Content.icon_clock.gif";
+        private readonly string _strViewIcon  = "Play.Clock.Content.icons8-clock-64.png";
 
         protected readonly IPgViewSite   _oViewSite;
         protected readonly IPgViewNotify _oViewNotify;
