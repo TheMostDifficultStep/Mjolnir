@@ -1209,10 +1209,15 @@ namespace Mjolnir {
             sbTitle.Append( "Mjolnir" );
 
             if( _oSelectedWinSite != null ) {
-                sbTitle.Append( " | " );
-                if( _oSelectedDocSite.FileDir.Length > 0 ) {
-                    sbTitle.Append( _oSelectedDocSite.FileDir );
+                // Only show the path for NON-internal files.
+                if( _oSelectedWinSite.DocumentSite.IsInternal ) {
                     sbTitle.Append( ' ' );
+                } else {
+                    sbTitle.Append( " | " );
+                    if( _oSelectedDocSite.FileDir.Length > 0 ) {
+                        sbTitle.Append( _oSelectedDocSite.FileDir );
+                        sbTitle.Append( ' ' );
+                    }
                 }
                 sbTitle.Append( _oSelectedWinSite.Title );
 

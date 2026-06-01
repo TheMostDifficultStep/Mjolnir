@@ -79,7 +79,7 @@ namespace Mjolnir {
             IDocSlot,
             IXmlSlot
         {
-            protected IPgSave<XmlNode> _oGuestSave;
+            protected IPgSave<XmlNode>    _oGuestSave;
             protected IPgLoad<TextReader> _oGuestLoad;
             Encoding _oEncoding;
 
@@ -107,6 +107,8 @@ namespace Mjolnir {
             }
 
             public virtual bool IsInternal { get; set;} = false; // clock and fileman override.
+
+            public override string Title { get { return string.Empty; } }
             public void SetID( int iID ) { ID = iID; }
 
             public override bool InitNew() {
@@ -240,6 +242,7 @@ namespace Mjolnir {
                 }
             }
         }
+
         /// <summary>
         /// This is the start of a new xml subtree saving slot. The find dialog will likely
         /// need a complex persistance: find string, search type, match case. For example.

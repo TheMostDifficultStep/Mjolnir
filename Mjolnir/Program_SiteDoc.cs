@@ -332,7 +332,7 @@ namespace Mjolnir {
             }
 
             protected virtual void NewFileTitleAppend( StringBuilder sbTitle ) {
-                sbTitle.Append( "?" );
+                sbTitle.Append( '?');
             }
 
             /// <summary>

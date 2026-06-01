@@ -809,20 +809,18 @@ namespace Mjolnir {
             {
                 // Always want clock since we have a solo clock window that needs it.
                 PgDocDescr oDocDesc = GetController( ".clock" );
-                ClockSlot = new XmlSlotRefCount2( this, oDocDesc );
+                ClockSlot = new XmlSlotRefCount2( this, oDocDesc ) { IsInternal = true };
                 //ClockSlot.CreateDocument();
                 //ClockSlot.InitNew();
-                ClockSlot.IsInternal = true;
                 //_rgDocSites.Add( ClockSlot );
             }
             {
                 // Always want to save the last file open for the session so 
                 // I want to just keep the fileman document open at all times.
                 PgDocDescr oDescr = GetController( ".fman" );
-                HomeSlot = new XmlSlotRefCount2( this, oDescr );
+                HomeSlot = new XmlSlotRefCount2( this, oDescr ) { IsInternal = true };
                 //HomeSlot.CreateDocument();
                 //HomeSlot.InitNew();
-                HomeSlot.IsInternal = true;
                 //_rgDocSites.Add( HomeSlot );
             }
         }

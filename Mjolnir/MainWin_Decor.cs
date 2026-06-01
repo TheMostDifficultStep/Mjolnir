@@ -659,10 +659,10 @@ namespace Mjolnir {
 					break;
 			}
 
-			oSide.Clear         ();
-			oSide.SummateChildTrack          ( rgSort );
-			oSide.PercentReset  ( fNormalize:true );
-			oSide.LayoutChildren();  // BUG: If rail distance is zero, no layout happens!!
+			oSide.Clear            ();
+			oSide.SummateChildTrack( rgSort );
+			oSide.PercentReset     ( fNormalize:true );
+			oSide.LayoutChildren   ();  // BUG: If rail distance is zero, no layout happens!!
 		}
 
         /// <summary>
@@ -940,6 +940,7 @@ namespace Mjolnir {
             _rcFrame.Hidden = false;
             // No need to save the sides extents b/c the DecorSideShuffle does that when needed.
 
+            // Zeroth item is the all decor off or restore...
  			if( _miDecorMenu.DropDownItems[0] is ToolStripMenuItem oItem ) {
 				oItem.Checked = true;
 			}
