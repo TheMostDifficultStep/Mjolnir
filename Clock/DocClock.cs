@@ -12,69 +12,6 @@ using Play.Interfaces.Embedding;
 
 
 namespace Play.Clock {
-    public class RowClock : Row {
-        public const int ColumnTime = 0;
-        public const int ColumnDate = 1;
-        public const int ColumnZone = 2;
-        public const int ColumnDofW = 3;
-
-        protected int          _iOffset;
-        protected TimeZoneInfo _oZone; 
-
-        public bool Is24Hour { get; set; } = false;
-
-        protected void SetColumn( int iColumn, string strValue ) {
-            _rgColumns[iColumn] = new TextLine( iColumn, strValue );
-        }
-
-        public RowClock( string strLabel, int iOffset = 0, TimeZoneInfo oZone = null ) {
-            _rgColumns = new Line[4];
-            
-            SetColumn( ColumnTime, string.Empty );
-            SetColumn( ColumnDate, string.Empty );
-            SetColumn( ColumnZone, strLabel );
-            SetColumn( ColumnDofW, string.Empty );
-
-            _iOffset = iOffset;
-            _oZone   = oZone;
-        }
-
-        public DateTime Time {
-            set {
-                int iOffset = _iOffset;
-
-                if( _oZone is not null && _oZone.IsDaylightSavingTime( value ) ) {
-                    iOffset += 1;
-                }
-                DateTime dtOffset = value.AddHours( iOffset );
-                string   strTime;
-
-                if( Is24Hour ) {
-                    strTime = dtOffset.Hour  .ToString( "D2" ) + ":" + 
-                              dtOffset.Minute.ToString( "D2");
-                } else {
-                    int    iHour     = dtOffset.Hour;
-                    string strMidDay = "am"; 
-
-                    if( iHour > 12 ) {
-                        strMidDay = "pm";
-                        iHour    -= 12;
-                    }
-                    if( iHour == 0 ) {
-                        iHour    += 12;
-                    }
-                    strTime = iHour.ToString( "D2" ) + ":" +
-                              dtOffset.Minute.ToString( "D2" ) + strMidDay;
-                }
-
-                // Zone is constant.
-                this[ColumnTime].TryReplace( strTime );
-                this[ColumnDate].TryReplace( dtOffset.ToShortDateString() );
-                this[ColumnDofW].TryReplace( dtOffset.DayOfWeek.ToString() );
-            }
-        }
-    }
-
     public class RowZone : Row {
         public enum DCol : int {
             Check =0,
@@ -151,15 +88,11 @@ namespace Play.Clock {
                 TimeZoneInfo oLocalZone = TimeZoneInfo.Local;
 
                 foreach( TimeZoneInfo oZone in rgZones ) {
-                    string strClip = oZone.DisplayName[12..];
-                    // BUG: won't work in other languages.
-                    if( !strClip.StartsWith( "Coordinated" ) ) {
-                        RowZone oRowNew = new RowZone( strClip, oZone );
-                        if( oLocalZone.Equals( oZone ) ) {
-                            oRowNew.SetCheck( CheckSetValue );
-                        }
-                        _rgRows.Add( oRowNew );
-                    }
+                    RowZone oRowNew = new(oZone.Id, oZone);
+                    //if( oLocalZone.Equals(oZone) ) {
+                    //    oRowNew.SetCheck(CheckSetValue);
+                    //}
+                    _rgRows.Add( oRowNew );
                 }
 
                 RenumberAndSumate();
@@ -191,12 +124,83 @@ namespace Play.Clock {
         EditMultiColumn,
         IPgLoad
     {
+        public class RowClock : Row {
+            public const int ColumnDisp = 0;
+            public const int ColumnTime = 1;
+            public const int ColumnDate = 2;
+            public const int ColumnZone = 3;
+            public const int ColumnDofW = 4;
 
-        public event Action ClockEvent;
+            protected int          _iOffset;
+            public    TimeZoneInfo Zone { get; protected set; } 
+
+            public bool Is24Hour { get; set; } = false;
+
+            protected void SetColumn( int iColumn, string strValue ) {
+                _rgColumns[iColumn] = new TextLine( iColumn, strValue );
+            }
+
+            public RowClock( string strLabel, int iOffset, TimeZoneInfo oZone ) {
+                _rgColumns = new Line[5];
+            
+                SetColumn( ColumnDisp, string.Empty );
+                SetColumn( ColumnTime, string.Empty );
+                SetColumn( ColumnDate, string.Empty );
+                SetColumn( ColumnZone, strLabel );
+                SetColumn( ColumnDofW, string.Empty );
+
+                _iOffset = iOffset;
+                Zone   = oZone;
+            }
+
+            public int Offset => _iOffset;
+
+            /// <summary>
+            /// Set the time this row represents based on the given time.
+            /// Used for the alarm clock.
+            /// </summary>
+            public DateTime Time {
+                set {
+                    int iOffset = _iOffset;
+
+                    if( Zone is not null && Zone.IsDaylightSavingTime( value ) ) {
+                        iOffset += 1;
+                    }
+                    DateTime dtOffset = value.AddHours( iOffset );
+                    string   strTime;
+
+                    if( Is24Hour ) {
+                        strTime = dtOffset.Hour  .ToString( "D2" ) + ":" + 
+                                  dtOffset.Minute.ToString( "D2");
+                    } else {
+                        int    iHour     = dtOffset.Hour;
+                        string strMidDay = "am"; 
+
+                        if( iHour > 12 ) {
+                            strMidDay = "pm";
+                            iHour    -= 12;
+                        }
+                        if( iHour == 0 ) {
+                            iHour    += 12;
+                        }
+                        strTime = iHour.ToString( "D2" ) + ":" +
+                                  dtOffset.Minute.ToString( "D2" ) + strMidDay;
+                    }
+
+                    // Zone is constant.
+                    this[ColumnTime].TryReplace( strTime );
+                    this[ColumnDate].TryReplace( dtOffset.ToShortDateString() );
+                    this[ColumnDofW].TryReplace( dtOffset.DayOfWeek.ToString() );
+                }
+            }
+        }
+
+        public event Action Event_Clock;
 
         public DocumentClock( IPgBaseSite oSite ) :
             base( oSite )
         {
+            CheckColumn = 0;
         }
 
         // Todo: use a manupulator in the future...
@@ -217,7 +221,7 @@ namespace Play.Clock {
                 }
             }
 
-            ClockEvent?.Invoke();
+            Event_Clock?.Invoke();
         }
 
         public bool InitNew(){
@@ -926,9 +930,10 @@ namespace Play.Clock {
         /// </summary>
         public void Reset() {
             DateTime oDT = DateTime.Now.ToUniversalTime();
+            TimeZoneInfo oLocalZone = TimeZoneInfo.Local;
 
             DocClock.Clear();
-            DocClock.Append( new RowClock( "UTC", 0 ) { Time = oDT });
+            DocClock.Append( new DocumentClock.RowClock( "UTC", 0, TimeZoneInfo.Utc ) { Time = oDT });
 
             foreach( Row oRow in DocZones ) {
                 if( oRow is RowZone oRowZone && oRowZone.IsChecked ) {
@@ -937,9 +942,18 @@ namespace Play.Clock {
                     if( strZone.Length > iMaxTitle ) {
                         strZone = strZone[0..iMaxTitle];
                     }
-                    DocClock.Append( new RowClock( strZone, 
+                    DocClock.Append( new DocumentClock.RowClock( strZone, 
                                                    oRowZone.Offset, 
                                                    oRowZone.Zone ) { Time = oDT } );
+                }
+            }
+
+            foreach( Row oRow in DocClock ) {
+                if( oRow is DocumentClock.RowClock oRowC ) {
+                    if( oRowC.Zone.Id == oLocalZone.Id ) {
+                        oRowC[DocumentClock.RowClock.ColumnDisp].
+                            TryReplace(DocClock.CheckSetValue);
+                    }
                 }
             }
 

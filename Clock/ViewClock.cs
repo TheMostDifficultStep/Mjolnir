@@ -1,17 +1,20 @@
-﻿using System;
-using System.Reflection;
-using System.Xml;
-using System.Collections.Generic;
-
-using SkiaSharp;
-using SkiaSharp.Views.Desktop;
-
-using Play.Drawing;
+﻿using Play.Drawing;
 using Play.Edit;
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
+using SkiaSharp;
+using SkiaSharp.Views.Desktop;
+using System;
+using System.Collections.Generic;
+using System.Reflection;
+using System.Reflection.Metadata;
+using System.Security.Policy;
+using System.Xml;
 
 namespace Play.Clock {
+    using LCss     = LayoutRect.CSS;
+    using RowClock = DocumentClock.RowClock;
+
     /// <summary>
     /// Since this at present is an adornment. We don't implement Load/Save.
     /// </summary>
@@ -57,7 +60,7 @@ namespace Play.Clock {
 
         protected override void Dispose( bool disposing ) {
             if( disposing ) {
-                Document.DocClock.ClockEvent -= OnClockUpdated;
+                Document.DocClock.Event_Clock -= OnClockUpdated;
             }
             base.Dispose(disposing);
         }
@@ -66,13 +69,17 @@ namespace Play.Clock {
             if( !base.Initialize() ) 
                 return false;
 
-            Document.DocClock.ClockEvent += OnClockUpdated;
+            Document.DocClock.Event_Clock += OnClockUpdated;
 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex ), RowClock.ColumnTime); // time
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex ), RowClock.ColumnZone); // zones.
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex ), RowClock.ColumnDate); // date
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex ), RowClock.ColumnDofW); // day of week
+            List<ColumnInfo> rgCols = new List<ColumnInfo> {
+                new ( RowClock.ColumnDisp, new LayoutRect() { Style=LCss.Flex, Track=33 } ),
+                new ( RowClock.ColumnTime, new LayoutRect() { Style=LCss.Flex } ),       
+                new ( RowClock.ColumnZone, new LayoutRect() { Style=LCss.Flex } ),
+                new ( RowClock.ColumnDate, new LayoutRect() { Style=LCss.Flex } ),       
+                new ( RowClock.ColumnDofW, new LayoutRect() { Style=LCss.Flex } ),
+            };
 
+            InitColumns( rgCols );
             OnClockUpdated();
 
             return true;
@@ -150,8 +157,10 @@ namespace Play.Clock {
 
         public Guid Catagory => Guid;
 
+        protected RowClock CheckedRow { get; set; } = null;
+
         public ViewAnalogClock( IPgViewSite oViewSite, DocumentContainer oDoc ) {
-            DocContainer = oDoc ?? throw new ArgumentNullException();
+            DocContainer = oDoc      ?? throw new ArgumentNullException();
             _oViewSite   = oViewSite ?? throw new ArgumentNullException();
 
             _oViewNotify = _oViewSite.EventChain;
@@ -160,11 +169,16 @@ namespace Play.Clock {
         }
 
         protected override void Dispose(bool disposing) {
-            DocContainer.DocClock.ClockEvent -= ClockEvent;
+            DocContainer.DocClock.Event_Clock -= OnClockEvent;
+            DocContainer.DocClock.Event_Check -= OnRowChecked; 
+
         }
 
         public bool InitNew() {
-            DocContainer.DocClock.ClockEvent += ClockEvent;
+            CheckedRow = DocContainer.DocClock.CheckedRow as RowClock;
+
+            DocContainer.DocClock.Event_Clock += OnClockEvent;
+            DocContainer.DocClock.Event_Check += OnRowChecked;
             InitFace();
 
             return true;
@@ -251,7 +265,12 @@ namespace Play.Clock {
             _rgFace.Add( new HandSecs ( rgSecs,  SKColors.Red,      0 ) );
         }
 
-        private void ClockEvent() {
+        private void OnClockEvent() {
+            Invalidate();
+        }
+
+        public void OnRowChecked( Row oRow ) {
+            CheckedRow = oRow as RowClock;
             Invalidate();
         }
 
@@ -324,6 +343,23 @@ namespace Play.Clock {
 
         //private int _iMinute = 0;
 
+        protected DateTime Now {
+            get {
+                DateTime dtNow = DateTime.Now;
+
+                if( CheckedRow is null ) {
+                    return dtNow;
+                }
+                dtNow = dtNow.ToUniversalTime().AddHours( CheckedRow.Offset );
+
+                if( CheckedRow.Zone.IsDaylightSavingTime( dtNow ) ) {
+                    dtNow = dtNow.AddHours( 1 );
+                }
+
+                return dtNow;
+            }
+        }
+
         /// <summary>
         /// For SOME reason every other point is rotating in the OPPOSITE direction!!
         /// That makes the hands look weird at certain points.
@@ -332,7 +368,7 @@ namespace Play.Clock {
         /// <param name="fSecondsOnly">Show only the seconds hand.</param>
         protected void DrawHands( SKCanvas oCanvas ) {
             SKPaint     sPaint   = new();
-            DateTime    dtNow    = DateTime.Now;
+            DateTime    dtNow    = Now;
 
             //DateTime    dtNow    = new DateTime( new DateOnly( 2026, 1, 24 ),
             //                                     new TimeOnly( 8, _iMinute++ % 60 ) );
