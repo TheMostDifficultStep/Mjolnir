@@ -72,8 +72,8 @@ namespace Play.Clock {
             Document.DocClock.Event_Clock += OnClockUpdated;
 
             List<ColumnInfo> rgCols = new List<ColumnInfo> {
-                new ( RowClock.ColumnDisp, new LayoutRect() { Style=LCss.Flex, Track=33 } ),
                 new ( RowClock.ColumnTime, new LayoutRect() { Style=LCss.Flex } ),       
+                new ( RowClock.ColumnDisp, new LayoutRect() { Style=LCss.Flex, Track=25 } ),
                 new ( RowClock.ColumnZone, new LayoutRect() { Style=LCss.Flex } ),
                 new ( RowClock.ColumnDate, new LayoutRect() { Style=LCss.Flex } ),       
                 new ( RowClock.ColumnDofW, new LayoutRect() { Style=LCss.Flex } ),
