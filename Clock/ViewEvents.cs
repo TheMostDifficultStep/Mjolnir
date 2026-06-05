@@ -68,10 +68,12 @@ namespace Play.Clock {
 					break;
 				case '\r':
 					// Not likely unset upon key press. But problematic if negative.
-					if( _oCacheMan.CaretAt < 0 )
-						break;
+                    int iPosition = _oCacheMan.CaretAt + 1;
+					if( _oCacheMan.CaretAt < 0 ) {
+                        iPosition = 0;
+                    }
 
-					if( _oDocContainer.DocSched.InsertNew( _oCacheMan.CaretAt + 1 ) is Row oRow ) {
+					if( _oDocContainer.DocSched.InsertNew( iPosition ) is Row oRow ) {
 						_oCacheMan.CaretReset( oRow, iColumn:0 );
 					}
 					break;
