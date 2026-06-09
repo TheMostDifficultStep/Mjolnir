@@ -38,12 +38,12 @@ namespace Play.Clock {
             if( !base.Initialize() )
                 return false;
 
-            List<ColumnInfo> rgCols = new List<ColumnInfo> {
+            List<ColumnInfo> rgCols = [
                 new ( (int)DClmn.Time, new LayoutRect() { Style=LCss.Flex } ),
                 new ( (int)DClmn.Freq, new LayoutRect() { Style=LCss.Flex } ),       
-                new ( (int)DClmn.Days,   new LayoutRect() { Style=LCss.Flex } ),
+                new ( (int)DClmn.Days, new LayoutRect() { Style=LCss.Flex } ),
                 new ( (int)DClmn.Desc, new LayoutRect() { Style=LCss.None } ),
-            };
+            ];
 
             InitColumns( rgCols );
 

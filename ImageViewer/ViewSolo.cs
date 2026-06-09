@@ -106,7 +106,8 @@ namespace Play.ImageViewer {
 	{
 		public enum Tools : int {
 			Select = 0,
-			Navigate
+			Navigate,
+			ColorPik
 		}
 
 		protected readonly IPgShellSite _oSiteShell;
@@ -365,6 +366,13 @@ namespace Play.ImageViewer {
 					}
 				}
 			}
+			if( _eToolCurrent == Tools.ColorPik ) {
+				Color color = Color.FromArgb(255, 69, 0); // OrangeRed
+				string hexString = $"#{color.R:X2}{color.G:X2}{color.B:X2}";
+
+				// Copy to clipboard
+				Clipboard.SetText(hexString);
+			}
         }
 
         protected override void OnMouseUp(MouseEventArgs e) {
@@ -529,16 +537,9 @@ namespace Play.ImageViewer {
 			} catch( InvalidOperationException ) {
 			}
 
-            _rgLeft.Add( _rctLeft );
-            _rgLeft.Add( _rctBottomLeft );
-            _rgLeft.Add( _rctTopLeft );
-
-            _rgRight.Add( _rctRight );
-            _rgRight.Add( _rctBottomRight );
-            _rgRight.Add( _rctTopRight );
-
-			_rgTools.Add( "Select" );
-			_rgTools.Add( "Navigate" );
+            _rgLeft  = [ _rctLeft, _rctBottomLeft, _rctTopLeft ];
+            _rgRight = [ _rctRight, _rctBottomRight, _rctTopRight ];
+			_rgTools = [ "Select" ,"Navigate", "Color Picker" ];
 
 			_eToolCurrent = Tools.Navigate;
         }
@@ -549,7 +550,7 @@ namespace Play.ImageViewer {
 
 			SetBorderOn(); // Want room for grab handles at all times.
 
-			ToolSelect = _rgTools.Count - 1;
+			ToolSelect = (int)Tools.Navigate;
 
             try {
                 _oCursorLeft  = User32.CreateCursorNoResize( BitmapCreateFromChar( "\xE973" ), 16, 16 );
