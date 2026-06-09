@@ -502,7 +502,11 @@ namespace Play.ImageViewer {
         /// freeze Skywalker for his journy to the emperor.
         /// </summary>
         public SKColor[,] SnapShot() {
-            SKImage    oImgSnap  = Surface.Snapshot();
+            SKImage oImgSnap = Surface.Snapshot();
+
+            if( oImgSnap is null )
+                throw new InvalidOperationException( "couldn't grab snap" );
+
             SKBitmap   oBmpSnap  = SKBitmap.FromImage( oImgSnap );
             SKColor[,] rgClrSnap = new SKColor[ oImgSnap.Width, oImgSnap.Height ];
 

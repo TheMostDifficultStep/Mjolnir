@@ -57,40 +57,6 @@ namespace Play.SSTV {
         public void LogError( string strMessage ) {
             _oToUIQueue.Enqueue( new SSTVMessage(SSTVEvents.ThreadException, -1 ) );
         }
-
-        public static string FileNameGenerate  {
-            get {
-                DateTime      sNow   = DateTime.Now.ToUniversalTime();
-                StringBuilder sbName = new();
-
-                sbName.Append( sNow.Year  .ToString( "D4" ) );
-                sbName.Append( '-' );
-                sbName.Append( sNow.Month .ToString( "D2" ) );
-                sbName.Append( '-' );
-                sbName.Append( sNow.Day   .ToString( "D2" ) );
-                sbName.Append( '_' );
-                sbName.Append( sNow.Hour  .ToString( "D2" ) );
-                sbName.Append( sNow.Minute.ToString( "D2" ) );
-                sbName.Append( 'z' );
-               
-                return sbName.ToString();
-            }
-        }
-
-        public static string FileNameCleanUp( string strFileName ) {
-            char[] rgLine    = strFileName.ToCharArray();
-            char[] rgIllegal = Path.GetInvalidFileNameChars();
-
-            for( int i = 0; i< rgLine.Length; ++i ) {
-                foreach( char cBadChar in rgIllegal ) {
-                    if( rgLine[i] == cBadChar )
-                        rgLine[i] = '_';
-                }
-            }
-            return new string( rgLine ); // So rgLine.ToString() doesn't work b/c array is ref type.
-        }
-
-        public abstract void SaveImage( SSTVMode tvMode );
     }
 
     /// <summary>
@@ -181,8 +147,7 @@ namespace Play.SSTV {
         public void DoWork( SSTVMode oMode ) {
             try {
                 _oSSTVDeMo.Send_NextMode  = _oSSTVDraw.OnModeTransition_SSTVDeMo;
-                _oSSTVDraw.Send_TvMessage = OnTVEvents_SSTVDraw;
-                _oSSTVDraw.Send_SavePoint = SaveImage;
+                _oSSTVDraw.Send_TvMessage = Send_ImageSaveReq;
 
                 // Note: SSTVDemodulator.Start() will try to use the callback(s) above.
                 if( oMode != null ) {
@@ -198,7 +163,7 @@ namespace Play.SSTV {
                 // Check if there's any leftover and if so, save it. Don't call
                 // Stop()! That will happen automatically when the bitmap gets full.
                 if( _oSSTVDraw.PercentRxComplete > 25 ) {
-                    SaveImage( _oSSTVDraw.Mode );
+                    Send_ImageSaveReq( new( SSTVEvents.ImageSaveRequest, 0 ) );
                 }
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( DirectoryNotFoundException ),
@@ -218,55 +183,12 @@ namespace Play.SSTV {
         /// Listen to the SSTVDraw object. 
         /// </summary>
         /// <seealso cref="OnNextMode_SSTVDemo"/>
-        private void OnTVEvents_SSTVDraw( SSTVMessage sEvent ) {
+        private void Send_ImageSaveReq( SSTVMessage sEvent ) {
             _oToUIQueue.Enqueue( sEvent );
         }
 
         IEnumerator IEnumerable.GetEnumerator() {
             return GetEnumerator();
-        }
-
-        public override void SaveImage( SSTVMode tvMode ) {
-            if( tvMode == null ) {
-                LogError( "Odd the current SSTVMode is null." );
-                return;
-            }
-
-            try {
-                using ImageSoloDoc oSnipDoc = new( new DocSlot( this ) );
-			    SKRectI rcWorldDisplay = new SKRectI( 0, 0, tvMode.Resolution.Width, tvMode.Resolution.Height );
-
-                // Need to snip the image since we might not be using the entire display image.
-                using SKImage oImage = DocDownloadBuffer.CreateImage( _oSSTVDraw._rgBitmapRX, tvMode.Resolution );
-                if( !oSnipDoc.Load( oImage, rcWorldDisplay, rcWorldDisplay.Size ) )
-                    return;
-
-                _iDecodeCount++;
-
-                // Figure out path and name of the file.
-                string strFilePath = Path.GetDirectoryName( _strFileName );
-                string strFileName = Path.GetFileNameWithoutExtension( _strFileName );
-                string strModeName = tvMode.FamilyName + tvMode.Version.Replace( " ", string.Empty );
-                string strSavePath = Path.Combine( strFilePath, strFileName + "_" + strModeName + "_" + _iDecodeCount.ToString() + ".jpg" );
-
-                // Overrite any existing file!!
-                using var stream   = File.OpenWrite( strSavePath );
-
-                oSnipDoc.Save( stream );
-            } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( NullReferenceException ),
-                                    typeof( IOException ),
-                                    typeof( ArgumentException ),
-                                    typeof( ArgumentNullException ),
-                                    typeof( PathTooLongException ),
-                                    typeof( DirectoryNotFoundException ), 
-                                    typeof( NotSupportedException ),
-                                    typeof( NullReferenceException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
-                    throw;
-
-                LogError( "Exception in File Decode Save" );
-            }
         }
     }
 
@@ -277,8 +199,6 @@ namespace Play.SSTV {
       //protected readonly ConcurrentQueue<double>      _oDataQueue; 
         protected readonly WaveFormat                   _oDataFormat;
         protected readonly ConcurrentQueue<TVMessage>   _oInputQueue;
-        protected          string                       _strFilePath;   // path and img quality could potentially change
-        protected readonly string                       _strFileName;
         protected readonly int                          _iImageQuality; // on the fly; yet doesn't seem mainline usage.
 
         protected          SSTVMode _oLastMode; // Help with image save.
@@ -325,8 +245,6 @@ namespace Play.SSTV {
                                      int                          iMicrophone,
                                      double                       dblSampleRate,
                                      int                          iImageQuality,
-                                     string                       strFilePath,
-                                     string                       strFileName,
                                      ConcurrentQueue<SSTVMessage> oToUIQueue, 
                                      ConcurrentQueue<TVMessage>   oInputQueue,
                                      SKColor[,]                   rgD12,
@@ -335,9 +253,7 @@ namespace Play.SSTV {
             base( oToUIQueue )
         {
             _oInputQueue   = oInputQueue ?? throw new ArgumentNullException( nameof( oInputQueue   ) );
-            _strFilePath   = strFilePath ?? throw new ArgumentNullException( nameof( strFilePath ) );
             _iImageQuality = iImageQuality;
-            _strFileName   = strFileName;
 
             _iSpeaker      = iMonitor;
             _iMicrophone   = iMicrophone;
@@ -411,13 +327,6 @@ namespace Play.SSTV {
                             _oSSTVDeMo.Reset();
                         }
                         break;
-                    case TVMessage.Message.ChangeDirectory:
-                        _strFilePath = oMsg._oParam as string;
-                        break;
-                    case TVMessage.Message.SaveNow:
-                        SaveImage( _oLastMode );
-                        _oToUIQueue.Enqueue( new( SSTVEvents.ImageSaved, 0 ) );
-                        break;
                     case TVMessage.Message.Frequency:
                         _oSSTVDraw.ManualSlopeAdjust( oMsg._iParam / 100.0 );
                         break;
@@ -440,7 +349,6 @@ namespace Play.SSTV {
             try {
                 _oSSTVDeMo.Send_NextMode  = _oSSTVDraw.OnModeTransition_SSTVDeMo;
                 _oSSTVDraw.Send_TvMessage = OnTvEvents_SSTVDraw;
-                _oSSTVDraw.Send_SavePoint = SaveImage;
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( ApplicationException ) };
@@ -498,68 +406,6 @@ namespace Play.SSTV {
 
             _oToUIQueue.Enqueue( new( SSTVEvents.ThreadExit, 0 ) );
         }
-
-        /// <summary>
-        /// Save the image. 
-        /// </summary>
-		public async override void SaveImage( SSTVMode tvMode ) {
-            if( tvMode == null ) {
-                LogError( "Odd the current SSTVMode is null." );
-                return;
-            }
-
-            Action oSaveAction = delegate () {
-                // BE CAREFUL! We can only get away with this because the DocSlot only implements
-                // the LogError and that is thread safe.
-                // BUG: We're back in a race condition: If the bitmap get's blitzed right away by
-                // a new transmission we might not have snipped it yet. I could just have a dedicated
-                // SnipDoc to create the bitmap, then pass it to some custom save code. Let's see how it goes.
-                try {
-                    using ImageSoloDoc oSnipDoc = new( new DocSlot( this ) );
-			        SKRectI rcWorldDisplay = new SKRectI( 0, 0, tvMode.Resolution.Width, tvMode.Resolution.Height );
-
-                    // Need to snip the image since we might not be using the entire display image.
-                    using SKImage oImage = DocDownloadBuffer.CreateImage( _oSSTVDraw._rgBitmapRX,tvMode.Resolution );
-                    if( !oSnipDoc.Load( oImage, rcWorldDisplay, rcWorldDisplay.Size ) )
-                        return;
-
-                    // I could get the name of the file from the settings, HOWEVER then I have to deal
-                    // with the file name possibly existing, and figure out all name overlap issues.
-                    // So I'm going to punt for now and ignore the passed in file name. We still might
-                    // collide but it's less likely.
-                    // Path.GetFileNameWithoutExtension( _strFileName )
-                
-                    string strFileName = FileNameCleanUp( FileNameGenerate );
-                    string strModeName = tvMode.FamilyName + tvMode.Version.Replace( " ", string.Empty );
-                    string strFilePath = Path.Combine  ( _strFilePath, strFileName + "_" + strModeName + ".jpg" );
-                    using var stream   = File.OpenWrite( strFilePath );
-
-                    oSnipDoc.Save( stream );
-                } catch( Exception oEx ) {
-                    Type[] rgErrors = { typeof( NullReferenceException ),
-                                        typeof( IOException ),
-                                        typeof( ArgumentException ),
-                                        typeof( ArgumentNullException ),
-                                        typeof( PathTooLongException ),
-                                        typeof( DirectoryNotFoundException ), 
-                                        typeof( NotSupportedException ),
-                                        typeof( NotImplementedException ) };
-                    if( rgErrors.IsUnhandled( oEx ) )
-                        throw;
-
-                    LogError( "Exception in Device Image Save Thread: " + oEx.Message );
-                }
-            };
-
-            Task oTask = new Task( oSaveAction );
-
-            oTask.Start();
-
-            await oTask;
-
-            // Don't dispose task. It's a bit lengthy and we're not run
-            // frequently enough to put pressure on the GC.
-		}
 
     }
 
@@ -738,7 +584,7 @@ namespace Play.SSTV {
                               ConcurrentQueue<TVMessage> oInputQueue, 
                               SKColor[,] rgD12, SKColor[,] rgRx, int iThreadCnt=3 
                             ) : 
-            base( iMonitor, -1, 0.0, iImageQuality, strFilePath, string.Empty, oToUIQueue,
+            base( iMonitor, -1, 0.0, iImageQuality, oToUIQueue,
                   oInputQueue, rgD12, rgRx, iThreadCnt )
         {
             int iBytesNeeded = (_iBitRate / 8) * (_iSleepMS / 1000) + 1000;

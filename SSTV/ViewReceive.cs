@@ -1,21 +1,22 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Reflection;
-using System.Text;
-using System.Windows.Forms;
-using System.Xml;
-
-using SkiaSharp;
-using SkiaSharp.Views.Desktop;
-
-using Play.Drawing;
+﻿using Play.Drawing;
 using Play.Edit;
 using Play.Forms;
 using Play.ImageViewer;
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Sound;
+using SkiaSharp;
+using SkiaSharp.Views.Desktop;
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.IO;
+using System.Reflection;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using System.Xml;
+using static Play.Edit.BaseEditor;
 
 namespace Play.SSTV {
 
@@ -353,8 +354,8 @@ namespace Play.SSTV {
 			}
 
 			if( sGuid == GlobalCommands.Save ) {
-				_oDocSSTV.ReceiveSave();
-				return true; // make sure you return true or a docsstv.save (settings) gets called.
+				_oDocSSTV.SaveImage();
+				return true; // make sure you return true or a docsstv.save settings gets called.
 			}
 
             return base.Execute(sGuid);
@@ -751,8 +752,8 @@ namespace Play.SSTV {
 				return true;
 			}
 			if( sGuid == GlobalCommands.Save ) {
-				_oDocSSTV.ReceiveSave();
-				return true; // make sure you return true or a docsstv.save (settings) gets called.
+				_oDocSSTV.SaveImage();
+				return true; 
 			}
 			if( sGuid == GlobalCommands.JumpPrev) { 
 				_wmViewRxImg.BringToFront();

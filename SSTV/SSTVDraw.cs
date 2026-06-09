@@ -22,6 +22,7 @@ namespace Play.SSTV {
 		protected readonly SKImageInfo _oInfo;
 
         public SKColor[,] Buffer { get; protected set; } // SKColor[row,colm]
+		public SSTVMode   LastRxMode { get; set; } // What we're probably displaying.
 
         public DocDownloadBuffer(IPgBaseSite oSiteBase) : base(oSiteBase) {
 			_oInfo = new SKImageInfo(800, 616, SKColorType.Bgra8888, SKAlphaType.Opaque);
@@ -41,6 +42,10 @@ namespace Play.SSTV {
 
 		public void CreateImage() {
 			Image = CreateImage( Buffer, WorldDisplay.Size );
+		}
+
+		public SKImage CreateImage( SKSizeI oRez ) {
+			return CreateImage( Buffer, oRez );
 		}
 
 		public static SKImage CreateImage( SKColor[,] rgBuffer, SKSizeI oRez ) {
@@ -444,7 +449,6 @@ namespace Play.SSTV {
 		// There's only one consumer of these events so these are just a delegate
 		// onto the listener.
 		public Action<SSTVMessage> Send_TvMessage;
-		public Action<SSTVMode >   Send_SavePoint;
 
 		/// <remarks>
 		/// Techically we dont need all of the demodulator but only access to the signal
@@ -475,7 +479,7 @@ namespace Play.SSTV {
 			_rgBitmapRX[iY,iX ] = sColor;
 		}
 
-	/// <summary>this method get's called to initiate the processing of
+		/// <summary>this method get's called to initiate the processing of
 		/// a new image.</summary>
 		/// <seealso cref="OnModeTransition_SSTVDeMo"/>
 		/// <seealso cref="InitSlots"/>
@@ -529,7 +533,7 @@ namespace Play.SSTV {
 				// Need to send regardless, but might get a bum image if not
 				// includes vis and we guess a wrong start state.
 				Send_TvMessage( new( SSTVEvents.DownLoadFinished, PercentRxComplete ) );
-				Send_SavePoint( Mode ); // _dp hasn't been reset yet! Wheeww!
+				Send_TvMessage( new( SSTVEvents.ImageSaveRequest, 0 ) );
 
 				if( _dp.Synced ) {
 					// Send download finished BEFORE reset so we can save image
@@ -1008,8 +1012,9 @@ namespace Play.SSTV {
             if( ImageSizeInSamples != 0 ) {
 			    double dblProgress = iPrevBase * 100 / ImageSizeInSamples;
 
-                if( dblProgress > 25 )
-                    Send_SavePoint?.Invoke( oPrevMode );
+                if( dblProgress > 25 ) {
+					Send_TvMessage( new SSTVMessage( SSTVEvents.ImageSaveRequest, 0 ) );
+				}
             }
 
 			try {

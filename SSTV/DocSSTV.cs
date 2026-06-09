@@ -284,8 +284,8 @@ namespace Play.SSTV {
 		DownLoadTime,
         DownLoadFinished,
         DownloadLevels,
+        ImageSaveRequest,
         ImageUpdated,
-        ImageSaved,
         ThreadException,
         ThreadAbort,
         ThreadExit
@@ -295,9 +295,7 @@ namespace Play.SSTV {
 
     public class TVMessage {
         public enum Message {
-            SaveNow,
             TryNewMode,
-            ChangeDirectory,
             ExitWorkThread,
             Frequency,
             Intercept,
@@ -702,8 +700,8 @@ namespace Play.SSTV {
         }
 
         private void OnCheckEvent_RxSSTVModeDoc(Row oRow) {
-            if( oRow is SSTVModeDoc.DDRow oModeRow ) {
-                _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.TryNewMode, oModeRow.Mode ) );
+            if( oRow is SSTVModeDoc.DDRow oRowMode ) {
+                _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.TryNewMode, oRowMode.Mode ) );
             }
         }
 
@@ -1057,9 +1055,6 @@ namespace Play.SSTV {
             Properties.ValueUpdate( SSTVProperties.Names.Rx_SaveDir,     RxHistoryList.CurrentShowPath );
             Properties.ValueUpdate( SSTVProperties.Names.Rx_HistoryFile, RxHistoryList.CurrentShowFile );
 
-            if( StateRx == DocSSTVState.DeviceRead ) {
-                _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.ChangeDirectory, RxHistoryList.CurrentDirectory ) );
-            }
             TxBitmapComp.Clear(); // We have references to RxHistoryList.Bitmap we must clear;
             RenderComposite();
         }
@@ -1488,6 +1483,105 @@ namespace Play.SSTV {
 			return true;
 		}
 
+        public static string FileNameGenerate  {
+            get {
+                DateTime      sNow   = DateTime.Now.ToUniversalTime();
+                StringBuilder sbName = new();
+
+                sbName.Append( sNow.Year  .ToString( "D4" ) );
+                sbName.Append( '-' );
+                sbName.Append( sNow.Month .ToString( "D2" ) );
+                sbName.Append( '-' );
+                sbName.Append( sNow.Day   .ToString( "D2" ) );
+                sbName.Append( '_' );
+                sbName.Append( sNow.Hour  .ToString( "D2" ) );
+                sbName.Append( sNow.Minute.ToString( "D2" ) );
+                sbName.Append( 'z' );
+               
+                return sbName.ToString();
+            }
+        }
+
+        public static string FileNameCleanUp( string strFileName ) {
+            char[] rgLine    = strFileName.ToCharArray();
+            char[] rgIllegal = Path.GetInvalidFileNameChars();
+
+            for( int i = 0; i< rgLine.Length; ++i ) {
+                foreach( char cBadChar in rgIllegal ) {
+                    if( rgLine[i] == cBadChar )
+                        rgLine[i] = '_';
+                }
+            }
+            return new string( rgLine ); // So rgLine.ToString() doesn't work b/c array is ref type.
+        }
+
+        /// <summary>
+        /// Save the image. 
+        /// </summary>
+		public async void SaveImage() {
+			SSTVMode tvMode = DisplayImage.LastRxMode;
+
+            if( tvMode == null ) {
+                LogError( "Undefined SSTVMode at present." );
+                return;
+            }
+
+            Action oSaveAction = delegate () {
+                // BE CAREFUL! We can only get away with this because the DocSlot only implements
+                // the LogError and that is thread safe.
+                // BUG: We're back in a race condition: If the bitmap get's blitzed right away by
+                // a new transmission we might not have snipped it yet. I could just have a dedicated
+                // SnipDoc to create the bitmap, then pass it to some custom save code. Let's see how it goes.
+                try {
+                    using ImageSoloDoc oSnipDoc = new( new DocSlot( this ) );
+			        SKRectI rcWorldDisplay = new SKRectI( 0, 0, tvMode.Resolution.Width, tvMode.Resolution.Height );
+
+                    // Need to snip the image since we might not be using the entire display image.
+                    using SKImage oImage = DisplayImage.CreateImage( tvMode.Resolution );
+                    if( !oSnipDoc.Load( oImage, rcWorldDisplay, rcWorldDisplay.Size ) )
+                        return;
+
+                    // I could get the name of the file from the settings, HOWEVER then I have to deal
+                    // with the file name possibly existing, and figure out all name overlap issues.
+                    // So I'm going to punt for now and ignore the passed in file name. We still might
+                    // collide but it's less likely.
+                    // Path.GetFileNameWithoutExtension( _strFileName )
+                
+                    string strModeName = tvMode.FamilyName + tvMode.Version.Replace( " ", string.Empty );
+                    string strFileName = FileNameCleanUp( FileNameGenerate );
+                    string strFilePath = Path.Combine   ( RxHistoryList.CurrentDirectory, strFileName + "_" + strModeName + ".jpg" );
+                    using var stream   = File.OpenWrite ( strFilePath );
+
+                    oSnipDoc.Save( stream );
+
+                    PropertyChange?.Invoke( SSTVEvents.ImageSaveRequest );
+                    RxHistoryList  .Refresh();
+                } catch( Exception oEx ) {
+                    Type[] rgErrors = { typeof( NullReferenceException ),
+                                        typeof( IOException ),
+                                        typeof( ArgumentException ),
+                                        typeof( ArgumentNullException ),
+                                        typeof( PathTooLongException ),
+                                        typeof( DirectoryNotFoundException ), 
+                                        typeof( NotSupportedException ),
+                                        typeof( NotImplementedException ) };
+                    if( rgErrors.IsUnhandled( oEx ) )
+                        throw;
+
+                    LogError( "Exception in Device Image Save Thread: " + oEx.Message );
+                }
+            };
+
+            Task oTask = new Task( oSaveAction );
+
+            oTask.Start();
+
+            await oTask;
+
+            // Don't dispose task. It's a bit lengthy and we're not run
+            // frequently enough to put pressure on the GC.
+		}
+
         /// <summary>
         /// Clears the Transmit task which will cause any bg TX task to exit.
         /// Wait until it's done and return. 
@@ -1543,10 +1637,11 @@ namespace Play.SSTV {
             }
 
             void oTransmitAction() {
-                SKColor[,] bmpCopy = TxBitmapComp.SnapShot();
-                double     dblFreq = Properties.ValueGetAsDbl(SSTVProperties.Names.Std_Frequency);
-                TxState    oState  = null;
+                TxState oState = null;
                 try {
+                    SKColor[,] bmpCopy = TxBitmapComp.SnapShot();
+                    double     dblFreq = Properties.ValueGetAsDbl(SSTVProperties.Names.Std_Frequency);
+
                     oState = new TxState( oMode, dblFreq, MicrophoneGain,
                                           PortTxList.CheckedLine.At,
                                           bmpCopy, _rgBGtoUIQueue);
@@ -1555,7 +1650,8 @@ namespace Play.SSTV {
                     Type[] rgErrors = { typeof( BadDeviceIdException ),
                                         typeof( NullReferenceException ),
                                         typeof( ArgumentException ),
-                                        typeof( ArgumentNullException ) };
+                                        typeof( ArgumentNullException ),
+                                        typeof( InvalidOperationException ) };
                     if( rgErrors.IsUnhandled(oEx) )
                         throw;
 
@@ -1596,7 +1692,8 @@ namespace Play.SSTV {
                             SignalLevelRender( sResult );
                         } break;
                         case SSTVEvents.ModeChanged: {
-                            SSTVMode oMode = RxSSTVModeDoc.GetDescriptor( (AllSSTVModes)sResult.ParamInt );
+                            DisplayImage.LastRxMode = RxSSTVModeDoc.GetDescriptor( (AllSSTVModes)sResult.ParamInt );
+                            SSTVMode oMode = DisplayImage.LastRxMode;
 
                             if( oMode == null ) {
                                 RxSSTVFamilyDoc.ResetFamily();
@@ -1637,9 +1734,8 @@ namespace Play.SSTV {
 
                             RxHistoryList.Refresh();
                             break;
-                        case SSTVEvents.ImageSaved: 
-                            PropertyChange?.Invoke( SSTVEvents.ImageSaved );
-                            RxHistoryList.Refresh();
+                        case SSTVEvents.ImageSaveRequest: 
+                            SaveImage();
                             break;
                         case SSTVEvents.ThreadExit:
                             // If there's an abort, you'll get that message and then this one.
@@ -1694,9 +1790,9 @@ namespace Play.SSTV {
             }
         }
 
-        public void ReceiveSave() {
-			_rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.SaveNow ) );
-        }
+   //     public void ReceiveSave() {
+			//_rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.SaveNow ) );
+   //     }
 
         /// <summary>
         /// Read the file given. If the mode is not null use that as the starting mode for
@@ -1845,10 +1941,9 @@ namespace Play.SSTV {
                     }
 
                     DeviceListeningState oWorker = new DeviceListeningState(
-                        iMonitor, iMicrophone,
-                        dblFreq,
-                        iQuality, strSaveDir, String.Empty,
-                        _rgBGtoUIQueue, _rgUItoBGQueue,
+                        iMonitor,         iMicrophone,
+                        dblFreq,          iQuality,
+                        _rgBGtoUIQueue,   _rgUItoBGQueue,
                         SyncImage.Buffer, DisplayImage.Buffer,
                         RxThreadCnt );
 
