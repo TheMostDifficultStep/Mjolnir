@@ -1692,8 +1692,9 @@ namespace Play.SSTV {
                             SignalLevelRender( sResult );
                         } break;
                         case SSTVEvents.ModeChanged: {
-                            DisplayImage.LastRxMode = RxSSTVModeDoc.GetDescriptor( (AllSSTVModes)sResult.ParamInt );
-                            SSTVMode oMode = DisplayImage.LastRxMode;
+                            SSTVMode oMode = RxSSTVModeDoc.GetDescriptor( (AllSSTVModes)sResult.ParamInt );
+                            
+                            DisplayImage.LastRxMode = oMode;
 
                             if( oMode == null ) {
                                 RxSSTVFamilyDoc.ResetFamily();
