@@ -20,9 +20,17 @@ namespace Play.SSTV {
 		DocImageBase 
 	{
 		protected readonly SKImageInfo _oInfo;
+		protected          SSTVMode    _oLastMode;
 
         public SKColor[,] Buffer { get; protected set; } // SKColor[row,colm]
-		public SSTVMode   LastRxMode { get; set; } // What we're probably displaying.
+		public SSTVMode LastRxMode { 
+			get { return _oLastMode; }
+			// We want to save the last known value we were set to.
+			set { 
+				if( value is not null )
+					_oLastMode = value;
+			}
+		} // What we're probably displaying.
 
         public DocDownloadBuffer(IPgBaseSite oSiteBase) : base(oSiteBase) {
 			_oInfo = new SKImageInfo(800, 616, SKColorType.Bgra8888, SKAlphaType.Opaque);
