@@ -402,12 +402,15 @@ namespace Play.ImageViewer {
                 }
                 string strFullName = Path.Combine( PropertiesDoc.ValueAsStr( (int)ImageSnipProperties.Labels.FilePath ),
                                                    PropertiesDoc.ValueAsStr( (int)ImageSnipProperties.Labels.FileName ) );
-                using Stream oStream = File.Open(strFullName, FileMode.Create);
-                if( !oSnipTemp.Save(oStream) ) {
-                    _oSiteBase.LogError("Snip Save", "Could not create the snip copy, stream error.");
-                    return;
-                }
-                oStream.Flush();
+				// Got to use the {}'d using so the stream is truly finished overriting
+				// the old file. Else I fail on LoadAgain().
+                using( Stream oStream = File.Open(strFullName, FileMode.Create) ) {
+					if( !oSnipTemp.Save(oStream) ) {
+						_oSiteBase.LogError("Snip Save", "Could not create the snip copy, stream error.");
+						return;
+					}
+					oStream.Flush();
+				}
 
                 _oDocument.LoadAgain( _oDocument.CurrentFullPath );
             } catch( Exception oEx ) {
