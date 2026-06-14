@@ -1,15 +1,15 @@
 ﻿using Play.Edit;
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
+
 using SkiaSharp;
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
 using System.Xml;
-using static Mjolnir.LayoutExclusive;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace Mjolnir {
     /// <summary>
@@ -1022,11 +1022,12 @@ namespace Mjolnir {
             //}
             // The MENU get's the final say!!
             foreach( IPgMenuVisibility oCurrentMenuItem in DecorSettings ) {
-                if( oCurrentMenuItem.Orientation == eOrientation &&
-                    oCurrentMenuItem.Checked && 
-                    oCurrentMenuItem.Shepard.AdornmentShuffle( _oSelectedWinSite )  ) 
-                {
-                    fAnyReady = true;
+                if( oCurrentMenuItem.Orientation == eOrientation ) {
+                    if( oCurrentMenuItem.Checked && 
+                        oCurrentMenuItem.Shepard.AdornmentShuffle( _oSelectedWinSite )  ) 
+                    {
+                        fAnyReady = true;
+                    }
                 }
             }
 
