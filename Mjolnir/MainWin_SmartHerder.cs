@@ -307,7 +307,7 @@ namespace Mjolnir {
                     // Shell sets all tabstops to false, we turn it on only if we are visible.
                     oPair.Value.TabStop = this[ SCALAR.WIDTH ] > 0 || this[ SCALAR.HEIGHT] > 0;
 			    } else {
-                    // Don't use Hide() it deosn't work... >:-(
+                    // Don't use Hide() it doesn't work... >:-(
 					oPair.Value.Visible = false;
                 }
 			}

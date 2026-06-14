@@ -933,7 +933,7 @@ namespace Play.Clock {
             TimeZoneInfo oLocalZone = TimeZoneInfo.Local;
 
             DocClock.Clear();
-            DocClock.Append( new DocumentClock.RowClock( "UTC", 0, TimeZoneInfo.Utc ) { Time = oDT });
+            DocClock.Append( new DocumentClock.RowClock( "UTC", 0, TimeZoneInfo.Utc ) { Time = oDT, Is24Hour = true });
 
             foreach( Row oRow in DocZones ) {
                 if( oRow is RowZone oRowZone && oRowZone.IsChecked ) {

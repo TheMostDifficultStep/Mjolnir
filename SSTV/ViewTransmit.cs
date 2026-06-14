@@ -260,10 +260,9 @@ namespace Play.SSTV {
 
 			LayoutIcon            oTabIcon = new( oImg, LayoutRect.CSS.Flex );
             LayoutPattern         oTabStat = new( LayoutRect.CSS.Pixels, 5, oLine, TabStatus );
-				
-			LayoutStackHorizontal oTab = new () { Spacing = 5, 
-                                                  BackgroundColor = TabBackground, 
-                                                  Extra = oLine };
+			LayoutStackHorizontal oTab     = new() { Spacing = 5, 
+                                                     BGColor = TabBackground, 
+                                                     Extra   = oLine };
             oTab.Add( oTabStat );
 			oTab.Add( oTabIcon );
 

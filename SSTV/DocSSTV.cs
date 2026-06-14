@@ -1219,7 +1219,7 @@ namespace Play.SSTV {
             if( fHighContrast ) { 
                 Func< object, SKColor > oFunc = delegate( object x )  { return SKColors.Black; };
 
-                oHoriz = new LayoutStackHorizontal() { Layout = LayoutRect.CSS.Pixels, Track = uiPixHeight, BackgroundColor = oFunc };
+                oHoriz = new LayoutStackHorizontal() { Layout = LayoutRect.CSS.Pixels, Track = uiPixHeight, BGColor = oFunc };
             } else {
                 oHoriz = new LayoutStackBgGradient( TRACK.HORIZ ) { 
                         Layout = LayoutRect.CSS.Pixels, 
@@ -1315,8 +1315,8 @@ namespace Play.SSTV {
             const int iScreenPixPerInch = 72;
             uint            uiPixHeight = (uint)((double)oMode.Resolution.Height * dblFractionalHeight );
             
-            oHorizImgs = new LayoutStackHorizontal() { Layout = LayoutRect.CSS.None, BackgroundColor = oFunc, Spacing = 5 };
-            oVertiMain = new LayoutStackVertical  () { Layout = LayoutRect.CSS.None, BackgroundColor = oFunc };
+            oHorizImgs = new LayoutStackHorizontal() { Layout = LayoutRect.CSS.None, BGColor = oFunc, Spacing = 5 };
+            oVertiMain = new LayoutStackVertical  () { Layout = LayoutRect.CSS.None, BGColor = oFunc };
 
             Editor             oEdit = TxBitmapComp.Text;
             Line               oLine = oEdit.LineAppend( TemplateReplyFromProps(), fUndoable:false );

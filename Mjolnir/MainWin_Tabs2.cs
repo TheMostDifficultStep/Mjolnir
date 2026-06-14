@@ -75,7 +75,7 @@ namespace Mjolnir {
                                             { Units = LayoutRect.CSS.Flex, Hidden = true, Border = new( 20, 20) };
             
             // Round up all the layouts into our tab object here.
-			LayoutStackHorizontal oTab = new () { Spacing = 5, BackgroundColor = TabBackground, Extra = oViewLine };
+			LayoutStackHorizontal oTab = new () { Spacing = 5, BGColor = TabBackground, Extra = oViewLine };
 				
             oTab.Add( oTabStat ); // Focus indicator Bar.
 			oTab.Add( oTabIcon ); // Icon for the tab.

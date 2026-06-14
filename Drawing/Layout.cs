@@ -204,7 +204,7 @@ namespace Play.Rectangles {
 	{
 		protected readonly List<LayoutRect> _rgLayout = new List<LayoutRect>();
 
-		public Func< object, SKColor > BackgroundColor = null;
+		public Func< object, SKColor > BGColor = null;
 		public virtual TRACK           Direction { get; set; }
 		public object			       Extra { get; set; } = null;
 
@@ -420,8 +420,8 @@ namespace Play.Rectangles {
         }
 
         public override void PaintBackground(SKCanvas skCanvas) {
-			if( BackgroundColor != null ) {
-				SKPaint skPaint  = new SKPaint() { Color = BackgroundColor( Extra ), 
+			if( BGColor != null ) {
+				SKPaint skPaint  = new SKPaint() { Color = BGColor( Extra ), 
 												   Style = SKPaintStyle.Fill };
 				skCanvas.DrawRect( SKRect, skPaint );
 			}
