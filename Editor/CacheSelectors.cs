@@ -181,18 +181,21 @@ namespace Play.Edit {
                     return 0;
 
                 try {
-                    IPgSelection.SlxnType eSlxn = IsSelection( Caret.Row );
+                    int iRows = int.Abs( Pin.Row.At - Caret.Row.At ) + 1;
 
-                    if( eSlxn != IPgSelection.SlxnType.Equal ) 
-                        return 0; // Technically an error.
+                    //IPgSelection.SlxnType eSlxn = IsSelection( Caret.Row );
 
-                    int iCharCount = 0;
-                    foreach( IColorRange oSlxn in _rgSelections ) {
-                        if( oSlxn != null )
-                            iCharCount += oSlxn.Length;
-                    }
-                    if( iCharCount > 0 )
-                        return 1;
+                    //if( eSlxn != IPgSelection.SlxnType.Equal ) 
+                    //    return 0; // Technically an error.
+
+                    //int iCharCount = 0;
+                    //foreach( IColorRange oSlxn in _rgSelections ) {
+                    //    if( oSlxn != null )
+                    //        iCharCount += oSlxn.Length;
+                    //}
+                    //if( iCharCount > 0 )
+                    //    return 1;
+                    return iRows;
                 } catch( Exception oEx ) {
                     Type[] rgErrors = { typeof( NullReferenceException ),
                                         typeof( ArgumentOutOfRangeException ) };
@@ -214,6 +217,13 @@ namespace Play.Edit {
             }
         }
 
+        /// <summary>
+        /// This sets the column selectors based on this row. I expect
+        /// the selection to be pinned/frozen.
+        /// </summary>
+        /// <param name="oRow">Selections on the current row.</param>
+        /// <returns>Since we are a single row selector, selection
+        /// is either "equal" or "nothing"</returns>
         public override IPgSelection.SlxnType IsSelection(Row oRow) {
             try {
                 // Clear out any previous selections.

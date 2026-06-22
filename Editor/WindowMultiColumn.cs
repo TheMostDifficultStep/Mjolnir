@@ -621,6 +621,14 @@ namespace Play.Edit {
 			}
         }
 
+        /// <summary>
+        /// I'll add this back since we do single selection and this
+        /// can handle that case. Versus multi column cut and paste.
+        /// </summary>
+        public void ClipboardCopyFrom() {
+            ClipboardCopyFrom( Clipboard.GetDataObject(), ClipboardOperations.Default );
+        }
+
         public virtual void ClipboardCopyFrom( 
             object oDataSource, 
             Guid   sOperation 
@@ -655,7 +663,7 @@ namespace Play.Edit {
                             Row          oRow   = _oDocList[_oCacheMan.CaretAt];
                             IMemoryRange oRange = oSelector[iColumn];
 
-                            _oCacheMan.CaretOffset = oRange.Offset + 1;
+                            _oCacheMan.CaretOffset = oRange.Offset;
                             oSelector.Clear(); // Do before TryReplace...
 
                             _oDocOps.TryReplaceAt( oRow, iColumn, oRange, strPaste );
@@ -1152,11 +1160,11 @@ namespace Play.Edit {
                     // the selection at all times...
                     switch( oSelector.RowCount ) {
                         case 0:
-                            _oDocOps.TryReplaceAt( oRow, 
-                                                   _oCacheMan.CaretColumn, 
+                            _oDocOps.TryReplaceAt(oRow,
+                                                   _oCacheMan.CaretColumn,
                                                    _oCacheMan.CaretOffset,
                                                    0,
-                                                   rgInsert );
+                                                   rgInsert);
                             break;
                         case 1:
                             if( oSelector.IsSingleColumn( out int iColumn ) ) {
@@ -1339,7 +1347,7 @@ namespace Play.Edit {
                 return true;
             }
             if( gCommand == GlobalCommands.Paste ) {
-                //ClipboardCopyFrom();
+                ClipboardCopyFrom();
                 return true;
             }
             if( gCommand == GlobalCommands.Delete ) {
