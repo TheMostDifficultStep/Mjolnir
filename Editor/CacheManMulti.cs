@@ -92,8 +92,8 @@ namespace Play.Edit {
         // box this up into an object.
         public Row Row    { 
             get => _oCaretRow;
-            set => _oCaretRow = value; 
-            }
+            set => _oCaretRow = value;
+        }
         public int Column => _iCaretCol;
         public int Offset { 
             get => _iCaretOff;
@@ -747,7 +747,7 @@ namespace Play.Edit {
         /// <seealso cref="CheckList"/>
         protected virtual void RowMeasure( CacheRow oCacheRow ) {
             try {
-                Selector.IsSelection( oCacheRow.Row );
+                Selector.PrepRanges( oCacheRow.Row );
 
                 for( int i=0; i<oCacheRow.CacheColumns.Count && i<_rgColumnInfo.Count; ++i ) {
                     IPgCacheMeasures oColumn = oCacheRow.CacheColumns[i];
@@ -762,7 +762,7 @@ namespace Play.Edit {
 			}
         }
 
-        public bool IsSelecting => !Selector.IsFrozen;
+        public bool IsSelecting => Selector.IsValid;
 
         public void BeginSelect() {
             Selector.SetPin( this );
@@ -780,7 +780,7 @@ namespace Play.Edit {
             StringBuilder oBuilder = new();
 
             try {
-			    if( Selector.RowCount > 0 ) {
+			    //if( Selector.RowCount > 0 ) {
                     int iCountRow = 0;
                     foreach( Row oRow in Selection ) {
                         int iCountCol = 0;
@@ -789,7 +789,7 @@ namespace Play.Edit {
                             oBuilder.AppendLine();
                         }
 
-                        if( Selector.IsSelection( oRow ) != IPgSelection.SlxnType.None ) {
+                        if( Selector.PrepRanges( oRow ) != IPgSelection.SlxnType.None ) {
                             for( int i=0; i<oRow.Count; i++ ) {
                                 if( Selector[i] != null ) {
                                     if( iCountCol++ > 0 ) {
@@ -800,7 +800,7 @@ namespace Play.Edit {
                             }
                         }
                     }
- 			    }
+ 			    //}
             } catch( Exception oEx ) {
                 if( IsUnhandledStdRpt( oEx ) )
                     throw;
@@ -823,7 +823,7 @@ namespace Play.Edit {
         public void ReColor() {
             try {
                 foreach( CacheRow oCacheRow in _rgOldCache ) {
-                    Selector.IsSelection( oCacheRow.Row );
+                    Selector.PrepRanges( oCacheRow.Row );
 
                     for( int i=0; i<oCacheRow.CacheColumns.Count && i<_rgColumnInfo.Count; ++i ) {
                         IPgCacheMeasures oElem = oCacheRow.CacheColumns[i];
@@ -1057,6 +1057,12 @@ namespace Play.Edit {
             return null;
         }
 
+        /// <summary>
+        /// See if the mouse point is inside a column.
+        /// </summary>
+        /// <param name="pntClick">Any view (mouse) coordinate.</param>
+        /// <param name="iTextColumn">The column it is in.</param>
+        /// <returns></returns>
         public bool IsInside( SKPointI pntClick, out int iTextColumn ) {
             SmartRect oColumn = new SmartRect();
 

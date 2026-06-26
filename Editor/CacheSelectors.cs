@@ -45,12 +45,12 @@ namespace Play.Edit {
         /// After retrieving a row from the enumeration you can call this
         /// function to determine the selection on each column.
         /// </summary>
-        public IMemoryRange AtColumn(int iIndex) {
+        public IMemoryRange GetRange(int iIndex) {
             return _oSlxnManager[iIndex];
         }
 
-        public IPgSelection.SlxnType IsSelection(Row oRow) {
-            return _oSlxnManager.IsSelection( oRow );
+        public IPgSelection.SlxnType PrepRanges( Row oRow ) {
+            return _oSlxnManager.PrepRanges( oRow );
         }
 
         IEnumerator IEnumerable.GetEnumerator() {
@@ -59,13 +59,12 @@ namespace Play.Edit {
     }
 
     public abstract class Selection {
-        public IPgCaretInfo<Row> Caret { get; protected set; }
-        public CaretInfo         Pin   { get; protected set; }
+        public IPgCaretInfo<Row> End { get; protected set; }
+        public CaretInfo         Pin { get; protected set; }
 
         protected readonly IColorRange      [] _rgSelections;
         protected readonly IColorRange      [] _rgCache; // Color ranges that the selections can use.
 
-        protected bool _fFrozen = true;
         public Selection( int iMaxCols ) {
             _rgSelections = new IColorRange[iMaxCols];
             _rgCache      = new IColorRange[iMaxCols];
@@ -93,26 +92,27 @@ namespace Play.Edit {
         /// ranges. They might be in use temporarily by the caller.
         /// </summary>
         public void Clear() { 
-            Caret = null;
+            End = null;
             for( int i=0; i< _rgSelections.Length; ++i ) {
                 _rgSelections[i] = null;
             }
-            _fFrozen = true;
         }
 
         /// <summary>
         /// Capture the current selection and stop updating it 
         /// even if caret moves. 
         /// </summary>
-        public void Freeze() {
-            if( Caret == null || Caret.Row == null )
-                return;
+        public bool Freeze() {
+            if( End is null || End.Row is null ) {
+                End = null;
+                return false;
+            }
 
-            Caret    = new CaretInfo( Caret );
-            _fFrozen = true;
+            End = new CaretInfo( End ); // Save the ending Caret position.
+            return true;
         }
 
-        public bool IsFrozen => _fFrozen;
+        public bool IsValid => End is not null;
 
         /// <summary>
         /// Call this at the start of the selection and
@@ -123,9 +123,8 @@ namespace Play.Edit {
             if( oCaret.Row == null )
                 return;
 
-            Caret    = oCaret;
-            Pin      = new CaretInfo( oCaret );
-            _fFrozen = false;
+            End = oCaret;                  // End is a live caret at this time.
+            Pin = new CaretInfo( oCaret ); // Save the current Caret position.
         }
 
         public void SetWord( IPgCaretInfo<Row> oCaret, IMemoryRange oRange ) {
@@ -134,7 +133,7 @@ namespace Play.Edit {
 
             oCaret.Offset = oRange.Offset;
 
-            Caret = oCaret;
+            End = oCaret;
             // BUG: This might be a problem when I attempt to move the pin
             // around b/c of user edits in another window.
             Pin   = new CaretInfo(oCaret) { Offset = oRange.Offset + oRange.Length };
@@ -156,7 +155,7 @@ namespace Play.Edit {
             _rgSelections[iCol].Length = iLength;
         }
 
-        public abstract IPgSelection.SlxnType IsSelection( Row oRow );
+        public abstract IPgSelection.SlxnType PrepRanges( Row oRow );
     }
 
     /// <summary>
@@ -164,7 +163,7 @@ namespace Play.Edit {
     /// going to be the standard use case. >_<;;;
     /// </summary>
     public class SelectionSingle : Selection {
-        public SelectionSingle(int iMaxCols) : base(iMaxCols) {
+        public SelectionSingle( int iMaxCols) : base(iMaxCols) {
         }
 
         public override int StartAt  => Pin.Row.At;
@@ -181,7 +180,19 @@ namespace Play.Edit {
                     return 0;
 
                 try {
-                    int iRows = int.Abs( Pin.Row.At - Caret.Row.At ) + 1;
+                    int iRows = int.Abs( Pin.Row.At - End.Row.At ) + 1;
+
+                    if( iRows == 1 ) {
+                        IPgSelection.SlxnType eSlxn = PrepRanges(End.Row);
+
+                        if( eSlxn != IPgSelection.SlxnType.Equal )
+                            return 1; // Technically an error for us, but meh...
+
+                        if( Pin.Column != End.Column )
+                            return 1;
+
+                        return 0;
+                    }
 
                     //IPgSelection.SlxnType eSlxn = IsSelection( Caret.Row );
 
@@ -206,17 +217,6 @@ namespace Play.Edit {
             }
         }
 
-        protected bool IsValid {
-            get {
-                if ( Pin.Row is null )
-                    return false;
-                if( Caret is null || Caret.Row is null )
-                    return false;
-
-                return true;
-            }
-        }
-
         /// <summary>
         /// This sets the column selectors based on this row. I expect
         /// the selection to be pinned/frozen.
@@ -224,23 +224,23 @@ namespace Play.Edit {
         /// <param name="oRow">Selections on the current row.</param>
         /// <returns>Since we are a single row selector, selection
         /// is either "equal" or "nothing"</returns>
-        public override IPgSelection.SlxnType IsSelection(Row oRow) {
+        public override IPgSelection.SlxnType PrepRanges( Row oRow ) {
             try {
                 // Clear out any previous selections.
                 for( int i=0; i< _rgCache.Length; ++i ) {
                     _rgSelections[i] = null;
                 }
-                if( !IsValid )
+                if( !IsValid ) {
                     return IPgSelection.SlxnType.None;
-
+                }
                 if( oRow != Pin.Row ) {
                     return IPgSelection.SlxnType.None;
                 }
 
-                if( Caret.Offset > Pin.Offset ) {
-                    Set( Pin.Column, Pin.Offset,   Caret.Offset - Pin.Offset );
+                if( End.Offset > Pin.Offset ) {
+                    Set( Pin.Column, Pin.Offset, End.Offset - Pin.Offset );
                 } else {
-                    Set( Pin.Column, Caret.Offset, Pin.Offset - Caret.Offset );
+                    Set( Pin.Column, End.Offset, Pin.Offset - End.Offset );
                 }
 
                 return IPgSelection.SlxnType.Equal;
@@ -327,25 +327,25 @@ namespace Play.Edit {
         /// fEqualCol is false : ___+++|++++++|+_____
         /// </summary>
         protected void EquRow( Row oRow ) {
-            if( Caret.Column > Pin.Column ) {
+            if( End.Column > Pin.Column ) {
                 _rgColHighLow[0] = Pin;
-                _rgColHighLow[1] = Caret;
+                _rgColHighLow[1] = End;
             } else {
-                if( Caret.Column == Pin.Column &&
-                    Caret.Offset >  Pin.Offset ) 
+                if( End.Column == Pin.Column &&
+                    End.Offset >  Pin.Offset ) 
                 {
                     _rgColHighLow[0] = Pin;
-                    _rgColHighLow[1] = Caret;
+                    _rgColHighLow[1] = End;
                 } else {
-                    _rgColHighLow[0] = Caret;
+                    _rgColHighLow[0] = End;
                     _rgColHighLow[1] = Pin;
                 }
             }
 
-            bool fEqualCol = Caret.Column == Pin.Column;
+            bool fEqualCol = End.Column == Pin.Column;
 
             if( fEqualCol ) {
-                int iCol = Caret.Column;
+                int iCol = End.Column;
 
                 Set( iCol, _rgColHighLow[0].Offset, 
                             _rgColHighLow[1].Offset -
@@ -372,20 +372,22 @@ namespace Play.Edit {
         /// repaint properly.
         /// </summary>
         /// <returns>Overall selection type on the row.</returns>
-        public override IPgSelection.SlxnType IsSelection( Row oRow ) {
+        public override IPgSelection.SlxnType PrepRanges( Row oRow ) {
             try {
                 // Clear out any previous selections.
                 for( int i=0; i< _rgCache.Length; ++i ) {
                     _rgSelections[i] = null;
                 }
-                if( Caret == null || Caret.Row == null )
-                    return IPgSelection.SlxnType.None;
+                if( End == null || End.Row == null ) {
 
-                if( Caret.Row.At > Pin.Row.At ) {
+                    return IPgSelection.SlxnType.Equal;
+                }
+
+                if( End.Row.At > Pin.Row.At ) {
                     _rgRowHighLow[0] = Pin;
-                    _rgRowHighLow[1] = Caret;
+                    _rgRowHighLow[1] = End;
                 } else {
-                    _rgRowHighLow[0] = Caret;
+                    _rgRowHighLow[0] = End;
                     _rgRowHighLow[1] = Pin;
                 }
                 if( oRow.At < _rgRowHighLow[0].Row.At )
@@ -393,7 +395,7 @@ namespace Play.Edit {
                 if( oRow.At > _rgRowHighLow[1].Row.At )
                     return IPgSelection.SlxnType.None;
 
-                if( Caret.Row.At == Pin.Row.At ) {
+                if( End.Row.At == Pin.Row.At ) {
                     EquRow( oRow );
                     return IPgSelection.SlxnType.Equal;
                 }
@@ -423,16 +425,16 @@ namespace Play.Edit {
 
         public override int RowCount {
             get {
-                if( Caret == null )
+                if( End == null )
                     return 0;
 
                 try {
-                    int iRows = Math.Abs( Caret.Row.At - Pin.Row.At );
+                    int iRows = Math.Abs( End.Row.At - Pin.Row.At );
 
                     if( iRows > 0 )
                         return iRows + 1;
 
-                    IPgSelection.SlxnType eSlxn = IsSelection( Caret.Row );
+                    IPgSelection.SlxnType eSlxn = PrepRanges( End.Row );
 
                     if( eSlxn != IPgSelection.SlxnType.Equal ) 
                         return 0; // Technically an error.

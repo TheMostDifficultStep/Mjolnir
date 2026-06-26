@@ -658,17 +658,23 @@ namespace Play.Edit {
 
                 try {
                     Selection oSelector = _oCacheMan.Selector;
-                    if( oSelector.RowCount == 1 ) {
-                        if( oSelector.IsSingleColumn( out int iColumn ) ) {
-                            Row          oRow   = _oDocList[_oCacheMan.CaretAt];
-                            IMemoryRange oRange = oSelector[iColumn];
+                    //if( oSelector.RowCount == 1 ) {
+                        Row oRow    = _oCacheMan.Row;
+                        int iColumn = _oCacheMan.Column;
+
+                        IPgSelection.SlxnType eSlxn = oSelector.PrepRanges( oRow );
+                        if( eSlxn == IPgSelection.SlxnType.Equal ) {
+                            IMemoryRange oRange  = oSelector[iColumn];
 
                             _oCacheMan.CaretOffset = oRange.Offset;
                             oSelector.Clear(); // Do before TryReplace...
 
                             _oDocOps.TryReplaceAt( oRow, iColumn, oRange, strPaste );
                         }
-                    }
+                        if( eSlxn == IPgSelection.SlxnType.None ) {
+                            _oDocOps.TryReplaceAt( oRow, iColumn, _oCacheMan, strPaste );
+                        }
+                    //}
                 } catch( Exception oEx ) {
                     Type[] rgErrors = { typeof( NullReferenceException ),
                                         typeof( ArgumentOutOfRangeException ),
@@ -1091,6 +1097,17 @@ namespace Play.Edit {
                             }
                         }
                         return true;
+
+                    case Keys.Control | Keys.V:
+                        ClipboardCopyFrom();
+                        return true;
+                    case Keys.Control | Keys.C:
+                        ClipboardCopyTo();
+                        return true;
+                    case Keys.Control | Keys.X:
+                        ClipboardCutTo();
+                        return true;
+
                     case Keys.Delete: {
                         // The only way to get this event. Tho' a bit ambiguous between delete a character
                         // in a column or delete a row. 
@@ -1152,7 +1169,7 @@ namespace Play.Edit {
                 if( !char.IsControl( e.KeyChar ) ) {
                     _oCacheMan.ScrollToCaret();
 
-                    ReadOnlySpan<char> rgInsert  = stackalloc char[1] { e.KeyChar };
+                    ReadOnlySpan<char> rgInsert  = [e.KeyChar];
                     Selection          oSelector = _oCacheMan.Selector;
                     Row                oRow      = _oDocList[_oCacheMan.CaretAt];
 
@@ -1284,7 +1301,9 @@ namespace Play.Edit {
 
             CursorUpdate( pntMouse, e.Button );
 
-            if( _oCacheMan.IsSelecting ) {
+            // BUG: So we want to stop selecting when the mouse moves out 
+            // of the cell in the single cel case.
+            if( e.Button == MouseButtons.Left ) {
                 _oCacheMan.CaretAdvance(pntMouse);
                 _oCacheMan.ReColor();
                 Invalidate();

@@ -1,11 +1,11 @@
-﻿using Play.Interfaces.Embedding;
-using Play.Parse;
-using Play.Parse.Impl;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.DirectoryServices.ActiveDirectory;
 using System.Text;
+
+using Play.Interfaces.Embedding;
+using Play.Parse;
+using Play.Parse.Impl;
 
 namespace Play.Edit {
     public interface IPgSelection :
@@ -15,8 +15,8 @@ namespace Play.Edit {
             Top, Bottom, Middle, Equal, None
         }
 
-        SlxnType     IsSelection( Row oRow );
-        IMemoryRange AtColumn   ( int iIndex );
+        SlxnType     PrepRanges( Row oRow );
+        IMemoryRange GetRange  ( int iColumn );
     }
     public static class BagOperations {
         public static int Final( this IReadableBag<Row> rgList ) {
@@ -835,9 +835,9 @@ namespace Play.Edit {
         /// <param name="oRow"></param>
         protected void RemoveTextSelection( IPgSelection oSelection, Row oRow ) {
             if( oRow != null ) {
-                oSelection.IsSelection( oRow );
+                oSelection.PrepRanges( oRow );
                 for( int i=0; i< oRow.Count; ++i ) {
-                    IMemoryRange oRange = oSelection.AtColumn(i);
+                    IMemoryRange oRange = oSelection.GetRange(i);
                     if( oRange != null ) {
                         Line oLine = oRow[i];
                         oLine.TryReplace( oRange, null );
@@ -861,7 +861,7 @@ namespace Play.Edit {
                 Raise_DocUpdateBegin();
                 
                 foreach( Row oRow in oSelection ) {
-                    switch( oSelection.IsSelection( oRow ) ) {
+                    switch( oSelection.PrepRanges( oRow ) ) {
                         case IPgSelection.SlxnType.Middle: 
                             rgDelete.Add( oRow );
                             break;
@@ -899,7 +899,7 @@ namespace Play.Edit {
                 // I think I can assume the top row is always non null...but.
                 if( oRowTop is not null ) {
                     // TODO: Consider patching up formatting too...
-                    if( oSelection.IsSelection( oRowTop ) != IPgSelection.SlxnType.None ) {
+                    if( oSelection.PrepRanges( oRowTop ) != IPgSelection.SlxnType.None ) {
                         foreach( IPgEditEvents oListen in _rgListeners ) {
                             if( oListen.Caret2.Row.Deleted ) {
                                 oListen.Caret2.Row = oRowTop;
