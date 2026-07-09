@@ -31,7 +31,7 @@ namespace Play.Rectangles
         }
     }
 
-    // I inherit from a SmartRect so I'm easy to manipulate. However, there advantages
+    // I inherit from a SmartRect so I'm easy to manipulate. However, there are advantages
     // to having no extent and deriving it completely from the Guest I host. For
     // example if the Guest size changes I won't update myself unless I have a callback.
     // The rect we inherit from is the "inner" rect. Outer rect lives as a property.

@@ -2,9 +2,15 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 
+using SkiaSharp;
+
 using Play.Interfaces.Embedding;
 
 namespace Play.Edit {
+    public interface IPgSelectionTask : IDisposable { 
+        bool Move( SKPointI pntPick );
+    }
+
     public interface IPgSelectionHelper {
         bool   IsSelectionHit( Point pntTry );
         void   Raise_SelectionChanged();

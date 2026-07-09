@@ -214,8 +214,10 @@ namespace Play.Edit {
         protected readonly LayoutStack           _rgLayout;
         protected readonly List<ColumnInfo>      _rgTxtCol = new(); // Might not match document columns! O.o
 
-        protected bool  _fReadOnly     = false;
-        protected SizeF _szScrollBars  = new SizeF( .1875F, .1875F );
+        protected IPgSelectionTask _oSelectionTask = null;
+        protected bool             _fReadOnly      = false;
+        protected SizeF            _szScrollBars   = new SizeF( .1875F, .1875F );
+
         protected Dictionary<string, Action<Row, int, IPgWordRange>> HyperLinks { get; } = new ();
 
         readonly static Keys[] _rgHandledKeys = { Keys.PageDown, Keys.PageUp, Keys.Down,
@@ -381,7 +383,6 @@ namespace Play.Edit {
 
             _oSiteView   = oViewSite;
             _oViewEvents = oViewSite.EventChain ?? throw new ArgumentException( "Site.EventChain must support IPgViewSiteEvents" );
-
             _oStdUI         = oViewSite.Host.Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
             _oScrollBarVirt = new ScrollBar2( new DocSlot( this ) );
             // Oh! The find window is a table. But this object looks like one but is not! O.o
@@ -1228,6 +1229,8 @@ namespace Play.Edit {
 
             // Move the caret and reset the Advance.
             _oCacheMan.CaretAdvance( pntClick );
+            _oSelectionTask?.Dispose(); // But don't expect to be active...
+            _oSelectionTask = null;
 
             try {
                 // See if want to double click select a word.
@@ -1237,6 +1240,8 @@ namespace Play.Edit {
                     if( sCaret is CaretInfo oCaret ) {
                         int iDataCol = _rgTxtCol[iTextColumn].DataIndex;
                         if( oCaret.Row[iDataCol].FindFormattingUnderRange( oCaret ) is IMemoryRange oRange ) {
+                            // _oSelectionTask?.Dispose();
+                            // _oSelectionTask = _oCacheMan.Selector.DoSelection( _oCacheMan, oRange );
                             _oCacheMan.Selector.SetWord( oCaret, oRange );
                             _oCacheMan.ReColor();
                             Invalidate();

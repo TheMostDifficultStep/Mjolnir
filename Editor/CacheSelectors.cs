@@ -2,6 +2,8 @@
 using System.Collections;
 using System.Collections.Generic;
 
+using SkiaSharp;
+
 using Play.Interfaces.Embedding;
 using Play.Parse;
 
@@ -58,6 +60,43 @@ namespace Play.Edit {
         }
     }
 
+    public class SingleSelectionTask : IPgSelectionTask {
+        readonly CacheMultiBase _oHost;
+
+        /// <summary>
+        /// If we double click, we might select a word so the caret
+        /// will be some where inside the given range.
+        /// </summary>
+        /// <exception cref="ArgumentNullException"></exception>
+        public SingleSelectionTask( CacheMultiBase oHost, IMemoryRange oRange ) {
+            _oHost = oHost ?? throw new ArgumentNullException();
+            ArgumentNullException.ThrowIfNull( oRange );
+
+            if( oRange is not null ) {
+                _oHost.Selector.SetWord( oHost, oRange );
+            } else {
+                _oHost.Selector.SetPin ( oHost );
+            }
+        }
+
+        public void Dispose() {
+            _oHost.Selector.Clear();
+        }
+
+        public bool Move( SKPointI pntPick ) {
+            if( _oHost.IsInside( pntPick, out int iColumn ) &&
+                iColumn == _oHost.Selector.Pin.Column ) 
+            {
+                _oHost.CaretAdvance( pntPick );
+                _oHost.ReColor     ();
+
+                return true;
+            }
+
+            return false;
+        }
+    }
+
     public abstract class Selection {
         public IPgCaretInfo<Row> End { get; protected set; }
         public CaretInfo         Pin { get; protected set; }
@@ -73,6 +112,8 @@ namespace Play.Edit {
                 _rgCache[i] = new ColorRange( 0, 0, -1 );
             }
         }
+
+        public abstract IPgSelectionTask DoSelection( CacheMultiBase oHost, IMemoryRange oRange );
 
         public abstract int StartAt { get; }
         public abstract int EndAt   { get; }
@@ -164,6 +205,10 @@ namespace Play.Edit {
     /// </summary>
     public class SelectionSingle : Selection {
         public SelectionSingle( int iMaxCols) : base(iMaxCols) {
+        }
+
+        public override IPgSelectionTask DoSelection( CacheMultiBase oHost, IMemoryRange oRange ) {
+            return new SingleSelectionTask( oHost, oRange );
         }
 
         public override int StartAt  => Pin.Row.At;
@@ -274,6 +319,15 @@ namespace Play.Edit {
         readonly IPgCaretInfo<Row>[] _rgColHighLow = new IPgCaretInfo<Row>[2];
 
         public SelectionStream( int iMaxCols ) : base ( iMaxCols ) {
+        }
+
+        /// <summary>
+        /// We need this for the single selection. But if we ever want multi column/row
+        /// selection we'll need ti implement a selection task object.
+        /// </summary>
+        /// <exception cref="NotImplementedException"></exception>
+        public override IPgSelectionTask DoSelection( CacheMultiBase oHost, IMemoryRange oRange ) {
+            throw new NotImplementedException();
         }
 
         public override int StartAt => _rgRowHighLow[0].Row.At;
