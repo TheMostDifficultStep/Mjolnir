@@ -189,6 +189,21 @@ namespace Play.Edit {
         }
     }
 
+    public interface IPgInput {
+        enum KeyModify {
+            DOWN,
+            UP,
+        }
+        public void OnMouseWheel( MouseEventArgs e );
+        public void OnMouseDown ( MouseEventArgs e );
+        public void OnMouseUp   ( MouseEventArgs e );
+        public void OnMouseMove ( MouseEventArgs e );
+        public void OnMouseDoubleClick( MouseEventArgs e );
+
+        public void OnKeyUp  ( KeyEventArgs e );
+        public void OnKeyDown( KeyEventArgs e );
+    }
+
     public class WindowMultiColumn :
         SKControl, 
         IPgParent,
@@ -201,6 +216,8 @@ namespace Play.Edit {
     {
         protected readonly IPgViewSite   _oSiteView;
         protected readonly IPgViewNotify _oViewEvents;
+
+        protected          Stack<IPgInput> Input { get; } = new();
 
         protected readonly IEnumerable     <Row> _oDocEnum;
         protected readonly IReadableBag    <Row> _oDocList;
@@ -373,6 +390,153 @@ namespace Play.Edit {
 			}
 		} // End class
 
+        public class MultiInputBase : IPgInput {
+            protected readonly WindowMultiColumn _oHost;
+
+            // Shortcuts to stuff on the host.
+            protected readonly CacheMultiBase    _oCacheMan;
+            protected readonly List<ColumnInfo>  _rgTxtCol;
+            protected readonly IPgDocCheckMarks  _oDocChecks;
+
+            public MultiInputBase( WindowMultiColumn oHost ) {
+                _oHost     = oHost ?? throw new ArgumentNullException();
+
+                _oCacheMan  = oHost._oCacheMan;
+                _rgTxtCol   = oHost._rgTxtCol;
+                _oDocChecks = oHost._oDocChecks;
+            }
+
+            protected void Push( IPgInput oInput ) {
+                _oHost.Push( oInput );
+            }
+
+            protected void Pop() {
+                _oHost.Pop();
+            }
+
+            public virtual void OnMouseDown(MouseEventArgs e) {}
+            public virtual void OnMouseUp(MouseEventArgs e) {}
+            public virtual void OnMouseMove(MouseEventArgs e) {}
+            public virtual void OnMouseDoubleClick(MouseEventArgs e ) {}
+            public virtual void OnMouseWheel( MouseEventArgs e ) {}
+            public virtual void OnKeyUp(KeyEventArgs e) {}
+            public virtual void OnKeyDown(KeyEventArgs e) {}
+        }
+
+        public class MultiInputNormal : MultiInputBase {
+            public MultiInputNormal( WindowMultiColumn oHost ) : base( oHost ) {
+            }
+
+            public override void OnMouseWheel(MouseEventArgs e) {
+                _oCacheMan.OnMouseWheel( e.Delta );
+            }
+
+            public override void OnMouseMove( MouseEventArgs e ) {
+                SKPointI pntMouse = new SKPointI( e.X, e.Y );
+
+                _oHost.CursorUpdate( pntMouse, e.Button );
+            }
+
+            public override void OnMouseDown( MouseEventArgs e ) {
+                _oHost.Select();
+                _oHost.Focus ();
+
+                SKPointI pntClick = new SKPointI( e.X, e.Y );
+                bool     fInside  = _oCacheMan.IsInside( pntClick, out int iTextColumn );
+
+                if( fInside ) {
+                    int iDataCol = _rgTxtCol[iTextColumn].DataIndex;
+                    if( iDataCol == _oDocChecks.CheckColumn ) {
+                        if( _oCacheMan.PointToCache( iDataCol, pntClick, out int iLineOffset ) is CacheRow oCRow ) {
+                            _oDocChecks.SetCheckAtRow( oCRow.Row ); // sends a check event if check moves.
+                        }
+                        return;
+                    }
+                }
+
+                if( e.Button == MouseButtons.Left && fInside )
+                {
+                    int iDataCol = _rgTxtCol[iTextColumn].DataIndex;
+
+                    if( WindowMultiColumn.IsCtrl( ModifierKeys ) ) {
+                        if( _oHost.HyperLinkFind( iDataCol, pntClick, fDoJump:true ) ) {
+                            return;
+                        }
+                    }
+
+                    // Move the caret and reset the Advance.
+                    _oCacheMan.CaretAdvance( pntClick );
+                    _oCacheMan.BeginSelect ();
+                    _oCacheMan.ReColor     ();
+                    _oHost    .Invalidate  ();
+
+                    if( _oCacheMan.PointToCache( iDataCol, pntClick, out int iLineOffset ) is CacheRow oCRow ) {
+                        Push( new MultiInputDrag( _oHost, oCRow, iTextColumn ) );
+                    }
+                }
+            } // end method
+            public override void OnMouseDoubleClick( MouseEventArgs e ) {
+                _oHost.Select();
+                _oHost.Focus ();
+
+                SKPointI pntClick = new SKPointI( e.X, e.Y );
+
+                try {
+                    // See if want to double click select a word.
+                    if( _oCacheMan.IsInside( pntClick, out int iTextColumn ) ) {
+                        // Move the caret and reset the Advance.
+                        _oCacheMan.CaretAdvance( pntClick );
+
+                        CaretInfo? sCaret = _oCacheMan.CopyCaret();
+
+                        if( sCaret is CaretInfo oCaret ) {
+                            int iDataCol = _rgTxtCol[iTextColumn].DataIndex;
+                            if( oCaret.Row[iDataCol].FindFormattingUnderRange( oCaret ) is IMemoryRange oRange ) {
+                                // _oSelectionTask?.Dispose();
+                                // _oSelectionTask = _oCacheMan.Selector.DoSelection( _oCacheMan, oRange );
+                                _oCacheMan.Selector.SetWord( oCaret, oRange );
+                                _oCacheMan.ReColor();
+                                _oHost    .Invalidate();
+                            }
+                        }
+                    }
+                } catch( Exception oEx ) {
+                    Type[] rgErrors = { typeof( NullReferenceException ),
+                                        typeof( ArgumentOutOfRangeException ),
+                                        typeof( IndexOutOfRangeException ),
+                                        typeof( ArgumentNullException ) };
+                    if( rgErrors.IsUnhandled( oEx ) )
+                        throw;
+                }
+            } // end method
+        } // end class
+
+        public class MultiInputDrag : MultiInputBase {
+            int      _iColumn;
+            CacheRow _oCRow;
+
+            public MultiInputDrag( WindowMultiColumn oHost, CacheRow oCRow, int iTextColumn ) : base( oHost ) { 
+                _iColumn = iTextColumn;
+                _oCRow   = oCRow;
+            }
+
+            public override void OnMouseUp( MouseEventArgs e ) {
+                _oCacheMan.EndSelect();
+                Pop();
+            }
+
+            public override void OnMouseMove( MouseEventArgs e ) {
+                if( e.Button != MouseButtons.Left ) 
+                    _oHost.LogError( "Window Input in weird state" );
+
+                SKPointI pntMouse = new SKPointI( e.X, e.Y );
+                int      iOffset  = _oCacheMan.PointToOffset( _oCRow, _iColumn, pntMouse );
+
+                _oCacheMan.CaretAdvance( _oCRow, _iColumn, iOffset );
+                _oCacheMan.ReColor();
+                _oHost    .Invalidate();
+            }
+        } // end class
 
         public WindowMultiColumn( IPgViewSite oViewSite, object oDocument ) {
             _oDocEnum   = (IEnumerable     <Row>)oDocument;
@@ -381,8 +545,8 @@ namespace Play.Edit {
             _oDocOps    = (IPgDocOperations<Row>)oDocument;
             _oDocChecks = (IPgDocCheckMarks     )oDocument;
 
-            _oSiteView   = oViewSite;
-            _oViewEvents = oViewSite.EventChain ?? throw new ArgumentException( "Site.EventChain must support IPgViewSiteEvents" );
+            _oSiteView      = oViewSite;
+            _oViewEvents    = oViewSite.EventChain ?? throw new ArgumentException( "Site.EventChain must support IPgViewSiteEvents" );
             _oStdUI         = oViewSite.Host.Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
             _oScrollBarVirt = new ScrollBar2( new DocSlot( this ) );
             // Oh! The find window is a table. But this object looks like one but is not! O.o
@@ -392,6 +556,8 @@ namespace Play.Edit {
             InitializeDPI();
 
             _oCacheMan = CreateCacheMan();
+
+            Input.Push( new MultiInputNormal( this ) ); // Uses cacheman.
 
             // BUG: CacheManager set's the height. Cacheman defines the
             //      glyph but not via the EditMultiColumn.
@@ -423,6 +589,18 @@ namespace Play.Edit {
 
         protected void LogError( string strMessage, bool fShow = false ) {
             _oSiteView.LogError( "Multi Column Window", strMessage, fShow );
+        }
+
+        protected void Push( IPgInput oInput ) {
+            Input.Push( oInput );
+        }
+
+        protected void Pop() {
+            try {
+                Input.Pop();
+            } catch( InvalidOperationException ) {
+                Push( new MultiInputNormal( this ) );
+            }
         }
 
         protected virtual void OnCaretMove() {
@@ -962,9 +1140,6 @@ namespace Play.Edit {
         /// do the row in the DocProperties object. row.At in that case is the
         /// TabOrder...
         /// </remarks>
-        /// <param name="iColumn">The text column in the cache manager. Which
-        /// is typically NOT the same as the layout column. Which is not
-        /// necessarily the same column in the actual Data row. O.o;; </param>
         protected bool HyperLinkFind( int iColumn, SKPointI pntLocation, bool fDoJump ) {
             try {
                 if( _oCacheMan.PointToCache( iColumn, pntLocation, out int iLineOffset ) is CacheRow oCRow ) {
@@ -982,6 +1157,13 @@ namespace Play.Edit {
             }
 
             return false;
+        }
+
+        protected void CursorUpdate() {
+            Point    pntPosition = PointToClient( MousePosition );
+            SKPointI pntMouse    = new SKPointI( pntPosition.X, pntPosition.Y );
+
+            CursorUpdate( pntMouse, MouseButtons.None );
         }
         
         /// <summary>
@@ -1001,8 +1183,8 @@ namespace Play.Edit {
                         oNewCursor = Cursors.Hand;
                     } else {
                         oNewCursor = Cursors.IBeam;
-                        if( eButton != MouseButtons.Left &&         // if not selecting.
-                            ((ModifierKeys & Keys.Control) == 0 ) ) // if not editing...
+                        if( eButton != MouseButtons.Left &&  // if not selecting.
+                            IsCtrl( ModifierKeys ) )         // if not editing...
                         { 
                             if( HyperLinkFind( iTextColumn, pntLocation, fDoJump:false ) )
                                 oNewCursor = Cursors.Hand;
@@ -1015,10 +1197,17 @@ namespace Play.Edit {
             Cursor = oNewCursor;
         }
 
-        protected override void OnMouseWheel(MouseEventArgs e) {
-            base.OnMouseWheel(e);
+        protected static bool IsCtrl( Keys sKey ) {
+            switch( sKey ) {
+                case Keys.LControlKey:
+                case Keys.RControlKey:
+                case Keys.ControlKey: // THE Ctrl key
+                case Keys.Control:    // Modifier key.
+                    return true;
 
-            _oCacheMan.OnMouseWheel( e.Delta );
+                default:
+                    return false;
+            }
         }
 
         /// <summary>
@@ -1026,6 +1215,20 @@ namespace Play.Edit {
         /// </summary>
         void OnScrollBar( ScrollEvents e ) {
             _oCacheMan.OnScrollBar_Vertical( e );
+        }
+
+        protected override void OnKeyUp(KeyEventArgs e)
+        {
+            if (IsDisposed)
+                return;
+
+            e.Handled = true;
+
+            switch( e.KeyCode ) {
+                case Keys.ControlKey:
+                    CursorUpdate();
+                    break;
+            }
         }
 
         /// <summary>
@@ -1064,6 +1267,10 @@ namespace Play.Edit {
                         _oDocOps.TryDeleteAt( oCaret.Row, oCaret.Column, oCaret.Offset - 1, 1 );
                     }
                     break;
+                case Keys.ControlKey:
+                    // Note: This comes in occasionally even if keep pressing ctrl.
+                    CursorUpdate();
+                    break;
             }
         }
 
@@ -1074,7 +1281,7 @@ namespace Play.Edit {
 
             const int WM_KEYDOWN    = 0x100;
             const int WM_SYSKEYDOWN = 0x104;
-               
+
             if ((msg.Msg == WM_KEYDOWN) || (msg.Msg == WM_SYSKEYDOWN))
             {
                 switch(keyData) {
@@ -1216,104 +1423,25 @@ namespace Play.Edit {
             }
         }
 
-        public static bool IsCtrl( Keys sKey ) {
-            return (ModifierKeys & Keys.Control) != 0;
-        }
-
         protected override void OnMouseDoubleClick( MouseEventArgs e ) {
-            base.OnMouseDoubleClick(e);
-
-            Select();
-            Focus ();
-            SKPointI pntClick = new SKPointI( e.X, e.Y );
-
-            // Move the caret and reset the Advance.
-            _oCacheMan.CaretAdvance( pntClick );
-            _oSelectionTask?.Dispose(); // But don't expect to be active...
-            _oSelectionTask = null;
-
-            try {
-                // See if want to double click select a word.
-                if( _oCacheMan.IsInside( pntClick, out int iTextColumn ) ) {
-                    CaretInfo? sCaret = _oCacheMan.CopyCaret();
-
-                    if( sCaret is CaretInfo oCaret ) {
-                        int iDataCol = _rgTxtCol[iTextColumn].DataIndex;
-                        if( oCaret.Row[iDataCol].FindFormattingUnderRange( oCaret ) is IMemoryRange oRange ) {
-                            // _oSelectionTask?.Dispose();
-                            // _oSelectionTask = _oCacheMan.Selector.DoSelection( _oCacheMan, oRange );
-                            _oCacheMan.Selector.SetWord( oCaret, oRange );
-                            _oCacheMan.ReColor();
-                            Invalidate();
-                        }
-                    }
-                }
-            } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( NullReferenceException ),
-                                    typeof( ArgumentOutOfRangeException ),
-                                    typeof( IndexOutOfRangeException ),
-                                    typeof( ArgumentNullException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
-                    throw;
-            }
+            Input.Peek().OnMouseDoubleClick( e );
         }
 
         protected override void OnMouseUp(MouseEventArgs e) {
-            base.OnMouseUp(e);
-
-            _oCacheMan.EndSelect();
+            Input.Peek().OnMouseUp( e );
         }
 
         protected override void OnMouseDown(MouseEventArgs e) {
-            base.OnMouseDown( e );
-
-            Select();
-            Focus ();
-            SKPointI pntClick = new SKPointI( e.X, e.Y );
-            bool     fInside  = _oCacheMan.IsInside( pntClick, out int iTextColumn );
-
-            if( fInside ) {
-                int iDataCol = _rgTxtCol[iTextColumn].DataIndex;
-                if( iDataCol == _oDocChecks.CheckColumn ) {
-                    if( _oCacheMan.PointToCache( iDataCol, pntClick, out int iLineOffset ) is CacheRow oCRow ) {
-                  //if( _oCacheMan.PointToRow( iColumnM, pntClick, out int iOff, out Row oRow ) ) {
-                        _oDocChecks.SetCheckAtRow( oCRow.Row ); // sends a check event if check moves.
-                    }
-                    return;
-                }
-            }
-
-            // Move the caret and reset the Advance.
-            _oCacheMan.CaretAdvance( pntClick );
-
-            // Need to move this to mouse up, so I can detect a drag...
-            if( e.Button == MouseButtons.Left && !IsCtrl( ModifierKeys ) ) {
-                if( fInside ) {
-                    int iDataCol = _rgTxtCol[iTextColumn].DataIndex;
-                    if( !HyperLinkFind( iDataCol, pntClick, fDoJump:true ) ) {
-                        _oCacheMan.BeginSelect();
-                        _oCacheMan.ReColor();
-                    }
-                    Invalidate();
-                }
-            }
+            Input.Peek().OnMouseDown( e );
         }
 
         protected override void OnMouseMove(MouseEventArgs e) {
-            base.OnMouseMove( e );
-
-            SKPointI pntMouse = new SKPointI( e.X, e.Y );
-
-            CursorUpdate( pntMouse, e.Button );
-
-            // BUG: So we want to stop selecting when the mouse moves out 
-            // of the cell in the single cel case.
-            if( e.Button == MouseButtons.Left ) {
-                _oCacheMan.CaretAdvance(pntMouse);
-                _oCacheMan.ReColor();
-                Invalidate();
-            }
+            Input.Peek().OnMouseMove( e );
         }
+        protected override void OnMouseWheel(MouseEventArgs e) {
+            Input.Peek().OnMouseWheel( e );
+        }
+
 
         #region IPgTextView
         /// <see cref="IPgTextView" />

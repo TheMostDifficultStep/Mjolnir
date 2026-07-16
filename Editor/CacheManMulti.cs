@@ -1,16 +1,14 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Drawing;
 using System.Text;
-using System.Collections.ObjectModel;
 
 using SkiaSharp;
-
 using Play.Interfaces.Embedding;
 using Play.Parse;
 using Play.Rectangles;
-
 namespace Play.Edit {
     public interface IPgCaretInfo<T> :
         IMemoryRange
@@ -1091,20 +1089,10 @@ namespace Play.Edit {
                     SmartRect rctColumn = _rgColumnInfo[iColumn].Bounds;
                     CacheRow  oCacheRow = PointToCache( iColumn, pntPick, out int iOffset );
                     if( oCacheRow != null ) {
-                        int iDiff  = pntPick.X - rctColumn.Left;
+                        CaretAdvance( oCacheRow, iColumn, iOffset );
 
-                        _fAdvance  = iDiff > 0 ? iDiff : 0; // If pic column left leading space.
-                        _oCaretRow = oCacheRow.Row;
-                        _iCaretCol = iColumn;
-                        _iCaretOff = iOffset;
-
-                        Extent sSegment = RenderAt( oCacheRow, rctColumn );
-                        Point  pntCaret = oCacheRow[iColumn].GlyphOffsetToPoint( _iCaretOff );
-
-                        pntCaret.X += rctColumn.Left;
-                        pntCaret.Y += sSegment .Start;
-
-                        _oSite.OnCaretPositioned( new SKPointI( pntCaret.X, pntCaret.Y ), true );
+                        int iDiff = pntPick.X - rctColumn.Left;
+                        _fAdvance = iDiff > 0 ? iDiff : 0; // If pic column left leading space.
                         return true;
                     }
                 }
@@ -1114,6 +1102,24 @@ namespace Play.Edit {
             }
             return false;
         }
+
+        public void CaretAdvance( CacheRow oCRow, int iColumn, int iOffset ) {
+            SmartRect rctColumn = _rgColumnInfo[iColumn].Bounds;
+
+            _oCaretRow = oCRow.Row;
+            _iCaretCol = iColumn;
+            _iCaretOff = iOffset;
+
+            Extent sSegment = RenderAt( oCRow, rctColumn );
+            Point  pntCaret = oCRow[iColumn].GlyphOffsetToPoint( _iCaretOff );
+
+            pntCaret.X += rctColumn.Left;
+            pntCaret.Y += sSegment .Start;
+
+            _fAdvance = pntCaret.X;
+
+            _oSite.OnCaretPositioned( new SKPointI( pntCaret.X, pntCaret.Y ), true );
+       }
 
         /// <summary>
         /// This function behaves like the OnScroll() and OnMouse() events. It modifies the 
@@ -1207,6 +1213,36 @@ namespace Play.Edit {
             iOffset = -1;
 
             return null;
+        }
+
+        public int PointToOffset( CacheRow oCRow, int iColumn, SKPointI pntMouse ) {
+            try {
+                SmartRect        rctColumn = _rgColumnInfo[iColumn].Bounds;
+                Extent           sVertExt  = RenderAt( oCRow, rctColumn );
+                IPgCacheMeasures oCache    = oCRow.CacheColumns[iColumn];
+
+                if( pntMouse.Y < sVertExt.Start ) { // Mouse is above cell
+                    pntMouse.Y = sVertExt.Start;
+                }
+                if( pntMouse.Y > sVertExt.Stop  ) { // Mouse is below cell
+                    pntMouse.Y = sVertExt.Stop;
+                }
+                if( pntMouse.X < rctColumn.Left ) {
+                    pntMouse.X = rctColumn.Left;
+                }
+                if( pntMouse.X > rctColumn.Right ) {
+                    pntMouse.X = rctColumn.Right;
+                }
+
+                SKPointI pntLocal = new SKPointI( pntMouse.X - rctColumn.Left,
+                                                  pntMouse.Y - sVertExt.Start );
+
+                return oCache.GlyphPointToOffset( pntLocal );
+            } catch( Exception oEx ) {
+                if( IsUnhandledStdRpt( oEx ) )
+                    throw;
+                return 0;
+            }
         }
 
         /// <summary>
