@@ -836,10 +836,19 @@ namespace Play.Edit {
         protected void RemoveTextSelection( IPgSelection oSelection, Row oRow ) {
             if( oRow != null ) {
                 oSelection.PrepRanges( oRow );
-                for( int i=0; i< oRow.Count; ++i ) {
-                    IMemoryRange oRange = oSelection.GetRange(i);
+                for( int iColumn=0; iColumn< oRow.Count; ++iColumn ) {
+                    IMemoryRange oRange = oSelection.GetRange(iColumn);
                     if( oRange != null ) {
-                        Line oLine = oRow[i];
+                        Line oLine = oRow[iColumn];
+
+                        foreach( IPgEditEvents oListen in _rgListeners ) {
+                            IPgCaretInfo<Row> oCaret = oListen.Caret2;
+
+                            if( oCaret.Row == oRow && oCaret.Column == iColumn ) {
+                                Marker.ShiftDelete( oCaret, oRange );
+                            }
+                        }
+
                         oLine.TryReplace( oRange, null );
                     }
                 }
@@ -862,7 +871,7 @@ namespace Play.Edit {
                 
                 foreach( Row oRow in oSelection ) {
                     switch( oSelection.PrepRanges( oRow ) ) {
-                        case IPgSelection.SlxnType.Middle: 
+                        case IPgSelection.SlxnType.Middle: // this row somewhere in middle.
                             rgDelete.Add( oRow );
                             break;
                         case IPgSelection.SlxnType.Top:
@@ -874,18 +883,30 @@ namespace Play.Edit {
                             break;
                     }
                 }
+                // Remove all the rows in the delete list.
                 foreach( Row oRow in rgDelete ) {
                     _rgRows.Remove( oRow );
                     oRow.Deleted = true;
                 }
 
-                // Note: If Top and Bot are equal, the above should not that and
+                foreach( IPgEditEvents oListen in _rgListeners ) {
+                    IPgCaretInfo<Row> oCaret = oListen.Caret2;
+
+                    if( oCaret.Row.Deleted ) {
+                        oListen.Caret2.Row    = oRowTop;
+                        oListen.Caret2.Offset = 0;
+                    }
+                }
+
+                // Note: If Top and Bot are equal, the above should not trigger and
                 //       we won't have a oRowBot reference. And RTS() will do nothing.
                 RemoveTextSelection( oSelection, oRowTop );
                 RemoveTextSelection( oSelection, oRowBot );
 
                 // Merge lines.
                 if( oRowTop != null && oRowBot != null ) {
+                    // There will be a hole in the center so we're really only 
+                    // merging the left col's down and the bottom col's up.
                     for( int i=0; i< oRowTop.Count; ++i ) {
                         Line oLineTop = oRowTop[i];
                         Line oLineBot = oRowBot[i];
@@ -896,17 +917,17 @@ namespace Play.Edit {
                     oRowBot.Deleted = true;
                 }
 
-                // I think I can assume the top row is always non null...but.
-                if( oRowTop is not null ) {
-                    // TODO: Consider patching up formatting too...
-                    if( oSelection.PrepRanges( oRowTop ) != IPgSelection.SlxnType.None ) {
-                        foreach( IPgEditEvents oListen in _rgListeners ) {
-                            if( oListen.Caret2.Row.Deleted ) {
-                                oListen.Caret2.Row = oRowTop;
-                            }
-                        }
-                    }
-                }
+                // I think I can assume the top row is always NON null...but.
+                //if( oRowTop is not null ) {
+                //    // TODO: Consider patching up formatting too...
+                //    if( oSelection.PrepRanges( oRowTop ) != IPgSelection.SlxnType.None ) {
+                //        foreach( IPgEditEvents oListen in _rgListeners ) {
+                //            if( oListen.Caret2.Row.Deleted ) {
+                //                oListen.Caret2.Row = oRowTop;
+                //            }
+                //        }
+                //    }
+                //}
                 RenumberAndSumate();
 
                 // BUG: Given this new cursor updating code, we might not need

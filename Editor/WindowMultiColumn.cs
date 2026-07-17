@@ -483,6 +483,7 @@ namespace Play.Edit {
                     }
                 }
             } // end method
+
             public override void OnMouseDoubleClick( MouseEventArgs e ) {
                 _oHost.Select();
                 _oHost.Focus ();
@@ -651,7 +652,10 @@ namespace Play.Edit {
                         // the selection at all times...
                         switch( oSelector.RowCount ) {
                             case 0:
-                                _oDocOps.TryReplaceAt(oRow,
+                                if( _oCacheMan.Selection.PrepRanges( oRow ) == IPgSelection.SlxnType.Equal ) {
+                                    _oHost.SelectionDelete(); 
+                                } 
+                                _oDocOps.TryReplaceAt( oRow,
                                                        _oCacheMan.CaretColumn,
                                                        _oCacheMan.CaretOffset,
                                                        0,
