@@ -652,7 +652,7 @@ namespace Play.Edit {
                         // the selection at all times...
                         switch( oSelector.RowCount ) {
                             case 0:
-                                if( _oCacheMan.Selection.PrepRanges( oRow ) == IPgSelection.SlxnType.Equal ) {
+                                if( oSelector.IsValid ) {
                                     _oHost.SelectionDelete(); 
                                 } 
                                 _oDocOps.TryReplaceAt( oRow,
