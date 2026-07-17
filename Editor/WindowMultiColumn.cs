@@ -202,6 +202,8 @@ namespace Play.Edit {
 
         public void OnKeyUp  ( KeyEventArgs e );
         public void OnKeyDown( KeyEventArgs e );
+        public bool OnCmdKey(ref Message msg, Keys keyData);
+        public void OnKeyPress( KeyPressEventArgs e );
     }
 
     public class WindowMultiColumn :
@@ -214,10 +216,10 @@ namespace Play.Edit {
         IPgCommandBase,
         IEnumerable<ILineRange>
     {
-        protected readonly IPgViewSite   _oSiteView;
-        protected readonly IPgViewNotify _oViewEvents;
-
-        protected          Stack<IPgInput> Input { get; } = new();
+        protected readonly IPgViewSite     _oSiteView;
+        protected readonly IPgViewNotify   _oViewEvents;
+        protected readonly Stack<IPgInput> _stInput = new();
+        protected          IPgInput Input { get { return _stInput.Peek(); } } 
 
         protected readonly IEnumerable     <Row> _oDocEnum;
         protected readonly IReadableBag    <Row> _oDocList;
@@ -394,9 +396,11 @@ namespace Play.Edit {
             protected readonly WindowMultiColumn _oHost;
 
             // Shortcuts to stuff on the host.
-            protected readonly CacheMultiBase    _oCacheMan;
-            protected readonly List<ColumnInfo>  _rgTxtCol;
-            protected readonly IPgDocCheckMarks  _oDocChecks;
+            protected readonly CacheMultiBase        _oCacheMan;
+            protected readonly List<ColumnInfo>      _rgTxtCol;
+            protected readonly IPgDocCheckMarks      _oDocChecks;
+            protected readonly IReadableBag<Row>     _oDocList;
+            protected readonly IPgDocOperations<Row> _oDocOps;
 
             public MultiInputBase( WindowMultiColumn oHost ) {
                 _oHost     = oHost ?? throw new ArgumentNullException();
@@ -404,6 +408,8 @@ namespace Play.Edit {
                 _oCacheMan  = oHost._oCacheMan;
                 _rgTxtCol   = oHost._rgTxtCol;
                 _oDocChecks = oHost._oDocChecks;
+                _oDocList   = oHost._oDocList;
+                _oDocOps    = oHost._oDocOps;
             }
 
             protected void Push( IPgInput oInput ) {
@@ -414,13 +420,15 @@ namespace Play.Edit {
                 _oHost.Pop();
             }
 
-            public virtual void OnMouseDown(MouseEventArgs e) {}
-            public virtual void OnMouseUp(MouseEventArgs e) {}
-            public virtual void OnMouseMove(MouseEventArgs e) {}
-            public virtual void OnMouseDoubleClick(MouseEventArgs e ) {}
-            public virtual void OnMouseWheel( MouseEventArgs e ) {}
-            public virtual void OnKeyUp(KeyEventArgs e) {}
-            public virtual void OnKeyDown(KeyEventArgs e) {}
+            public virtual void OnMouseDown       ( MouseEventArgs e ) {}
+            public virtual void OnMouseUp         ( MouseEventArgs e ) {}
+            public virtual void OnMouseMove       ( MouseEventArgs e ) {}
+            public virtual void OnMouseDoubleClick( MouseEventArgs e ) {}
+            public virtual void OnMouseWheel      ( MouseEventArgs e ) {}
+            public virtual void OnKeyUp   ( KeyEventArgs e ) {}
+            public virtual void OnKeyDown ( KeyEventArgs e ) {}
+            public virtual void OnKeyPress( KeyPressEventArgs e ) { }
+            public virtual bool OnCmdKey  ( ref Message msg, Keys keyData ) { return false; }
         }
 
         public class MultiInputNormal : MultiInputBase {
@@ -509,6 +517,178 @@ namespace Play.Edit {
                         throw;
                 }
             } // end method
+
+            public override void OnKeyUp(KeyEventArgs e)
+            {
+                e.Handled = true;
+
+                switch( e.KeyCode ) {
+                    case Keys.ControlKey:
+                        _oHost.CursorUpdate();
+                        break;
+                }
+            }
+
+            public override void OnKeyDown(KeyEventArgs e) {
+                //base.OnKeyDown( e ); // Not sure this is really needed for the control beneath. Probably bad actually.
+            
+                e.Handled = true;
+
+                switch( e.KeyCode ) {
+                    case Keys.PageDown:
+                        _oCacheMan.OnScrollBar_Vertical( ScrollEvents.LargeIncrement );
+                        break;
+                    case Keys.PageUp:
+                        _oCacheMan.OnScrollBar_Vertical( ScrollEvents.LargeDecrement );
+                        break;
+                    case Keys.Down:
+                        _oCacheMan.CaretMove( Axis.Vertical, 1 );
+                        break;
+                    case Keys.Up:
+                        _oCacheMan.CaretMove( Axis.Vertical, -1 );
+                        break;
+                    case Keys.Right:
+                        _oCacheMan.CaretMove( Axis.Horizontal, 1 );
+                        break;
+                    case Keys.Left:
+                        _oCacheMan.CaretMove( Axis.Horizontal, -1 );
+                        break;
+                    case Keys.Back:
+                        if(  !_oHost.IsReadOnly && _oCacheMan.CopyCaret() is CaretInfo oCaret ) {
+                            _oHost._oDocOps.TryDeleteAt( oCaret.Row, oCaret.Column, oCaret.Offset - 1, 1 );
+                        }
+                        break;
+                    case Keys.ControlKey:
+                        // Note: This comes in occasionally even if keep pressing ctrl.
+                        _oHost.CursorUpdate();
+                        break;
+                }
+            }
+
+            public override bool OnCmdKey(ref Message msg, Keys keyData)	
+            {
+                const int WM_KEYDOWN    = 0x100;
+                const int WM_SYSKEYDOWN = 0x104;
+
+                if ((msg.Msg == WM_KEYDOWN) || (msg.Msg == WM_SYSKEYDOWN))
+                {
+                    switch(keyData) {
+                        case Keys.Control | Keys.F:
+                            _oHost._oViewEvents.IsCommandKey( CommandKey.Find, KeyBoardEnum.Control );
+                            return true;
+                        case Keys.Control | Keys.A:
+                            //SelectionSetAll();
+                            _oHost.Invalidate();
+                            return true;
+
+                        case Keys.Control | Keys.Z:
+                            if( !_oHost.IsReadOnly ) {
+                                //_oDocument.Undo();
+                            }
+                            return true;
+                        case Keys.Control | Keys.Q:
+                            if( !_oHost.IsReadOnly ) { // Or column or elem locked...
+                                if( _oCacheMan.CopyCaret() is CaretInfo oCaret ) {
+                                    _oHost._oDocOps.RowDelete( oCaret.Row );
+                                }
+                            }
+                            return true;
+
+                        case Keys.Control | Keys.V:
+                            _oHost.ClipboardCopyFrom();
+                            return true;
+                        case Keys.Control | Keys.C:
+                            _oHost.ClipboardCopyTo();
+                            return true;
+                        case Keys.Control | Keys.X:
+                            _oHost.ClipboardCutTo();
+                            return true;
+
+                        case Keys.Delete: {
+                            // The only way to get this event. Tho' a bit ambiguous between delete a character
+                            // in a column or delete a row. 
+                            if( !_oHost.IsReadOnly ) {
+                                if( _oCacheMan.Selector.RowCount == 0 ) {
+                                    if( _oCacheMan.CopyCaret() is CaretInfo oCaret ) {
+                                        _oHost._oDocOps.TryDeleteAt(oCaret.Row, oCaret.Column, oCaret.Offset, 1);
+                                    }
+                                } else {
+                                    // BUG: This won't delete multi char's in one row w/ one column selection.
+                                    _oHost.SelectionDelete();
+                                }
+                            }
+                            return true;
+                        }
+                    }
+                } 
+
+                return false;
+            } // end method
+
+            public override void OnKeyPress(KeyPressEventArgs e) {
+                if( _oHost._oViewEvents.IsCommandPress( e.KeyChar ) )
+                    return;
+                if( _oHost.IsReadOnly )
+                    return;
+
+                try {
+                    if( _oHost.IsCaretInCheckColumn ) {
+                        if( e.KeyChar == ' ' ) { // space bar.
+                            Row oRow = _oDocList[_oCacheMan.CaretAt];
+                            _oDocChecks.SetCheckAtRow( oRow ); // sends a check event if check moves.
+                        }
+                        e.Handled = true;
+                        return;
+                    }
+                    if( !char.IsControl( e.KeyChar ) ) {
+                        _oCacheMan.ScrollToCaret();
+
+                        ReadOnlySpan<char> rgInsert  = [e.KeyChar];
+                        Selection          oSelector = _oCacheMan.Selector;
+                        Row                oRow      = _oDocList[_oCacheMan.CaretAt];
+
+                        // TODO: I might be able to improve this by making it so I can use
+                        // the selection at all times...
+                        switch( oSelector.RowCount ) {
+                            case 0:
+                                _oDocOps.TryReplaceAt(oRow,
+                                                       _oCacheMan.CaretColumn,
+                                                       _oCacheMan.CaretOffset,
+                                                       0,
+                                                       rgInsert);
+                                break;
+                            case 1:
+                                if( oSelector.IsSingleColumn( out int iColumn ) ) {
+                                    IMemoryRange oRange = oSelector[iColumn];
+
+                                    oSelector.Clear(); // Do before the TryReplace...
+                                    _oCacheMan.CaretOffset = oRange.Offset+1; // Want caret after ins text
+                                    _oDocOps.TryReplaceAt( oRow, iColumn, oRange, rgInsert );
+                                }
+                                break;
+                            default: {
+                                _oHost.SelectionDelete();
+                                _oHost._oDocOps.TryReplaceAt( oRow, 
+                                                       _oCacheMan.CaretColumn, 
+                                                       _oCacheMan.CaretOffset,
+                                                       0,
+                                                       rgInsert );
+                                } break;
+                        }
+
+                        e.Handled = true;
+                    }
+                } catch( Exception oEx ) {
+                    Type[] rgErrors = { typeof( NullReferenceException ),
+                                        typeof( ArgumentOutOfRangeException ),
+                                        typeof( IndexOutOfRangeException ),
+                                        typeof( ArgumentNullException ) };
+                    if( rgErrors.IsUnhandled( oEx ) )
+                        throw;
+                    _oHost.LogError( "Caret is probably confused" );
+                }
+            }
+
         } // end class
 
         public class MultiInputDrag : MultiInputBase {
@@ -557,7 +737,7 @@ namespace Play.Edit {
 
             _oCacheMan = CreateCacheMan();
 
-            Input.Push( new MultiInputNormal( this ) ); // Uses cacheman.
+            _stInput.Push( new MultiInputNormal( this ) ); // Uses cacheman, so create that first.
 
             // BUG: CacheManager set's the height. Cacheman defines the
             //      glyph but not via the EditMultiColumn.
@@ -592,12 +772,12 @@ namespace Play.Edit {
         }
 
         protected void Push( IPgInput oInput ) {
-            Input.Push( oInput );
+            _stInput.Push( oInput );
         }
 
         protected void Pop() {
             try {
-                Input.Pop();
+                _stInput.Pop();
             } catch( InvalidOperationException ) {
                 Push( new MultiInputNormal( this ) );
             }
@@ -1211,133 +1391,6 @@ namespace Play.Edit {
         }
 
         /// <summary>
-        /// Event handler for the vertical or horizontal scroll bar.
-        /// </summary>
-        void OnScrollBar( ScrollEvents e ) {
-            _oCacheMan.OnScrollBar_Vertical( e );
-        }
-
-        protected override void OnKeyUp(KeyEventArgs e)
-        {
-            if (IsDisposed)
-                return;
-
-            e.Handled = true;
-
-            switch( e.KeyCode ) {
-                case Keys.ControlKey:
-                    CursorUpdate();
-                    break;
-            }
-        }
-
-        /// <summary>
-        /// Note: The difference between scroll bar scrolling and Page-Up/Down scrolling is a
-        /// usability issue. We keep the caret on screen when we use the keyboard.
-        /// </summary>
-        protected override void OnKeyDown(KeyEventArgs e) {
-            if( IsDisposed )
-                return;
-
-            //base.OnKeyDown( e ); // Not sure this is really needed for the control beneath. Probably bad actually.
-            
-            e.Handled = true;
-
-            switch( e.KeyCode ) {
-                case Keys.PageDown:
-                    _oCacheMan.OnScrollBar_Vertical( ScrollEvents.LargeIncrement );
-                    break;
-                case Keys.PageUp:
-                    _oCacheMan.OnScrollBar_Vertical( ScrollEvents.LargeDecrement );
-                    break;
-                case Keys.Down:
-                    _oCacheMan.CaretMove( Axis.Vertical, 1 );
-                    break;
-                case Keys.Up:
-                    _oCacheMan.CaretMove( Axis.Vertical, -1 );
-                    break;
-                case Keys.Right:
-                    _oCacheMan.CaretMove( Axis.Horizontal, 1 );
-                    break;
-                case Keys.Left:
-                    _oCacheMan.CaretMove( Axis.Horizontal, -1 );
-                    break;
-                case Keys.Back:
-                    if(  !IsReadOnly && _oCacheMan.CopyCaret() is CaretInfo oCaret ) {
-                        _oDocOps.TryDeleteAt( oCaret.Row, oCaret.Column, oCaret.Offset - 1, 1 );
-                    }
-                    break;
-                case Keys.ControlKey:
-                    // Note: This comes in occasionally even if keep pressing ctrl.
-                    CursorUpdate();
-                    break;
-            }
-        }
-
-        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)	
-        {
-            if( this.IsDisposed )
-                return false;
-
-            const int WM_KEYDOWN    = 0x100;
-            const int WM_SYSKEYDOWN = 0x104;
-
-            if ((msg.Msg == WM_KEYDOWN) || (msg.Msg == WM_SYSKEYDOWN))
-            {
-                switch(keyData) {
-                    case Keys.Control | Keys.F:
-                        _oViewEvents.IsCommandKey( CommandKey.Find, KeyBoardEnum.Control );
-                        return true;
-                    case Keys.Control | Keys.A:
-                        //SelectionSetAll();
-                        Invalidate();
-                        return true;
-
-                    case Keys.Control | Keys.Z:
-                        if( !IsReadOnly ) {
-                            //_oDocument.Undo();
-                        }
-                        return true;
-                    case Keys.Control | Keys.Q:
-                        if( !IsReadOnly ) { // Or column or elem locked...
-                            if( _oCacheMan.CopyCaret() is CaretInfo oCaret ) {
-                                _oDocOps.RowDelete( oCaret.Row );
-                            }
-                        }
-                        return true;
-
-                    case Keys.Control | Keys.V:
-                        ClipboardCopyFrom();
-                        return true;
-                    case Keys.Control | Keys.C:
-                        ClipboardCopyTo();
-                        return true;
-                    case Keys.Control | Keys.X:
-                        ClipboardCutTo();
-                        return true;
-
-                    case Keys.Delete: {
-                        // The only way to get this event. Tho' a bit ambiguous between delete a character
-                        // in a column or delete a row. 
-                        if( !IsReadOnly ) {
-                            if( _oCacheMan.Selector.RowCount == 0 ) {
-                                if( _oCacheMan.CopyCaret() is CaretInfo oCaret ) {
-                                    _oDocOps.TryDeleteAt(oCaret.Row, oCaret.Column, oCaret.Offset, 1);
-                                }
-                            } else {
-                                // BUG: This won't delete multi char's in one row w/ one column selection.
-                                SelectionDelete();
-                            }
-                        }
-                        return true;
-                    }
-                }
-            } 
-
-            return base.ProcessCmdKey( ref msg, keyData );
-        } // end method
-
-        /// <summary>
         /// If you put the visible columns in a different order than the
         /// data, well then you've got to look 'em up.
         /// </summary>
@@ -1357,89 +1410,83 @@ namespace Play.Edit {
             }
         }
 
+        /// <summary>
+        /// Event handler for the vertical or horizontal scroll bar.
+        /// </summary>
+        void OnScrollBar( ScrollEvents e ) {
+            _oCacheMan.OnScrollBar_Vertical( e );
+        }
+
+        protected override void OnKeyUp(KeyEventArgs e)
+        {
+            if (IsDisposed)
+                return;
+
+            Input.OnKeyUp( e );
+        }
+
+        /// <summary>
+        /// Note: The difference between scroll bar scrolling and Page-Up/Down scrolling is a
+        /// usability issue. We keep the caret on screen when we use the keyboard.
+        /// </summary>
+        protected override void OnKeyDown(KeyEventArgs e) {
+            if( IsDisposed )
+                return;
+
+            Input.OnKeyDown( e );
+        }
+
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)	
+        {
+            if( this.IsDisposed )
+                return false;
+
+            if( Input.OnCmdKey(ref msg, keyData) )
+                return true;
+
+            return base.ProcessCmdKey( ref msg, keyData );
+        } // end method
+
         protected override void OnKeyPress(KeyPressEventArgs e) {
             if( IsDisposed )
                 return;
-            if( _oViewEvents.IsCommandPress( e.KeyChar ) )
-                return;
-            if( IsReadOnly )
-                return;
 
-            try {
-                if( IsCaretInCheckColumn ) {
-                    if( e.KeyChar == ' ' ) { // space bar.
-                        Row oRow = _oDocList[_oCacheMan.CaretAt];
-                        _oDocChecks.SetCheckAtRow( oRow ); // sends a check event if check moves.
-                    }
-                    e.Handled = true;
-                    return;
-                }
-                if( !char.IsControl( e.KeyChar ) ) {
-                    _oCacheMan.ScrollToCaret();
-
-                    ReadOnlySpan<char> rgInsert  = [e.KeyChar];
-                    Selection          oSelector = _oCacheMan.Selector;
-                    Row                oRow      = _oDocList[_oCacheMan.CaretAt];
-
-                    // TODO: I might be able to improve this by making it so I can use
-                    // the selection at all times...
-                    switch( oSelector.RowCount ) {
-                        case 0:
-                            _oDocOps.TryReplaceAt(oRow,
-                                                   _oCacheMan.CaretColumn,
-                                                   _oCacheMan.CaretOffset,
-                                                   0,
-                                                   rgInsert);
-                            break;
-                        case 1:
-                            if( oSelector.IsSingleColumn( out int iColumn ) ) {
-                                IMemoryRange oRange = oSelector[iColumn];
-
-                                oSelector.Clear(); // Do before the TryReplace...
-                                _oCacheMan.CaretOffset = oRange.Offset+1; // Want caret after ins text
-                                _oDocOps.TryReplaceAt( oRow, iColumn, oRange, rgInsert );
-                            }
-                            break;
-                        default: {
-                            SelectionDelete();
-                            _oDocOps.TryReplaceAt( oRow, 
-                                                   _oCacheMan.CaretColumn, 
-                                                   _oCacheMan.CaretOffset,
-                                                   0,
-                                                   rgInsert );
-                            } break;
-                    }
-
-                    e.Handled = true;
-                }
-            } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( NullReferenceException ),
-                                    typeof( ArgumentOutOfRangeException ),
-                                    typeof( IndexOutOfRangeException ),
-                                    typeof( ArgumentNullException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
-                    throw;
-                LogError( "Caret is probably confused" );
-            }
+            Input.OnKeyPress( e );
         }
 
         protected override void OnMouseDoubleClick( MouseEventArgs e ) {
-            Input.Peek().OnMouseDoubleClick( e );
+            if( IsDisposed )
+                return;
+
+            Input.OnMouseDoubleClick( e );
         }
 
         protected override void OnMouseUp(MouseEventArgs e) {
-            Input.Peek().OnMouseUp( e );
+            if( IsDisposed )
+                return;
+
+            Input.OnMouseUp( e );
         }
 
         protected override void OnMouseDown(MouseEventArgs e) {
-            Input.Peek().OnMouseDown( e );
+            if( IsDisposed )
+                return;
+
+            Input.OnMouseDown( e );
         }
 
         protected override void OnMouseMove(MouseEventArgs e) {
-            Input.Peek().OnMouseMove( e );
+            if( IsDisposed )
+                return;
+
+            Input.OnMouseMove( e );
         }
+
         protected override void OnMouseWheel(MouseEventArgs e) {
-            Input.Peek().OnMouseWheel( e );
+            if( IsDisposed )
+                return;
+
+            Input.OnMouseWheel( e );
         }
 
 
