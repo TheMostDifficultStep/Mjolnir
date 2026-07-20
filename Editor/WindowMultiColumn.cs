@@ -466,7 +466,7 @@ namespace Play.Edit {
                 {
                     int iDataCol = _rgTxtCol[iTextColumn].DataIndex;
 
-                    if( WindowMultiColumn.IsCtrl( ModifierKeys ) ) {
+                    if( !WindowMultiColumn.IsCtrl( ModifierKeys ) ) {
                         if( _oHost.HyperLinkFind( iDataCol, pntClick, fDoJump:true ) ) {
                             return;
                         }
@@ -1021,23 +1021,27 @@ namespace Play.Edit {
 
                 try {
                     Selection oSelector = _oCacheMan.Selector;
-                    //if( oSelector.RowCount == 1 ) {
-                        Row oRow    = _oCacheMan.Row;
-                        int iColumn = _oCacheMan.Column;
+                    Row       oRow      = _oCacheMan.Row;
+                    int       iColumn   = _oCacheMan.Column;
 
-                        IPgSelection.SlxnType eSlxn = oSelector.PrepRanges( oRow );
-                        if( eSlxn == IPgSelection.SlxnType.Equal ) {
+                    IPgSelection.SlxnType eSlxn = oSelector.PrepRanges( oRow );
+                    switch( eSlxn ) {
+                        case IPgSelection.SlxnType.Equal:
                             IMemoryRange oRange  = oSelector[iColumn];
 
+                            // Put caret at front of selection to be deleted.
                             _oCacheMan.CaretOffset = oRange.Offset;
                             oSelector.Clear(); // Do before TryReplace...
 
                             _oDocOps.TryReplaceAt( oRow, iColumn, oRange, strPaste );
-                        }
-                        if( eSlxn == IPgSelection.SlxnType.None ) {
+                            break;
+                        case IPgSelection.SlxnType.None:
                             _oDocOps.TryReplaceAt( oRow, iColumn, _oCacheMan, strPaste );
-                        }
-                    //}
+                            break;
+                        default:
+                            LogError( "Can't handle multi column paste!" );
+                            break;
+                    }
                 } catch( Exception oEx ) {
                     Type[] rgErrors = { typeof( NullReferenceException ),
                                         typeof( ArgumentOutOfRangeException ),
@@ -1060,7 +1064,8 @@ namespace Play.Edit {
 
         public virtual void OnDocFormatted() {
             _oCacheMan.OnDocFormatted();
-            Invalidate();
+            CursorUpdate();
+            Invalidate  ();
         }
 
         public virtual void OnDocLoaded() {
@@ -1368,9 +1373,9 @@ namespace Play.Edit {
                     } else {
                         oNewCursor = Cursors.IBeam;
                         if( eButton != MouseButtons.Left &&  // if not selecting.
-                            IsCtrl( ModifierKeys ) )         // if not editing...
+                            !IsCtrl( ModifierKeys ) )         // if not editing...
                         { 
-                            if( HyperLinkFind( iTextColumn, pntLocation, fDoJump:false ) )
+                            if( HyperLinkFind( iDataCol, pntLocation, fDoJump:false ) )
                                 oNewCursor = Cursors.Hand;
                             break;
                         }
