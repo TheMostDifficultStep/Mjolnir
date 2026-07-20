@@ -2258,11 +2258,8 @@ namespace Play.Edit {
 
             e.Handled = true;
 
-            switch( e.KeyCode ) {
-                case Keys.ControlKey:
-                    CursorUpdate();
-                    break;
-            }
+            // Let's just do this all the time.
+            CursorUpdate();
         }
 
         /// <summary>
