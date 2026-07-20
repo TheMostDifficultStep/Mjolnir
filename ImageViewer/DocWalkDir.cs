@@ -1,12 +1,11 @@
-﻿using System;
+﻿using Play.Edit;
+using Play.Interfaces.Embedding;
+using SkiaSharp;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
-
-using SkiaSharp;
-
-using Play.Interfaces.Embedding;
-using Play.Edit;
+using System.Reflection;
 
 namespace Play.ImageViewer {
     public class ImageWalkerDir : 
@@ -27,6 +26,14 @@ namespace Play.ImageViewer {
         // At present we're never dirty in the directory case.
         protected override void Raise_DirtyDoc() {
             Raise_ImageUpdated();
+        }
+
+        public override SKImage CreateIcon( Assembly oAsm ) {
+			try {
+				return GetResource( "icons8-portrait.png", oAsm );
+			} catch( InvalidOperationException ) {
+                return null;
+			}
         }
 
         /// <summary>

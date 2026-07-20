@@ -525,15 +525,13 @@ namespace Play.ImageViewer {
         readonly List<SmartRect> _rgLeft  = new List<SmartRect>(3);
         readonly List<SmartRect> _rgRight = new List<SmartRect>(3);
 
-		protected virtual string IconResource => "icons8-portrait.png";
-
         public WindowSoloImageNav( IPgViewSite oBaseSite, ImageWalkerDoc oDoc ) : base( oBaseSite, oDoc ) {
 			_oDocWalker = oDoc ?? throw new ArgumentNullException( "Document must not be null." );
 
 			// BUG : This throws when a subclass in a DIFFERENT ASSEMBLY tries to
 			//       load it's resourse. What a pain in the a$$.
 			try {
-				Icon = _oDocWalker.GetResource( IconResource, Assembly.GetExecutingAssembly() );
+				Icon = _oDocWalker.CreateIcon( Assembly.GetExecutingAssembly() );
 			} catch( InvalidOperationException ) {
 			}
 

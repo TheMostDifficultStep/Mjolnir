@@ -633,6 +633,14 @@ namespace Play.ImageViewer {
         }
         public SKImage Icon { get; }
 
+        public virtual SKImage CreateIcon( Assembly oAsm ) {
+			try {
+				return GetResource( "icons8-fast-cart-64.png", oAsm );
+			} catch( InvalidOperationException ) {
+                return null;
+			}
+        }
+
         internal void LogError( string strCatagory, string strMessage ) {
             _oSiteBase.LogError( strCatagory, strMessage );
         }

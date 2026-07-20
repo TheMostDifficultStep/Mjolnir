@@ -98,14 +98,14 @@ namespace Play.MusicWalker {
 	public class WinMusicAlbum : WindowSoloImageNav {
 		readonly M3UDocument _oDocumentMusic;
 
-		protected override string IconResource => @"MusicWalker.Content.icon_album.gif";
-
 		string _strBanner  = string.Empty;
 		int    _iCaratLine = 0;
 
 		public override string Banner => _strBanner;
 
-		public WinMusicAlbum( IPgViewSite oBaseSite, M3UDocument oDocument ) : base( oBaseSite, oDocument.AlbumArt ) {
+		public WinMusicAlbum ( IPgViewSite oBaseSite, M3UDocument oDocument ) : 
+			   base          ( oBaseSite, oDocument.AlbumArt ) 
+		{
 			_oDocumentMusic = oDocument ?? throw new ArgumentNullException( "Music Image Win needs Music Document.");
 
 			_oDocumentMusic.HilightEvent += OnHighLightChanged;
