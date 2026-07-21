@@ -103,7 +103,8 @@ namespace Play.FileManager {
             try {
                 if( _oCacheMan.Caret2.Row is FileManager.FMRow oFMRow ) {
                     using FileProperties.BulkLoader2 oBulk = new( DocProps );
-
+                    oBulk.ValueUpdate( FileProperties.Names.Name,
+                                       oFMRow[FileManager.FMRow.DCol.Name] );
                     oBulk.ValueUpdate( FileProperties.Names.Date, 
                                        oFMRow[FileManager.FMRow.DCol.Date] );
                     oBulk.ValueUpdate( FileProperties.Names.Time,

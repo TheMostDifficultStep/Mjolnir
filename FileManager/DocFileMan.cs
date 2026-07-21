@@ -13,7 +13,6 @@ using System.Xml.XPath;
 
 namespace Play.FileManager {
     using static Play.FileManager.FileFavorites;
-    using static Play.FileManager.FileManager.FMRow;
     using DClmn = FileManager.FMRow.DCol;
 
     public class FileProperties :
@@ -49,6 +48,7 @@ namespace Play.FileManager {
             }
         }
         public enum Names : int {
+            Name,
             Time,
 			Date,
             Size,
