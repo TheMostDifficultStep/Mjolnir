@@ -390,9 +390,12 @@ namespace Monitor {
         private void InitArray( Z80Instr[] rgInstrs, Regex oReg ) {
             for( int i=0; i<rgInstrs.Length; i++ ) {
                 Z80Instr oInstr = rgInstrs[i];
-                Match    oMatch = oReg.Match( oInstr.Params );
+                // not all the biti instr's are defined.
+                if( oInstr is not null ) {
+                    Match    oMatch = oReg.Match( oInstr.Params );
 
-                Setup( oInstr, i, oMatch );
+                    Setup( oInstr, i, oMatch );
+                }
             }
         }
 
