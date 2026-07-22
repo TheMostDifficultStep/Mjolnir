@@ -682,6 +682,8 @@ namespace Monitor {
             _rgZ80Def = new Z80Definitions();
             Z80Memory = new Z80Memory();
 
+            // Would be nice to set these in the load/init phase
+            // so I can toggle between the desired usage...
             Ports     = new DazzlePorts( this );
           //Ports     = new TinyBasicPorts( this );
 
@@ -981,6 +983,7 @@ namespace Monitor {
 
         protected void StatusUpdate() {
             try {
+                Doc_Asm    .Mirror( Z80Memory );
                 Doc_Asm    .UpdateHighlightLine( _cpuZ80.Pc );
                 Doc_Props  .Update( this );
                 Doc_Display.Load( Z80Memory.RawMemory, 0x200 );
@@ -1092,6 +1095,7 @@ namespace Monitor {
                     case WorkerStatus.PAUSED:
                         _cpuZ80    .Parse();
 
+                        Doc_Asm    .Mirror( Z80Memory );
                         Doc_Asm    .UpdateHighlightLine( _cpuZ80.Pc );
                         Doc_Props  .Update( this );
                         Doc_Display.Load( Z80Memory.RawMemory, 0x200 );

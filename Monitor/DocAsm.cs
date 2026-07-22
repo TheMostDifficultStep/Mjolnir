@@ -2,6 +2,7 @@
 
 using Play.Edit;
 using Play.Interfaces.Embedding;
+using z80;
 
 namespace Monitor {
     public class AsmRow : Row {
@@ -162,7 +163,7 @@ namespace Monitor {
         }
 
         public void UpdateHighlightLine( int iRow ) {
-            FindRowAtAddress( iRow, out AsmRow? HighLight );
+            FindRowAtAddress( iRow, out AsmRow? _ );
         }
         public override WorkerStatus PlayStatus {
             
@@ -174,6 +175,12 @@ namespace Monitor {
             }
 		}
 
+        public void Mirror( Z80Memory _oMem ) {
+            for( int i=0; i<256; ++i ) {
+                _rgRows[i][1].TryReplace( _oMem[i].ToString() );
+            }
+            Raise_DocFormatted();
+        }
     }
 
     public class SegmentRow : Row {
