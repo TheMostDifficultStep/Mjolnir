@@ -49,8 +49,12 @@ namespace Play.ImageViewer {
         protected override void OnSizeChanged(EventArgs e) {
 			base.OnSizeChanged( e );
 
-			_pntAspect = new SKPoint( _oDocSurface.ImageSize.Width  / (float)_rctViewPort.Width,
-							          _oDocSurface.ImageSize.Height / (float)_rctViewPort.Height );
+			if( _oDocSurface.IsImageValid ) {
+				_pntAspect = new SKPoint( _oDocSurface.ImageSize.Width  / (float)_rctViewPort.Width,
+										  _oDocSurface.ImageSize.Height / (float)_rctViewPort.Height );
+			} else {
+				_pntAspect = new SKPoint( 1, 1 );
+			}
 		}
 
         protected override void OnPaintSurface( SKPaintSurfaceEventArgs e ) {
@@ -76,10 +80,10 @@ namespace Play.ImageViewer {
 
                         skCanvas.DrawImage( oImageSnap,
 										    new SKRect( _rctWorldPort.Left, _rctWorldPort.Top, _rctWorldPort.Right, _rctWorldPort.Bottom ),
-										    new SKRect( _rctViewPort .Left, _rctViewPort .Top, _rctViewPort.Right,  _rctViewPort .Bottom ),
-										    new SKSamplingOptions( SKFilterMode.Linear ) );
+										    new SKRect( _rctViewPort .Left, _rctViewPort .Top, _rctViewPort .Right, _rctViewPort .Bottom ),
+										    new SKSamplingOptions( SKFilterMode.Linear ) ); // BUG: Make this a param to the class.
                     } else {
-                        LogError("Paint", "Couldn't paint error bitmap");
+                        //LogError("Paint", "Couldn't paint bitmap");
                     }
                 } catch (Exception oEx) {
                     Type[] rgErrors = { typeof( ArgumentNullException ),

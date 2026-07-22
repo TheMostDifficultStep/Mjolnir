@@ -1,10 +1,11 @@
-﻿using Play.Edit;
-using Play.Interfaces.Embedding;
-using Play.Parse;
-using Play.Rectangles;
+﻿using System.Xml;
 
 using SkiaSharp;
 
+using Play.Edit;
+using Play.Interfaces.Embedding;
+using Play.Parse;
+using Play.Rectangles;
 using Play.Forms;
 using Play.ImageViewer;
 
@@ -16,7 +17,9 @@ namespace Monitor {
     /// </summary>
     internal class ViewEmulatorImage :
         ViewSurface,
-        IPgCommandView
+        IPgCommandView,
+        IPgSave<XmlDocumentFragment>,
+        IPgLoad<XmlElement>
     {
         public static readonly Guid GUID = new Guid( "{6F5EAD43-B191-404F-BC5D-F108FEB68205}" );
 
@@ -27,6 +30,8 @@ namespace Monitor {
         public SKImage? Icon { get; protected set; }
 
         public Guid Catagory => GUID;
+
+        public bool IsDirty => false;
 
         public ViewEmulatorImage(IPgViewSite oBaseSite, DocumentMonitor oMon ) : 
             base(oBaseSite, oMon.Doc_Display ) 
@@ -48,6 +53,14 @@ namespace Monitor {
 
         public object? Decorate(IPgViewSite oBaseSite, Guid sGuid) {
             return null;
+        }
+
+        public bool Save(XmlDocumentFragment oStream) {
+            return true;
+        }
+
+        public bool Load(XmlElement oStream) {
+            return true;
         }
     }
 

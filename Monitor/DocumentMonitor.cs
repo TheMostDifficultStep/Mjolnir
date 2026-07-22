@@ -478,17 +478,17 @@ namespace Monitor {
             byte bLowAddr = (byte)( 0x00ff & usAddress );
 
             switch( bLowAddr ) {
+                case 0x0e:
+                    byte bDazzleOffs = (byte)( bValue & 0x7f );
+                    bool bDazzleOn   = ( bValue & 0x80 ) > 0;
+                    int  iDazzleAddr = bDazzleOffs * 0x200;
+                    break;
                 case 0x0f:
                     // Check size from bValue
                     if( ( bValue & (1 << 5) ) > 0 )
                         Mon.Doc_Display.SetSize( DazzleDisplay.ImageSizes.SixtyFour );
                     else
                         Mon.Doc_Display.SetSize( DazzleDisplay.ImageSizes.ThirtyTwo );
-                    break;
-                case 0x0e:
-                    byte bDazzleOffs = (byte)( bValue & 0x7f );
-                    bool bDazzleOn   = ( bValue & 0x80 ) > 0;
-                    int  iDazzleAddr = bDazzleOffs * 0x200;
                     break;
             }
         }
@@ -681,8 +681,10 @@ namespace Monitor {
 
             _rgZ80Def = new Z80Definitions();
             Z80Memory = new Z80Memory();
-          //Ports     = new DazzlePorts( this );
-            Ports     = new TinyBasicPorts( this );
+
+            Ports     = new DazzlePorts( this );
+          //Ports     = new TinyBasicPorts( this );
+
             _cpuZ80   = new Z80( Z80Memory, Ports );
 
             Doc_Asm     = new ( new DocSlot( this ) );
