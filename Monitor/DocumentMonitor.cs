@@ -839,7 +839,7 @@ namespace Monitor {
             // This isn't necessarily the z80 emulator memory. Let's
             // see how this turns out. Memory size is still tricky.
             // Well add that to property pages and .asmprg file.
-            byte[] rgRWRam = new byte[4096];
+            byte[] rgRWRam = new byte[9000];
             int    iCount  = fComFile ? 0x100 : 0x00; 
 
             for( int iByte = oStream.ReadByte();

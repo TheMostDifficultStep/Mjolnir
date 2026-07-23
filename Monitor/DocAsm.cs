@@ -175,6 +175,12 @@ namespace Monitor {
             }
 		}
 
+        /// <summary>
+        /// Oh, I didn't think of this. While we are executing the program.
+        /// We don't get an update on the memory!! I need to physically
+        /// copy it back. I'm just going to hack this for now. I should just
+        /// create a memory dump screen so you can track the live memory.
+        /// </summary>
         public void Mirror( Z80Memory _oMem ) {
             for( int i=0; i<256; ++i ) {
                 _rgRows[i][1].TryReplace( _oMem[i].ToString() );
