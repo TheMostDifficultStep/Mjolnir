@@ -46,12 +46,17 @@ namespace Play.MorsePractice {
 			TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None ), DocLog.LogRow.ColumnNote );
 
             HyperLinks.Add( "callsign", OnCallSign );
+            HyperLinks.Add( "url",      OnBrowserLink );
 
 			return true;
 		}
 
         protected void OnCallSign( Row oRow, int iColumn, IPgWordRange oRange ) {
-            BrowserLink( "http://www.qrz.com/db/" +  oRow[iColumn].SubString( oRange.Offset, oRange.Length) );
+            BrowserLink( "http://www.qrz.com/db/" + oRow[iColumn].SubString( oRange.Offset, oRange.Length) );
+        }
+
+        protected void OnBrowserLink( Row oRow, int iColumn, IPgWordRange oRange ) {
+            BrowserLink( oRow[iColumn].SubString( oRange.Offset, oRange.Length) );
         }
 
         protected override void OnKeyPress(KeyPressEventArgs e) {
