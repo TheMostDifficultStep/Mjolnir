@@ -684,10 +684,11 @@ namespace Monitor {
 
             // Would be nice to set these in the load/init phase
             // so I can toggle between the desired usage...
-            Ports     = new DazzlePorts( this );
-          //Ports     = new TinyBasicPorts( this );
+          //Ports     = new DazzlePorts( this );
+            Ports     = new TinyBasicPorts( this );
 
             _cpuZ80   = new Z80( Z80Memory, Ports );
+            _cpuZ80.Pc = 0x100; // CPM 2.2 start address.
 
             Doc_Asm     = new ( new DocSlot( this ) );
             Doc_Segm    = new ( new DocSlot( this ) );
@@ -839,7 +840,7 @@ namespace Monitor {
             // This isn't necessarily the z80 emulator memory. Let's
             // see how this turns out. Memory size is still tricky.
             // Well add that to property pages and .asmprg file.
-            byte[] rgRWRam = new byte[9000];
+            byte[] rgRWRam = new byte[64000];
             int    iCount  = fComFile ? 0x100 : 0x00; 
 
             for( int iByte = oStream.ReadByte();
@@ -1121,6 +1122,7 @@ namespace Monitor {
         public void CpuRecycle() {
             try {
                 _cpuZ80.Reset();
+                _cpuZ80.Pc = 0x100;
                 Doc_Asm.HighLight = null;
                 Doc_Display.Clear();
             } catch( Exception oEx ) {
