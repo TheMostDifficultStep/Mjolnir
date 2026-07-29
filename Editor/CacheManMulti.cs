@@ -281,7 +281,7 @@ namespace Play.Edit {
                 // Or the caret isn't set and our cache is empty..
                 // Probably should just force the caret to be on some line
                 // at all times... :-/
-                if( oSeedRow == null ) {
+                if( oSeedRow == null || oSeedRow.At < 0 ) {
                     FinishUp( null, null );
                     return;
                 }
@@ -499,18 +499,24 @@ namespace Play.Edit {
             if( _rgOldCache.Count <= 0 )
                 return null;
 
-            CacheRow oSeedCache = _rgOldCache[0];
+            CacheRow oSeedCache = null;
 
-            if( _oTextRect.Height <= 0 )
-                return oSeedCache;
+            if( _oTextRect.Height <= 0 ) {
+                foreach( CacheRow oTestRow in _rgOldCache ) {
+                    if( oTestRow.At >= 0 ) {
+                        return oTestRow;
+                    }
+                }
+                return null;
+            }
 
             foreach( CacheRow oTestRow in _rgOldCache ) {
-                if( IsInside( oTestRow ) /* && oTestRow.At < oSeedCache.At */ ) {
+                if( IsInside( oTestRow ) && oTestRow.At >= 0 ) {
                     return oTestRow;
                 }
             }
             foreach( CacheRow oTestRow in _rgOldCache ) {
-                if( IsEdge( oTestRow )  ) {
+                if( IsEdge( oTestRow ) && oTestRow.At >= 0 ) {
                     return oTestRow;
                 }
             }
@@ -1468,9 +1474,12 @@ namespace Play.Edit {
         protected void CacheRecycle( out CacheRow oNewCRow, int iDataRow, bool fRemeasure = false ) {
             oNewCRow = null;
 
-            Row oNextDRow = _oSiteList[iDataRow];
-            if( oNextDRow == null )
+            if( iDataRow < 0 || iDataRow >= _oSiteList.ElementCount ) {
                 return;
+            }
+            Row oNextDRow = _oSiteList[iDataRow];
+            //if( oNextDRow == null )
+            //    return;
 
             oNewCRow = _rgOldCache.Find( x => x.Row == oNextDRow );
 

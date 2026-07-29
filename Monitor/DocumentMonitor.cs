@@ -1125,6 +1125,8 @@ namespace Monitor {
                 _cpuZ80.Pc = 0x100;
                 Doc_Asm.HighLight = null;
                 Doc_Display.Clear();
+                Doc_Terminal.Clear();
+                StatusUpdate();
             } catch( Exception oEx ) {
                 if( _rgStdErrors.IsUnhandled( oEx ) )
                     throw;
