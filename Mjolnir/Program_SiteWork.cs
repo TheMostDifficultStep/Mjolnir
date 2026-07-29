@@ -15,8 +15,15 @@ namespace Mjolnir {
 				_oHost = oHost ?? throw new ArgumentNullException();
             }
 
+			/// <summary>
+			/// Make sure you get the ticks you are comparing to
+			/// BEFORE making this call!!
+			/// </summary>
             public long Appointment {
                 get {
+					if( _iStartTick == Timeout.Infinite ) {
+						return DateTime.Now.Ticks;
+					}
                     return( _iStartTick );
                 }
             }

@@ -227,10 +227,10 @@ namespace Monitor {
                 }
             }
             if( sGuid == GlobalCommands.JumpNext ) {
+                _oMonDoc.CpuStep();
                 if( _oMonDoc.Doc_Asm.FindRowAtAddress( _oMonDoc.PC, out AsmRow? oAsm ) ) {
                     _oCacheMan.CaretReset( oAsm, AsmRow.ColumnInstr );
                 }
-                _oMonDoc.CpuStep();
                 return true;
             }
             if( sGuid == GlobalCommands.Play ) {

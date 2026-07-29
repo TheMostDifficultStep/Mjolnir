@@ -1981,9 +1981,10 @@ namespace Mjolnir {
 				while( iActiveWorkers-- > 0 ) {
 					uint                uiWaitInMs = uint.MaxValue;
 					RoundRobinWorkPlace oSite      = rgWorkQue.Dequeue();
+                    long                lNow       = DateTime.Now.Ticks;
 
-					// Don't waist time on workers that are waiting for something to do.
-					if( oSite.Appointment <= DateTime.Now.Ticks ) {
+					// Don't waste time on workers that are waiting for something to do.
+					if( oSite.Appointment <= lNow ) {
 						if( !oSite.DoWork( ref uiWaitInMs ) ) {
 							oSite.Stop(); // All Done! Clean up.
 						} else {
