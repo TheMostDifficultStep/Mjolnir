@@ -365,8 +365,12 @@ namespace Play.Edit {
         public abstract ReadOnlySpan<char> SubSpan( int iStart, int iLength );
         public abstract ReadOnlySpan<char> AsSpan { get; }
        
-        [Obsolete]public virtual bool TryInsert( int iIndex, char cChar ) { return( false ); }
-        [Obsolete]public virtual bool TryInsert( int iDestOffset, ReadOnlySpan<char> strSource, int iSrcIndex, int iSrcLength ) { return( false ); }
+        public virtual bool TryInsert( int iPosition, char cChar ) {
+            ReadOnlySpan<char> rgInsert = stackalloc char[1] { cChar };
+            // Insert the new character delete nothing.
+            return TryReplace( iPosition, 0, rgInsert );
+        }
+
         [Obsolete]public virtual bool TryDelete( int iIndex, int iLength, out string strRemoved ) { strRemoved = string.Empty; return( false ); }
         
         // Viewslots use this so pushing this to the LineExtension class won't work. :-/
@@ -467,31 +471,13 @@ namespace Play.Edit {
         }
 
         /// <summary>
-        /// Insert the string into this line of text.
-        /// </summary>
-        /// <param name="iDestOffset">Position to push to the right.</param>
-        /// <param name="strSource">Source of insert.</param>
-        /// <param name="iSrcIndex">Where in the source to start.</param>
-        /// <param name="iSrcLength">How much of the source to copy.</param>
-        /// <returns></returns>
-        [Obsolete]public override bool TryInsert( int iDestOffset, ReadOnlySpan<char> strSource, int iSrcIndex, int iSrcLength ) {
-            bool fReturn = _sbBuffer.TryInsert(iDestOffset, strSource, iSrcIndex, iSrcLength);
-
-            if( fReturn && iSrcLength > 0 ) {
-                FormattingShiftInsert( iDestOffset, iSrcLength );
-                IsDirty = true;
-            }
-            return fReturn;
-        }
-
-        /// <summary>
         /// Insert a single character at the given index.
         /// </summary>
         /// <param name="iIndex">Index to push to the right.</param>
         /// <param name="cChar">Character to put at the index.</param>
         /// <returns></returns>
-        [Obsolete]public override bool TryInsert( int iIndex, char cChar ) {
-            bool fReturn = _sbBuffer.TryInsert(iIndex, cChar);
+        public override bool TryInsert( int iIndex, char cChar ) {
+            bool fReturn = base.TryInsert(iIndex, cChar);
 
             if( fReturn ) {
                 FormattingShiftInsert( iIndex, 1 );

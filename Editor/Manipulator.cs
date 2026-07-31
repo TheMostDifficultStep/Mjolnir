@@ -311,14 +311,15 @@ namespace Play.Edit {
                 int    iSrcLength
             ) {
                 try {
-                    if( !IsHit( iLine ) ) {
+                    if( !IsHit( iLine ) || iSrcLength == 0 ) {
                         Raise_HostError("TextInsert(): Line is out of range.");
                         return( false );
                     }
 
                     Line oLine = _rgLines[iLine];
+                    int  iSrcEnd = iSrcIndex + iSrcLength - 1;
+                    bool fResult = oLine.TryReplace(iDestOffset, 0, strSource.AsSpan(iSrcIndex..iSrcEnd) );
 
-                    bool fResult = oLine.TryInsert(iDestOffset, strSource, iSrcIndex, iSrcLength);
                     if( fResult ) {
                         foreach( ILineRange oCaret in _oDocument.CaretEnumerable ) {
                             if( oCaret.Line != null && oCaret.At == oLine.At )
@@ -416,7 +417,7 @@ namespace Play.Edit {
 
                     // Note: Merge and Split aren't exact mirrors of each other. 
                     // Do not call TryTextInsert(), since it creates an undo unit. 
-                    if( oLine.TryInsert( iEndOffset, oNext.ToString(), 0, oNext.ElementCount ) ) {
+                    if( oLine.TryReplace( iEndOffset, 0, oNext.AsSpan ) ) {
                         foreach( IColorRange oRange in oNext.Formatting ) {
                             oRange.Offset += iEndOffset;
                             oLine.Formatting.Add( oRange );
