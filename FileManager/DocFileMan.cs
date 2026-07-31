@@ -457,7 +457,6 @@ namespace Play.FileManager {
 
                 return false;
             }
-            return true;
         }
 
         public bool Save() {
