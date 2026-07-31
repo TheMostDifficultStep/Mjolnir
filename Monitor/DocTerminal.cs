@@ -74,10 +74,17 @@ namespace Monitor {
         }
     }
 
-    public class Terminal : 
+    /// <summary>
+    /// Hmmm... this is no replacement for a simple text editor. I think
+    /// I might use the old Editor class instead of the multi column...
+    /// Not sure what I had in mind here...
+    /// </summary>
+    public class DocTerminal : 
         EditMultiColumn,
         IPgLoad<TextReader>
     {
+        public Queue<byte> Buffer { get; } = new Queue<byte>();
+
         public class TermRow : Row {
             public TermRow( string strValue ) {
                 _rgColumns = new Line[1];
@@ -87,7 +94,7 @@ namespace Monitor {
 
         }
 
-        public Terminal(IPgBaseSite oSite) : base(oSite) {
+        public DocTerminal(IPgBaseSite oSite) : base(oSite) {
         }
 
         public bool InitNew() {
@@ -113,14 +120,13 @@ namespace Monitor {
             if( cChar == '\r' )
                 return;
 
-            ReadOnlySpan<char> rgInsert = stackalloc char[1] { cChar };
-            Row                oRow     = _rgRows[ElementCount-1];
-            Line               oLine    = oRow[0];
+            Row  oRow  = _rgRows[ElementCount-1];
+            Line oLine = oRow[0];
             
             Raise_DocUpdateBegin();
 
             // Tack the new character at the end of the line.
-            oLine.TryReplace( oLine.ElementCount, 0, rgInsert );
+            oLine.TryInsert( oLine.ElementCount, cChar );
 
             Raise_DocUpdateEnd( IPgEditEvents.EditType.Column, oRow );
         }

@@ -15,16 +15,13 @@ namespace Monitor {
         public DazzleDisplay( IPgBaseSite oSite ) : base( oSite ) { 
         }
 
-        /// <summary>
-        /// For compat.
-        /// </summary>
+        public int Address { get; set; } = 0x200;
+
         public bool InitNew() {
             return true;
         }
 
         public void SetSize( ImageSizes eSize ) {
-            //BitmapDispose();
-
             SKSizeI sSize = new SKSizeI();
 
             switch( eSize ) {
@@ -74,14 +71,14 @@ namespace Monitor {
         /// </summary>
         /// <param name="rgMemory"></param>
         /// <param name="iStart"></param>
-        public void Load( byte[] rgMemory, int iStart ) {
+        public void Load( byte[] rgMemory ) {
             if( Surface == null )
                 return;
 
             try {
                 int iBmpHalfWidth = ImageSize.Width / 2;
 
-                int a = iStart;
+                int a = Address;
                 for( int y = 0; y < ImageSize.Height; y+=1 ) {
                     for( int i = 0; i < iBmpHalfWidth; i += 1 ) {
                         int x = i<<1;

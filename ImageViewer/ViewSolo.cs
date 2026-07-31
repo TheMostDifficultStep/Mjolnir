@@ -25,6 +25,8 @@ namespace Play.ImageViewer {
 		protected readonly DocSurfaceBase _oDocSurface;
 		protected          SKPoint        _pntAspect = SKPoint.Empty;
 
+		public SKFilterMode FilterMode { get; set; } = SKFilterMode.Linear;
+
 		public ViewSurface( IPgViewSite oSiteView, DocSurfaceBase oDocBase ) :
 			base( oSiteView, oDocBase ) 
 		{
@@ -81,7 +83,7 @@ namespace Play.ImageViewer {
                         skCanvas.DrawImage( oImageSnap,
 										    new SKRect( _rctWorldPort.Left, _rctWorldPort.Top, _rctWorldPort.Right, _rctWorldPort.Bottom ),
 										    new SKRect( _rctViewPort .Left, _rctViewPort .Top, _rctViewPort .Right, _rctViewPort .Bottom ),
-										    new SKSamplingOptions( SKFilterMode.Linear ) ); // BUG: Make this a param to the class.
+										    new SKSamplingOptions( FilterMode ) ); // BUG: Make this a param to the class.
                     } else {
                         //LogError("Paint", "Couldn't paint bitmap");
                     }

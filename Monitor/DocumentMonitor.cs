@@ -450,9 +450,9 @@ namespace Monitor {
         }
     }
 
-    public class DazzlePorts : IPorts {
+    public class PortsDazzle : IPorts {
         DocumentMonitor Mon { get; }
-        public DazzlePorts( DocumentMonitor oMon ) { 
+        public PortsDazzle( DocumentMonitor oMon ) { 
             Mon = oMon ?? throw new ArgumentNullException();
         }
 
@@ -465,10 +465,14 @@ namespace Monitor {
             byte bValue   = 0;
 
             switch( bLowAddr ) {
-                case 0x02:
-                    // When the dazzle check for a key. Update display.
-                    Mon.Doc_Display.Load( Mon.Z80Memory.RawMemory, 0x200 );
+                case 0x00:
                     return 0;
+                case 0x01: // Looking for F for 'freeze' and 0x18, Ctrl-X for 'cancel' 
+                case 0x02:
+                    // When the dazzle checks for a key. Update display.
+                    Mon.Doc_Display.Load( Mon.Z80Memory.RawMemory );
+                    Mon.Doc_Terminal.Buffer.TryDequeue( out bValue );
+                    break;
             }
 
             return bValue;
@@ -478,10 +482,16 @@ namespace Monitor {
             byte bLowAddr = (byte)( 0x00ff & usAddress );
 
             switch( bLowAddr ) {
+                case 0x02:
+                    // This has been getting tiny basic term output!!
+                    Mon.Doc_Terminal.AppendChar( Convert.ToChar( bValue ) );
+                    break;
                 case 0x0e:
                     byte bDazzleOffs = (byte)( bValue & 0x7f );
-                    bool bDazzleOn   = ( bValue & 0x80 ) > 0;
+                    bool bDazzleOn   =       ( bValue & 0x80 ) > 0;
                     int  iDazzleAddr = bDazzleOffs * 0x200;
+
+                    Mon.Doc_Display.Address = iDazzleAddr;
                     break;
                 case 0x0f:
                     // Check size from bValue
@@ -494,11 +504,10 @@ namespace Monitor {
         }
     }
 
-    public class TinyBasicPorts : IPorts {
+    public class PortsTinyBasic : IPorts {
         DocumentMonitor Mon { get; }
-        Queue<char>     _rgToDevice = new Queue<char>();
 
-        public TinyBasicPorts( DocumentMonitor oMon ) { 
+        public PortsTinyBasic( DocumentMonitor oMon ) { 
             Mon = oMon ?? throw new ArgumentNullException();
         }
 
@@ -517,9 +526,9 @@ namespace Monitor {
                 case 0x03:
                     // This is constantly getting polled. This might be like
                     // Polling input port status... 
-                    // MUST return 01 to get the tiny basic to write prompt on port 2.
-                    // MUST return 10 to get the tiny basic to read text on port 2.
-                    if( _rgToDevice.Count > 0 )
+                    // MUST return bin 01 to get the tiny basic to write prompt on port 2.
+                    // MUST return bin 10 to get the tiny basic to read  text   on port 2.
+                    if( Mon.Doc_Terminal.Buffer.Count > 0 )
                         return (byte)( 2 | bValue );
 
                     return bValue;
@@ -527,11 +536,11 @@ namespace Monitor {
                     // The queue throws an exception if it's empty... this might
                     // happen if we've got this "device" plugged in but the program
                     // is expecting something else... O.o
-                    if( _rgToDevice.Count <= 0 )
+                    if( Mon.Doc_Terminal.Buffer.Count <= 0 )
                         return 0;
 
                     // My attempt at Term->CPU communicate. is hit if return 2.
-                    return Convert.ToByte( _rgToDevice.Dequeue() );
+                    return Convert.ToByte( Mon.Doc_Terminal.Buffer.Dequeue() );
                 default:
                     throw new NotImplementedException();
             }
@@ -558,7 +567,9 @@ namespace Monitor {
                     Mon.Doc_Terminal.AppendChar( Convert.ToChar( bValue ) );
                     break;
                 case 0x01:
-                    _rgToDevice.Enqueue( Convert.ToChar( bValue ) );
+                    // BUG: This looks wrong need to put the key queue over
+                    //      in the terminal and see if any key here.
+                    //_rgToDevice.Enqueue( Convert.ToChar( bValue ) );
                     break;
             }
         }
@@ -592,7 +603,7 @@ namespace Monitor {
         public Editor            Doc_Outl    { get; } // Call address list.
         public DazzleDisplay     Doc_Display { get; }
         public MonitorProperties Doc_Props   { get; }
-        public Terminal          Doc_Terminal{ get; }
+        public DocTerminal       Doc_Terminal{ get; }
 
         public bool IsDirty => Doc_Asm.IsDirty;
 
@@ -684,8 +695,8 @@ namespace Monitor {
 
             // Would be nice to set these in the load/init phase
             // so I can toggle between the desired usage...
-          //Ports     = new DazzlePorts( this );
-            Ports     = new TinyBasicPorts( this );
+              Ports     = new PortsDazzle( this );
+            //Ports     = new TinyBasicPorts( this );
 
             _cpuZ80   = new Z80( Z80Memory, Ports );
             _cpuZ80.Pc = 0x100; // CPM 2.2 start address.
@@ -735,7 +746,7 @@ namespace Monitor {
         /// Start address and memory size hard coded atm but
         /// later we'll make those property page stuff.
         /// </summary>
-        /// <returns></returns>
+        /// <seealso cref="Load">
         public bool InitNew() {
             if( !Doc_Outl.InitNew() )
                 return false;
@@ -756,6 +767,7 @@ namespace Monitor {
                 return false;
 
             Dissassemble();
+            StatusUpdate();
 
             return true;
         }
@@ -887,6 +899,11 @@ namespace Monitor {
             return false;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <seealso cref="InitNew">
+        /// <returns></returns>
         public bool Load( TextReader oReader ) {
             if( !Doc_Outl.InitNew() ) // do this first. Dissassembler needs it.
                 return false;
@@ -937,6 +954,8 @@ namespace Monitor {
                         }
                     }
                 }
+
+                StatusUpdate();
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( IOException ),
                                     typeof( OutOfMemoryException ),
@@ -984,10 +1003,10 @@ namespace Monitor {
 
         protected void StatusUpdate() {
             try {
-                Doc_Asm    .Mirror( Z80Memory );
+              //Doc_Asm    .Mirror( Z80Memory );
                 Doc_Asm    .UpdateHighlightLine( _cpuZ80.Pc );
                 Doc_Props  .Update( this );
-                Doc_Display.Load( Z80Memory.RawMemory, 0x200 );
+                Doc_Display.Load( Z80Memory.RawMemory );
             } catch( Exception oEx ) {
                 if( _rgStdErrors.IsUnhandled( oEx ) )
                     throw;
@@ -1052,7 +1071,7 @@ namespace Monitor {
                     }
                 }
 
-                Doc_Display.Load( Z80Memory.RawMemory, 0x200 );
+                Doc_Display.Load( Z80Memory.RawMemory );
                 yield return 0;
             }
         }
@@ -1073,8 +1092,7 @@ namespace Monitor {
 
         public void CpuStop() {
             _oWorkPlace.Stop();
-            _cpuZ80.Reset();
-            Doc_Asm.HighLight = null;
+            StatusUpdate();
         }
 
         /// <summary>
@@ -1096,10 +1114,10 @@ namespace Monitor {
                     case WorkerStatus.PAUSED:
                         _cpuZ80    .Parse();
 
-                        Doc_Asm    .Mirror( Z80Memory );
+                      //Doc_Asm    .Mirror( Z80Memory );
                         Doc_Asm    .UpdateHighlightLine( _cpuZ80.Pc );
                         Doc_Props  .Update( this );
-                        Doc_Display.Load( Z80Memory.RawMemory, 0x200 );
+                        Doc_Display.Load( Z80Memory.RawMemory );
                         break;
                     case WorkerStatus.BUSY:
                         LogError( "CPU", "Pause to single step" );
@@ -1135,13 +1153,10 @@ namespace Monitor {
         }
 
         /// <summary>
-        /// This is a little hacky. But the easiest way to get the key
-        /// stroke to the queue is just stick it in on one of the unused
-        /// ports.
+        /// Queue up the keystrokes so the cpu can grab them if it wants.
         /// </summary>
-        /// <param name="cKey"></param>
         public void TerminalKeyPress( char cKey ) {
-            Ports.WritePort( 0x01, Convert.ToByte( cKey ) );
+            Doc_Terminal.Buffer.Enqueue( Convert.ToByte( cKey ) );
         }
 
         public bool Execute( Guid sCmnd ) {

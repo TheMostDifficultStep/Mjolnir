@@ -38,6 +38,8 @@ namespace Monitor {
         {
             Mon = oMon ?? throw new ArgumentNullException();
 
+            FilterMode = SKFilterMode.Nearest;
+
 			try {
 				Icon = oMon.GetResource( "icons8-monitor-64.png" );
 			} catch( InvalidOperationException ) {
