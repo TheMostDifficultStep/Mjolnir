@@ -52,52 +52,6 @@ namespace Mjolnir {
 	}
 
     /// <summary>
-	/// Since the form is laying out the herders we need something
-    /// that can paint a bitmap with GDI Graphics object. So here
-    /// we are. Unfortunatly unlike LayoutSKBitmap, we create an
-    /// instance of the bitmap for every view. It's not worth fixing
-    /// until maybe the main window can stop inheriting from "Form"
-    /// </summary>
-    /// <seealso cref="LayoutSKBitmap"/>
-    public class LayoutGdiBitmap :
-        LayoutSimpleImage
-    {
-        readonly Image _oBitmap;
-
-        public LayoutGdiBitmap( Assembly oAsm, string strResourceName ) {
-            try {
-                using Stream oStream = oAsm.GetManifestResourceStream( strResourceName );
-
-                _oBitmap = Bitmap.FromStream( oStream );
-            } catch( Exception oE ) {
-                Type[] rgErrors = { typeof( KeyNotFoundException ), // This error if the user errored on the attribute name or value.
-                                    typeof( ArgumentException ) };  // This error if we didn't embed resource.
-                if( rgErrors.IsUnhandled( oE ) )
-                    throw;
-
-                _oBitmap = new Bitmap( 1, 1 ); 
-            }
-			WorldCoordinates.SetRect( 0, 0, _oBitmap.Width, _oBitmap.Height );
-        }
-
-        public override void Paint(Graphics p_oGraphics) {
-			if( _oBitmap == null )
-                return;
-
-            try {
-				p_oGraphics.DrawImage( _oBitmap, 
-									   _rctViewPort.Rect,
-									   WorldCoordinates.Rect,
-									   GraphicsUnit.Pixel
-                                   );
-            } catch( NullReferenceException ) {
-            }
-        }
-
-        public override float Aspect => _oBitmap.Width / (float)_oBitmap.Height;
-    }
-
-    /// <summary>
     /// Base class for a herder. We have two sub classes, one for herders that hold a single object only.
     /// And others that hold one per view. Since the "solo" case doesn't need an index to the given item
     /// we pass null. Solo objects looking for null should complain if an add comes with an index object
@@ -106,11 +60,10 @@ namespace Mjolnir {
     /// exceptions. Alas, this conflict is because the tool windows for the shell might created per document
     /// or be single like for the shell main output window.
     /// </summary>
-
- internal class HerderSlot : 
+    internal class HerderSlot : 
         IPgViewSite, 
         IPgViewNotify
- {
+    {
         readonly MainWin _oMainWin;
         public HerderSlot( MainWin oMainWin ) {
             _oMainWin = oMainWin;
