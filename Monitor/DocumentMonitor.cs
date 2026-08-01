@@ -695,8 +695,8 @@ namespace Monitor {
 
             // Would be nice to set these in the load/init phase
             // so I can toggle between the desired usage...
-              Ports     = new PortsDazzle( this );
-            //Ports     = new TinyBasicPorts( this );
+            //  Ports     = new PortsDazzle( this );
+            Ports     = new PortsTinyBasic( this );
 
             _cpuZ80   = new Z80( Z80Memory, Ports );
             _cpuZ80.Pc = 0x100; // CPM 2.2 start address.
