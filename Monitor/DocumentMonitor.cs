@@ -599,7 +599,6 @@ namespace Monitor {
         protected readonly Z80            _cpuZ80;
 
         public AsmEditor         Doc_Asm     { get; }
-        public DataSegmDoc       Doc_Segm    { get; }
         public Editor            Doc_Outl    { get; } // Call address list.
         public DazzleDisplay     Doc_Display { get; }
         public MonitorProperties Doc_Props   { get; }
@@ -702,7 +701,6 @@ namespace Monitor {
             _cpuZ80.Pc = 0x100; // CPM 2.2 start address.
 
             Doc_Asm     = new ( new DocSlot( this ) );
-            Doc_Segm    = new ( new DocSlot( this ) );
             Doc_Outl    = new ( new DocSlot( this ) );
             Doc_Display = new ( new DocSlot( this ) );
             Doc_Props   = new ( new DocSlot( this ) );
@@ -749,9 +747,6 @@ namespace Monitor {
         /// <seealso cref="Load">
         public bool InitNew() {
             if( !Doc_Outl.InitNew() )
-                return false;
-
-            if( !Doc_Segm.InitNew() )
                 return false;
 
             if( !Doc_Asm.InitNew() )
@@ -921,10 +916,6 @@ namespace Monitor {
                 if( xmlDoc.SelectSingleNode( "root" ) is XmlNode xmlRoot) {
                     if( xmlRoot.SelectSingleNode( "binary" ) is XmlElement xmlBinary ) {
                         if( !LoadBinaryFile( xmlBinary.InnerText ) )
-                            return false;
-                    }
-                    if( xmlRoot.SelectNodes( "datasegments" ) is XmlNodeList rgxCodeData ) {
-                        if( !Doc_Segm.LoadSegments( rgxCodeData ) )
                             return false;
                     }
 
