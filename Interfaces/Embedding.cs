@@ -5,8 +5,6 @@ using System.Text;
 using System.Drawing; // BUG: this needs to go.
 using System.IO;
 using System.Runtime.InteropServices;
-using System.Reflection;
-using System.Linq;
 using System.Xml;
 
 using SkiaSharp;

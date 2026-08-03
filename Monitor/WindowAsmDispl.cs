@@ -77,6 +77,44 @@ namespace Monitor {
         IPgCommandView,
         IReadableBag<Row>
     {
+        internal class ViewLabels : EditWindow2 {
+            readonly ViewDisassembly _oOwnerView;
+            public ViewLabels( IPgViewSite     oSiteView, 
+                               ViewDisassembly oOwnerView, 
+                               bool            fReadOnly   = false, 
+                               bool            fSingleLine = false) : 
+                base( oSiteView, oOwnerView._oMonDoc.Doc_Outl, fReadOnly, fSingleLine ) 
+            {
+                _oOwnerView = oOwnerView;
+                ToolSelect = 1;
+            }
+
+            /// <summary>
+            /// Might need to change this to row and col hyperlink
+            /// if I update the outline to show any labels...
+            /// </summary>
+            /// <seealso cref="Z80Dissambler.ProcessInstruction(Z80Instr, int)">
+            protected override bool InitInternal() {
+                if( !base.InitInternal() ) {
+                    return false;
+                }
+
+                HyperLinks.Add( "CpuJump", OnLabelLink );
+
+                return true;
+            }
+
+            /// <summary>
+            /// Need to add a pointer to our owning window so we can
+            /// send the select line command.
+            /// </summary>
+            protected void OnLabelLink( Line oLine, IPgWordRange oRange ) {
+                ReadOnlySpan<char> strAddr = oLine.Slice( oRange.Offset, oRange.Length );
+
+                _oOwnerView.TryCpuJump( strAddr );
+            }
+
+        }
         public static Guid GUID { get; } = new Guid( "{1DBE2048-619C-44EA-882C-024DF5087743}" );
 
         public string    Banner => "Assembly Monitor : " + _oMonDoc.FileName;
@@ -129,9 +167,18 @@ namespace Monitor {
         /// </remarks>
         protected void OnCpuJump( Row oRow, int iColumn, IPgWordRange oRange ) {
             try {
-                Line   oLine      = oRow[iColumn];
-                string strJumpRaw = oLine.SubString( oRange.Offset, oRange.Length );
+                Line               oLine      = oRow[iColumn];
+                ReadOnlySpan<char> strJumpRaw = oLine.Slice( oRange.Offset, oRange.Length );
 
+                TryCpuJump( strJumpRaw );
+            } catch( Exception oEx ) {
+                if( _rgErrors.IsUnhandled(oEx) )
+                    throw;
+            }
+        }
+
+        public void TryCpuJump( ReadOnlySpan<char> strJumpRaw ) {
+            try {
                 if( !int.TryParse( strJumpRaw,
                                    System.Globalization.NumberStyles.HexNumber,
                                    null, out int iJumpAddr ) )
@@ -175,7 +222,7 @@ namespace Monitor {
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  50, 1L ), AsmRow.ColumnLabel   );
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex ), AsmRow.ColumnInstr   );
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex ), AsmRow.ColumnParam   ); 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None ),            AsmRow.ColumnComment ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None ), AsmRow.ColumnComment ); 
 
             HyperLinks.Add( "CpuJump", OnCpuJump );
 
@@ -192,7 +239,7 @@ namespace Monitor {
 
         public object? Decorate(IPgViewSite oBaseSite, Guid sGuid) {
             if( sGuid == GlobalDecor.Outline ) {
-                return new EditWindow2( oBaseSite, _oMonDoc.Doc_Outl, fReadOnly:true );
+                return new ViewLabels( oBaseSite, this, fReadOnly:true );
             }
             if( sGuid == GlobalDecor.Properties ) {
                 return new WindowStandardProperties( oBaseSite, _oMonDoc.Doc_Props );

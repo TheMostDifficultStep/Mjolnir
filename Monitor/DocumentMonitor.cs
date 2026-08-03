@@ -1412,7 +1412,10 @@ namespace Monitor {
 
             // Take all the labels and stick them in the outline.
             foreach( int i in _rgOutlineLabels ) {
-                _oBulkOutline.LineAppend( i.ToString( "X" ) );
+                // TODO: Add label/jump formattng to line.
+                string strAddr = i.ToString( "X" );
+                Line oJump = _oBulkOutline.LineAppend( strAddr );
+                oJump.Formatting.Add( new HyperLinkCpuJump( 0, strAddr.Length, 1 ) );
 
                 // Go thru the assembler and update the address
                 // column entry if that row is a jump target.
