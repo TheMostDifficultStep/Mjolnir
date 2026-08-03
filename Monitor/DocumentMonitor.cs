@@ -1278,7 +1278,9 @@ namespace Monitor {
                     // Append the number
                     string strNumber = iNumber.ToString( sInstr.Length == 3 ? "X4" : "X2" );
 
-                    if( !oParms.TryReplace( sInstr.NumberLocation.Offset, sInstr.NumberLocation.Length, strNumber ) ) {
+                    if( !oParms.TryReplace( sInstr.NumberLocation.Offset, 
+                                            sInstr.NumberLocation.Length, 
+                                            strNumber ) ) {
                         _fnLogError( "Dissembler", "Unable to replace number arg in z80 instr" );
                         return;
                     }
@@ -1325,6 +1327,7 @@ namespace Monitor {
                 if( oNewRow is AsmRow oAsmRow ) {
                     for( int i = 0; i < sInstr.Length; ++i ) {
                         _sbBuilder.Append( _rgRam[iAddr+i].ToString( "X2" ) );
+                        oAsmRow.Bytes.TryAppend( ToChar( _rgRam[iAddr+i] ) );
                     }
                     oAsmRow.Code.TryReplace( _sbBuilder.ToString() );
                     oAsmRow.Code.Formatting.Add( oCodeColor );
@@ -1345,6 +1348,16 @@ namespace Monitor {
 
                 _fnLogError( "Dissembler", "Big failure in pass" );
             }
+        }
+
+        protected static char ToChar( byte bValue ) {
+            if( bValue >= 65 && bValue <= 90 ) { // Upper
+                return (char)bValue;
+            }
+            if( bValue >= 97 && bValue <= 122 ) { // Lower
+                return (char)bValue;
+            }
+            return '.';
         }
 
         protected Z80Instr FindInfo( int iAddr ) {

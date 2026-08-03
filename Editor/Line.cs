@@ -371,6 +371,10 @@ namespace Play.Edit {
             return TryReplace( iPosition, 0, rgInsert );
         }
 
+        public bool TryAppend( char cChar ) {
+            return TryInsert( ElementCount, cChar );
+        }
+
         [Obsolete]public virtual bool TryDelete( int iIndex, int iLength, out string strRemoved ) { strRemoved = string.Empty; return( false ); }
         
         // Viewslots use this so pushing this to the LineExtension class won't work. :-/

@@ -7,15 +7,22 @@ using z80;
 namespace Monitor {
     public class AsmRow : Row {
         public AsmRow( string strAssembly, string strParams ) {
-            _rgColumns    = new Line[7];
+            _rgColumns = new Line[ColumnCount];
 
-            _rgColumns[0] = new TextLine( 0, string.Empty ); // Address.
-            _rgColumns[1] = new TextLine( 1, string.Empty ); // Machine code.
-            _rgColumns[2] = new TextLine( 2, string.Empty ); // Breakpoint
-            _rgColumns[3] = new TextLine( 3, string.Empty ); // label
-            _rgColumns[4] = new TextLine( 4, strAssembly );  // instr
-            _rgColumns[5] = new TextLine( 5, strParams );    // params
-            _rgColumns[6] = new TextLine( 6, string.Empty ); // comments
+            Assign( ColumnAddr   ); 
+            Assign( ColumnBytes  ); 
+            Assign( ColumnCode   ); 
+            Assign( ColumnBrkPnt ); 
+            Assign( ColumnLabel  ); 
+            Assign( ColumnInstr, strAssembly ); 
+            Assign( ColumnParam, strParams   );
+            Assign( ColumnComment ); 
+
+            CheckForNulls();
+        }
+
+        protected void Assign( int iIndex, string strValue = "" ) {
+            _rgColumns[iIndex] = new TextLine( iIndex, strValue );
         }
 
         public int AddressMap { get; set; } = -1;
@@ -27,16 +34,18 @@ namespace Monitor {
         public Line Instr   => _rgColumns[ColumnInstr];
         public Line Param   => _rgColumns[ColumnParam];
         public Line Comment => _rgColumns[ColumnComment];
+        public Line Bytes   => _rgColumns[ColumnBytes];
 
         public const int ColumnAddr    = 0;
-        public const int ColumnCode    = 1;
-        public const int ColumnBrkPnt  = 2;
-        public const int ColumnLabel   = 3;
-        public const int ColumnInstr   = 4;
-        public const int ColumnParam   = 5;
-        public const int ColumnComment = 6;
+        public const int ColumnBytes   = 1;
+        public const int ColumnCode    = 2;
+        public const int ColumnBrkPnt  = 3;
+        public const int ColumnLabel   = 4;
+        public const int ColumnInstr   = 5;
+        public const int ColumnParam   = 6;
+        public const int ColumnComment = 7;
 
-        public static int ColumnCount => 7;
+        public static int ColumnCount => 8;
     }
 
     public class AsmEditor : 

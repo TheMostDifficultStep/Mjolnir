@@ -168,13 +168,14 @@ namespace Monitor {
             if( !base.Initialize() )
                 return false;
 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  80, 1L ), AsmRow.ColumnAddr ); // Address
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  60, 1L ), AsmRow.ColumnCode ); // Code
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  15, 1L ), AsmRow.ColumnBrkPnt ); // breakpoints
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ), AsmRow.ColumnLabel ); // labels
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 10, 1L ), AsmRow.ColumnInstr ); // instr
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ), AsmRow.ColumnParam ); // params
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None ),            AsmRow.ColumnComment ); // comments
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  80, 1L ), AsmRow.ColumnAddr    ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  40, 1L ), AsmRow.ColumnBytes   ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  70, 1L ), AsmRow.ColumnCode    ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  15, 1L ), AsmRow.ColumnBrkPnt  );
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  50, 1L ), AsmRow.ColumnLabel   );
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex ), AsmRow.ColumnInstr   );
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex ), AsmRow.ColumnParam   ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None ),            AsmRow.ColumnComment ); 
 
             HyperLinks.Add( "CpuJump", OnCpuJump );
 

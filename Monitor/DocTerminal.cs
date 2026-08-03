@@ -126,7 +126,7 @@ namespace Monitor {
             Raise_DocUpdateBegin();
 
             // Tack the new character at the end of the line.
-            oLine.TryInsert( oLine.ElementCount, cChar );
+            oLine.TryAppend( cChar );
 
             Raise_DocUpdateEnd( IPgEditEvents.EditType.Column, oRow );
         }
