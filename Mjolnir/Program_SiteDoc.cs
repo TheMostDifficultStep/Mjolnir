@@ -1001,9 +1001,8 @@ namespace Mjolnir {
             }
 
             /// <summary>
-            /// TODO: So even tho' we started from from a directory. We could persist to a file our
-            /// directory we are viewing. But I'll need to get a name for the file. And then disambiguate
-            /// the load case above. Let's punt for now.
+            /// So for the disassembler, we'll want to save our symbols. So while our
+            /// moniker might NOT change, our symbols file might do so.
             /// </summary>
             public bool Save( bool fRename ) {
                 if( _oGuestSave == null ) {
@@ -1011,12 +1010,14 @@ namespace Mjolnir {
                     return true;
                 }
 
-                // Not strictly necessary since it's navigating in a dir that
-                // cause the moniker to change. But let's leave this for now.
+                // If the caller didn't implement save then our filepath
+                // will simply be the original load path.
                 FilePath = _oGuestSave.Moniker;
 
+                _oGuestSave.Save();
+
                 _oHost.Raise_UpdateTitles( this );
-                _oHost.SessionSave( false );
+                _oHost.SessionSave       ( false );
 
                 return true;
             }

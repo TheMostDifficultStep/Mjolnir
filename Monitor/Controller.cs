@@ -128,7 +128,7 @@ namespace Monitor {
 
     public class NewMonitorController : Controller {
         public NewMonitorController() {
-            _rgExtensions.Add( ".asmprg" );
+            _rgExtensions.Add( ".com" );
         }
         public override IDisposable CreateDocument(IPgBaseSite oSite, string strExtension) {
             return new DocumentMonitor( oSite );
@@ -159,6 +159,14 @@ namespace Monitor {
 			throw new InvalidOperationException( "Controller couldn't create view for Monitor document." );
         }
 
+        public override PgDocDescr Suitability(string strExtension) {
+            foreach( string strExtn in _rgExtensions ) {
+                if( string.Compare( strExtn, strExtension ) == 0 )
+                    return new PgDocDescr( strExtension, typeof( IPgLoadUrl ), (byte)255, this );
+            }
+
+            return new PgDocDescr( strExtension, typeof( IPgLoad<TextReader> ), (byte)0, this );
+        }
         public override IEnumerator<IPgViewType> GetEnumerator() {
             yield return new ViewType( "Assembly Display", ViewDisassembly  .GUID );
             yield return new ViewType( "Dazzle Display",   ViewEmulatorImage.GUID );

@@ -612,6 +612,7 @@ namespace Play.Interfaces.Embedding {
     /// </summary>
     public interface IPgSaveURL : IPgSave {
         string Moniker { get; }
+        bool   Save();
     }
 
     /// <summary>

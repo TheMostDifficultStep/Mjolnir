@@ -1,14 +1,4 @@
-﻿using Play.Drawing;
-using Play.Edit;
-using Play.Forms;
-using Play.Interfaces.Embedding;
-using Play.Parse;
-using Play.Parse.Impl;
-using Play.Rectangles;
-using Play.Sound;
-using SkiaSharp;
-using SkiaSharp.Views.Desktop;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
@@ -18,14 +8,21 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
-using System.Reflection.Metadata;
 using System.Runtime.InteropServices;
-using System.Runtime.InteropServices.JavaScript;
 using System.Text;
 using System.Web;
 using System.Windows.Forms;
-using System.Xml.Linq;
 
+using SkiaSharp;
+using SkiaSharp.Views.Desktop;
+
+using Play.Drawing;
+using Play.Edit;
+using Play.Forms;
+using Play.Interfaces.Embedding;
+using Play.Parse.Impl;
+using Play.Rectangles;
+using Play.Sound;
 
 namespace Play.ImageViewer {
     unsafe public class FileOperationAPIWrapper {

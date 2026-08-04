@@ -543,7 +543,7 @@ namespace Play.ImageViewer {
             return true;
         }
         public string Moniker => CurrentFullPath;
-
+        public bool Save() { return true; } // We don't do anything.
 
         public override void CurrentFileDelete() {
             bool fDeleted = true;

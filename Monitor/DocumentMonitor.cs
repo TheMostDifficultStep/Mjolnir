@@ -578,8 +578,8 @@ namespace Monitor {
     public class DocumentMonitor :
         IPgParent,
 		IDisposable,
-        IPgLoad<TextReader>,
-        IPgSave<TextWriter>
+        IPgLoadUrl,
+        IPgSaveURL
     {
         protected readonly IPgBaseSite       _oBaseSite;
         protected readonly IPgRoundRobinWork _oWorkPlace; 
@@ -767,19 +767,38 @@ namespace Monitor {
             return true;
         }
 
-        public bool Save(TextWriter oStream) {
+        public bool Save() {
+            bool fSaved = false;
+            try {
+                FileInfo   oFile       = new (FileNameForSymbols);
+                FileStream oByteStream = oFile.OpenWrite(); 
+
+                using( StreamWriter oWriter = new ( oByteStream, ASCIIEncoding.UTF8 ) ) {
+                    fSaved = SaveSymbols( oWriter );
+					oWriter.Flush();
+                }
+            } catch( Exception oEx ) {
+				if( _rgFileErrors.IsUnhandled( oEx ) )
+					throw;
+
+                LogError( "Save", "Couldn't save symbol table" );
+            }
+            return fSaved;
+        }
+
+        public string Moniker => _strBinaryFileName;
+        protected bool SaveSymbols(TextWriter oStream) {
             try {
                 XmlDocument xmlDoc      = new XmlDocument();
                 XmlElement  xmlRoot     = xmlDoc.CreateElement( "root" );
                 XmlElement  xmlBinary   = xmlDoc.CreateElement( "binary" );
                 XmlElement  xmlComments = xmlDoc.CreateElement( "documenting" );
-                XmlElement  xmlDataSeg  = xmlDoc.CreateElement( "datasegments" );
 
                 xmlDoc .AppendChild( xmlRoot );
-                xmlRoot.AppendChild( xmlBinary );
+                xmlRoot.AppendChild( xmlBinary ); // Just so we know for sure.
                 xmlRoot.AppendChild( xmlComments );
 
-                xmlBinary.InnerText = _strBinaryFileName;
+                xmlBinary.InnerText = FileName;
 
                 foreach( Row oNote in Doc_Asm ) {
                     if( oNote is AsmRow oInstr &&
@@ -869,7 +888,6 @@ namespace Monitor {
             if( string.IsNullOrEmpty( strFileName ) )
                 return false;
 
-                  Encoding   utf8NoBom = new UTF8Encoding(false);
                   FileInfo   oFile     = new FileInfo(strFileName);
             using FileStream oStream   = oFile.OpenRead();
                   string     strExtn   = oFile.Extension;
@@ -899,7 +917,7 @@ namespace Monitor {
         /// </summary>
         /// <seealso cref="InitNew">
         /// <returns></returns>
-        public bool Load( TextReader oReader ) {
+        public bool LoadOld( TextReader oReader ) {
             if( !Doc_Outl.InitNew() ) // do this first. Dissassembler needs it.
                 return false;
             if( !Doc_Display.InitNew() )
@@ -945,6 +963,97 @@ namespace Monitor {
                         }
                     }
                 }
+
+                StatusUpdate();
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( IOException ),
+                                    typeof( OutOfMemoryException ),
+                                    typeof( ObjectDisposedException ),
+                                    typeof( ArgumentOutOfRangeException ),
+                                    typeof( ArgumentException ),
+                                    typeof( XmlException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                return false;
+            }
+            return true;
+        }
+
+        protected void LoadXml( Stream oReader ) {
+            XmlDocument xmlDoc = new XmlDocument();
+            xmlDoc.Load( oReader );
+
+            if( xmlDoc.SelectSingleNode( "root" ) is XmlNode xmlRoot) {
+                // This is only valid if disassembled the binary first ... :-)
+                if( xmlRoot.SelectNodes( "documenting/note" ) is XmlNodeList rgNodes ) {
+                    foreach( XmlNode xmlNote in rgNodes ) {
+                        if( xmlNote is XmlElement xmlElem ) {
+                            if( xmlElem.GetAttribute( "addr" ) is string strAddr ) {
+                                if( int.TryParse( strAddr, out int iAddr )) {
+                                    Doc_Asm.FindRowAtAddress( iAddr, out AsmRow? oAsm ); 
+                                    if( oAsm != null ) {
+                                        //if( xmlElem.GetAttribute( "lbl" ) is string strLabel ) {
+                                        //    oAsm[0].TryReplace( strLabel );
+                                        //}
+                                        if( xmlElem.InnerText is string strComment ) {
+                                            oAsm.Comment.TryReplace( strComment );
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } // End LoadXml
+
+        protected string FileNameForSymbols {
+            get {
+                string strFileName = Path.GetFileNameWithoutExtension( FileName ) + ".asmprg";
+                string strFileDir  = Path.GetDirectoryName( _strBinaryFileName );
+
+                string strFilePath;
+                if( strFileDir is not null )
+                    strFilePath = Path.Combine( strFileDir, strFileName );
+                else 
+                    strFilePath = strFileName;
+            
+                return strFilePath;
+            }
+        }
+
+        protected void LoadSymbols() {
+            try {
+                FileInfo         oFile   = new FileInfo( FileNameForSymbols );
+                using FileStream oStream = oFile.OpenRead();
+
+                LoadXml( oStream );
+			} catch( Exception oEx ) {
+				if( _rgFileErrors.IsUnhandled( oEx ) )
+					throw;
+
+                LogError( "asmprg", "Died trying to symbol file : " + FileNameForSymbols );
+            }
+        }
+
+        public bool LoadUrl( string strUrl ) {
+            if( !Doc_Outl    .InitNew() ) // do this first. Dissassembler needs it.
+                return false;
+            if( !Doc_Display .InitNew() )
+                return false;
+            if( !Doc_Props   .InitNew() )
+                return false;
+            if( !Doc_Terminal.InitNew() )
+                return false;
+
+            try {
+                if( !LoadBinaryFile( strUrl ) ) {
+                    return false;
+                }
+                Dissassemble();
+
+                LoadSymbols ();
 
                 StatusUpdate();
             } catch( Exception oEx ) {

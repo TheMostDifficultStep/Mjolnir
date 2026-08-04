@@ -345,6 +345,8 @@ namespace Play.MusicWalker {
 
 		public string Moniker => _strFileName;
 
+		public bool Save() { return true; }
+
 		public void Play() {
 			switch( _oWorker.Status ) {
 				case WorkerStatus.FREE:
