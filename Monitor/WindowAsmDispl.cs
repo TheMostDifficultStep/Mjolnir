@@ -1,4 +1,5 @@
 ﻿using System.Xml;
+using System.Windows.Forms;
 
 using SkiaSharp;
 
@@ -63,6 +64,10 @@ namespace Monitor {
 
         public bool Load(XmlElement oStream) {
             return true;
+        }
+
+        protected override void OnKeyPress(KeyPressEventArgs e) {
+            Mon.TerminalKeyPress( e.KeyChar );
         }
     }
 

@@ -470,7 +470,7 @@ namespace Monitor {
                 case 0x01: // Looking for F for 'freeze' and 0x18, Ctrl-X for 'cancel' 
                 case 0x02:
                     // When the dazzle checks for a key. Update display.
-                    Mon.Doc_Display.Load( Mon.Z80Memory.RawMemory );
+                    //Mon.Doc_Display.Load( Mon.Z80Memory.RawMemory );
                     Mon.Doc_Terminal.Buffer.TryDequeue( out bValue );
                     break;
             }
@@ -694,8 +694,8 @@ namespace Monitor {
 
             // Would be nice to set these in the load/init phase
             // so I can toggle between the desired usage...
-            //  Ports     = new PortsDazzle( this );
-            Ports     = new PortsTinyBasic( this );
+            Ports     = new PortsDazzle( this );
+            //Ports     = new PortsTinyBasic( this );
 
             _cpuZ80   = new Z80( Z80Memory, Ports );
             _cpuZ80.Pc = 0x100; // CPM 2.2 start address.
@@ -1413,8 +1413,8 @@ namespace Monitor {
             // Take all the labels and stick them in the outline.
             foreach( int i in _rgOutlineLabels ) {
                 // TODO: Add label/jump formattng to line.
-                string strAddr = i.ToString( "X" );
-                Line oJump = _oBulkOutline.LineAppend( strAddr );
+                string strAddr = i.ToString( "X" ); // Memory offset displayed in HEX.
+                Line   oJump   = _oBulkOutline.LineAppend( strAddr );
                 oJump.Formatting.Add( new HyperLinkCpuJump( 0, strAddr.Length, 1 ) );
 
                 // Go thru the assembler and update the address
