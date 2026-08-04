@@ -17,7 +17,7 @@ namespace Play.SSTV {
         IPgCommandBase,
         IDisposable,
         IPgLoadUrl,
-        IPgSaveURL
+        IPgSaveUrl
     {
         readonly IPgBaseSite _oSiteBase;
 

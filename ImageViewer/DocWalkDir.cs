@@ -11,7 +11,7 @@ namespace Play.ImageViewer {
     public class ImageWalkerDir : 
         ImageWalkerDoc,
         IPgLoadUrl,
-        IPgSaveURL
+        IPgSaveUrl
     {
         DirectoryInfo                _oDirectory;
         readonly List<DirectoryInfo> _rgSiblings = new List<DirectoryInfo>();

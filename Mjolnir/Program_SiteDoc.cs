@@ -952,21 +952,23 @@ namespace Mjolnir {
 
         /// <summary>
         /// A persists differently from a normal doc browser. Usually persisting to a given
-        /// file per directory. 
+        /// file per directory. This allows objects like my Disassembler to load the .com
+        /// file but also load the symbols .asmprg file alongside it.
+        /// This slot is also used for the Image Directory Browser.
         /// </summary>
-        public class DirSlot : 
+        public class FileNameSlot : 
             BaseSlot,
             IDocSlot
         {
             IPgLoadUrl _oGuestLoad;
-            IPgSaveURL _oGuestSave;
+            IPgSaveUrl _oGuestSave;
 
-            public DirSlot( Program oProgram, IPgController2 oController, string strFileExtn, int iID = -1 ) : 
+            public FileNameSlot( Program oProgram, IPgController2 oController, string strFileExtn, int iID = -1 ) : 
                 base( oProgram, oController, strFileExtn, iID ) 
             {
             }
 
-            public DirSlot( Program oProgram, IPgController2 oController ) : 
+            public FileNameSlot( Program oProgram, IPgController2 oController ) : 
                 base( oProgram, oController, oController.PrimaryExtension, -1 ) 
             {
             }
@@ -981,7 +983,7 @@ namespace Mjolnir {
                 base.GuestSet( value );
 
                 _oGuestLoad = (IPgLoadUrl)value;
-                _oGuestSave = value as IPgSaveURL;
+                _oGuestSave = value as IPgSaveUrl;
             }
 
             public override bool InitNew() {

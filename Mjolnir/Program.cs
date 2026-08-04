@@ -1357,7 +1357,7 @@ namespace Mjolnir {
                         break;
                     // ImageViewer and z80 disassembler use this
                     case var r when( r == typeof(IPgLoadUrl) ):
-                        oNewSite = new Program.DirSlot( this, oDocDesc.Controller, strFileExtn, iID);
+                        oNewSite = new Program.FileNameSlot( this, oDocDesc.Controller, strFileExtn, iID);
                         break;
                     case var r when ( r == typeof( IPgLoad<BinaryReader> ) ):
                         oNewSite = new Program.BinarySlot( this, oDocDesc.Controller, strFileExtn, iID);

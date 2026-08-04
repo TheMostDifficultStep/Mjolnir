@@ -147,7 +147,7 @@ namespace Play.FileManager {
     public class FileManager :
         EditMultiColumn,
         IPgLoadUrl,
-        IPgSaveURL,
+        IPgSaveUrl,
         IPgLoad<XmlNode>,
         IPgSave<XmlNode>,
         IPgLoad<TextReader>

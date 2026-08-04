@@ -579,7 +579,7 @@ namespace Monitor {
         IPgParent,
 		IDisposable,
         IPgLoadUrl,
-        IPgSaveURL
+        IPgSaveUrl
     {
         protected readonly IPgBaseSite       _oBaseSite;
         protected readonly IPgRoundRobinWork _oWorkPlace; 

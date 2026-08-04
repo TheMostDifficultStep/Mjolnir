@@ -285,7 +285,7 @@ namespace Play.MusicWalker {
     public class MP3Document :
         IPgParent,
         IPgLoadUrl,
-		IPgSaveURL,
+		IPgSaveUrl,
 		IDisposable
     {
 		protected readonly IPgBaseSite  _oSiteBase;
