@@ -3,111 +3,109 @@
   <fonts>
     <font system="text">C:\windows\fonts\consola.ttf</font>
     <font system="menu">C:\windows\fonts\seguisym.ttf</font>
-    <font>C:\windows\fonts\UDDigiKyokashoN-R.ttc</font>
   </fonts>
-<addons>
-	<add assm="FileManager.dll" >
-		<use name="File Manager" guid="" >
-			<desc>This is my Windows Filemanager replacement. WIP</desc>
-		</use>
-	</add>
-	<add assm="ImageViewer.dll" factory="Play.ImageViewer.ControllerFactory" >
-		<use name="Image Directory Viewer" guid="{CD9669C9-5728-47A2-A572-247BCB53915C}" >
-			<e v="jpeg" />
-			<e v="jpg" />
-			<e v="gif" />
-			<e v="png" />
-			<e v="webp" />
-			<e v="" />
-			<desc>View images of the given types</desc>
-		</use>
-		<use name="Image Scraps viewer" guid="{3901F972-CB41-4515-BA17-868389066097}" >
-			<e v="scraps" />
-			<desc>View images listed in the given file.</desc>
-		</use>
-	</add>
-	<add assm="MusicWalker.dll" factory="Play.MusicWalker.ControllerFactory" >
-		<use name="Music Album Collection Player" guid="{D044478C-3351-4B62-B499-083EE9BE9482}" >
-			<e v="music" />
-			<desc>Loads all the .m3u files from the given directory.</desc> 
-		</use>
-		<use name="Music Playlist player." guid="{2DE2D314-D302-48B3-931F-F0D6D815AC8F}" >
-			<e v="m3u" />
-			<desc>Plays all the songs in the given play list.</desc> 
-		</use>
-		<use name="Music File player." guid="{0187617E-ED67-424B-8B05-3A4D8E2F2FC4}" >
-			<e v="mp3" />
-			<desc>Plays the given sound file.</desc> 
-		</use>	
-	</add>
-	<add assm="RadioLogger.dll" factory="Play.MorsePractice.ControllerFactory" >
-		<use name="Net Logger" guid="{0C7B3599-324D-47C2-8380-013742B2A179}" >
-			<e v="netlog" />
-			<desc>Station, status, report logging program! Simple text file.</desc> 
-		</use>		
-		<use name="Standard Logger" guid="{9DCACEC0-D90E-4587-8E0F-617D8989DB84}" >
-			<e v="stdlog" />
-			<desc>Simple text file for logging radio contacts.</desc> 
-		</use>
-		<use name="Net Logger Update" guid="{628CDE08-ECD8-4919-9274-E72BE8E40413}" >
-			<e v="netlogm" />
-			<desc>Improved logger with start, end times, and notes.</desc> 
-		</use>		
-	</add>
-	<add assm="Clock.dll" factory="Play.Clock.ControllerFactory" >
-		<use name="World Time" guid="{E42ED42F-3362-4C68-A393-2AEFCA1B2F9E}" >
-			<e v="weather" />
-			<desc>Date time displayer widget.</desc> 
-		</use>
-		<use name="Clock" guid="{36A57A73-2296-4DFB-B430-882B72D98180}" >
-			<e v="clock" />
-			<desc>Analog clock face</desc> 
-		</use>
-	</add>
-	<add assm="SSTV.dll" factory="Play.SSTV.ControllerFactory" >
-		<use name="Slow Scan Television Viewer" 
-			 guid="{C01C4B93-2C9F-47D6-B9E6-0B0F38E2C1BE}" >
-			<e v="mysstv" />
-			<desc>View and send a variety of SSTV signal types via audio.</desc> 
-		</use>
-	</add>
-	<add assm="Monitor.dll" factory="Monitor.ControllerFactory" >
-		<use name="Assembly Editor" guid="{51783F31-136A-484F-A02C-D9E0059BF24F}" >
-			<e v="asmprg" />
-			<desc>Experimental Assembly editor.</desc> 
-		</use>
-		<use name="BBC basic editor, binary." guid="{5550F99D-C1D3-40EE-81F6-2D8B929BD112}" >
-			<e v="bas" />
-			<e v="bbc" />
-			<desc>BBC Basic parser. Binary persistant.</desc> 
-		</use>
-		<use name="BBC basic editor, text." guid="{1E2F4285-E83B-4B1E-A28C-AA6CDDF99A23}" >
-			<e v="btx" />
-			<e v="tbtxt" />
-			<desc>BBC Basic parser. And Tiny Basic. Text persistant.</desc> 
-		</use>
-	</add>
-	<add assm="Kanji-Practice.dll" factory="Kanji_Practice.ControllerFactory" >
-		<use name="Kanji Practice" 
-			 guid="{6D6AF151-4870-4407-A2A1-A8BE3510C7FC}" >
-			<e v="deck" />
-			<desc>Practice read and right Kanji.</desc> 
-		</use>
-	</add>
-	<add assm="AddressBook.dll" factory="AddressBook.ControllerFactory" >
-		<use name="Simple Address book" 
-			 guid="{03BC9DF5-8298-44F3-8A5F-2D27C99B3C11}" >
-			<e v="addr" />
-			<desc>Simple home brew address book viewer.</desc> 
-		</use>
-	</add>
-	<add assm="Scanner.dll" >
-		<use name="Simple Scanner App" guid="" >
-			<e v="scan" />
-			<desc>Experiment to control Epson V550 flatbed scanner.</desc> 
-		</use>
-	</add>
-</addons>
+  <addons>
+    <add assm="FileManager.dll" factory="Play.FileManager.ControllerFactory" >
+      <use name="Files Explorer" guid="{4462E346-3776-4AE9-A3EE-961CFB3DDD09}">
+		<e v="fman" />
+        <desc>This is my Windows Filemanager replacement. WIP</desc>
+      </use>
+    </add>
+    <add assm="ImageViewer.dll" factory="Play.ImageViewer.ControllerFactory">
+      <use name="Image Directory Viewer" guid="{CD9669C9-5728-47A2-A572-247BCB53915C}">
+        <e v="jpeg" />
+        <e v="jpg" />
+        <e v="gif" />
+        <e v="png" />
+        <e v="webp" />
+        <e v="" />
+        <desc>View images of the given types</desc>
+      </use>
+      <use name="Image Scraps viewer" guid="{3901F972-CB41-4515-BA17-868389066097}">
+        <e v="scraps" />
+        <desc>View images listed in the given file.</desc>
+      </use>
+    </add>
+    <add assm="MusicWalker.dll" factory="Play.MusicWalker.ControllerFactory">
+      <use name="Music Album Collection Player" guid="{D044478C-3351-4B62-B499-083EE9BE9482}">
+        <e v="music" />
+        <desc>Loads all the .m3u files from the given directory.</desc>
+      </use>
+      <use name="Music Playlist player." guid="{2DE2D314-D302-48B3-931F-F0D6D815AC8F}">
+        <e v="m3u" />
+        <desc>Plays all the songs in the given play list.</desc>
+      </use>
+      <use name="Music File player." guid="{0187617E-ED67-424B-8B05-3A4D8E2F2FC4}">
+        <e v="mp3" />
+        <desc>Plays the given sound file.</desc>
+      </use>
+    </add>
+    <add assm="RadioLogger.dll" factory="Play.MorsePractice.ControllerFactory">
+      <use name="Net Logger" guid="{0C7B3599-324D-47C2-8380-013742B2A179}">
+        <e v="netlog" />
+        <desc>Station, status, report logging program! Simple text file.</desc>
+      </use>
+      <use name="Standard Logger" guid="{9DCACEC0-D90E-4587-8E0F-617D8989DB84}">
+        <e v="stdlog" />
+        <desc>Simple text file for logging radio contacts.</desc>
+      </use>
+      <use name="Net Logger Update" guid="{628CDE08-ECD8-4919-9274-E72BE8E40413}">
+        <e v="netlogm" />
+        <desc>Improved logger with start, end times, and notes.</desc>
+      </use>
+    </add>
+    <add assm="Clock.dll" factory="Play.Clock.ControllerFactory" >
+      <use name="Solar Weather" guid="{E42ED42F-3362-4C68-A393-2AEFCA1B2F9E}">
+        <e v="weather" />
+        <desc>Solar Weather App.</desc>
+      </use>
+      <use name="World Time" guid="{36A57A73-2296-4DFB-B430-882B72D98180}">
+        <e v="clock" />
+        <desc>Date time displayer widget.</desc>
+      </use>
+    </add>
+    <add assm="SSTV.dll" factory="Play.SSTV.ControllerFactory">
+      <use name="Slow Scan Television Viewer" guid="{C01C4B93-2C9F-47D6-B9E6-0B0F38E2C1BE}">
+        <e v="mysstv" />
+        <desc>View and send a variety of SSTV signal types via audio.</desc>
+      </use>
+    </add>
+    <add assm="Monitor.dll" factory="Monitor.ControllerFactory">
+      <use name="Assembly Editor" guid="{51783F31-136A-484F-A02C-D9E0059BF24F}" >
+        <e v="com" />
+        <desc>Experimental Disassembler.</desc>
+      </use>
+
+      <use name="BBC basic editor, binary." guid="{5550F99D-C1D3-40EE-81F6-2D8B929BD112}">
+        <e v="bas" />
+        <e v="bbc" />
+        <desc>BBC Basic parser. Binary persistant.</desc>
+      </use>
+      <use name="BBC basic editor, text." guid="{1E2F4285-E83B-4B1E-A28C-AA6CDDF99A23}">
+        <e v="btx" />
+        <e v="tbtxt" />
+        <desc>BBC Basic parser. And Tiny Basic. Text persistant.</desc>
+      </use>
+    </add>
+    <add assm="Kanji-Practice.dll" factory="Kanji_Practice.ControllerFactory">
+      <use name="Kanji Practice" guid="{6D6AF151-4870-4407-A2A1-A8BE3510C7FC}">
+        <e v="deck" />
+        <desc>Practice read and right Kanji.</desc>
+      </use>
+    </add>
+    <add assm="AddressBook.dll" factory="AddressBook.ControllerFactory">
+      <use name="Simple Address book" guid="{03BC9DF5-8298-44F3-8A5F-2D27C99B3C11}">
+        <e v="addr" />
+        <desc>Simple home brew address book viewer.</desc>
+      </use>
+    </add>
+    <add assm="Scanner.dll">
+      <use name="Simple Scanner App" guid="">
+        <e v="scan" />
+        <desc>Experiment to control Epson V550 flatbed scanner.</desc>
+      </use>
+    </add>
+  </addons>
   <languages>
     <streams>
       <parser type="text" assembly="foo" class="phree_bee.ParseEventsText" />
@@ -121,7 +119,7 @@
       <grammar name="html_4_xhtml" type="tags" file="html_4_xhtml.bnf" />
       <grammar name="idl" type="text" file="idl.bnf" />
       <grammar name="html" type="text" file="html.bnf" />
-      <grammar name="nimble" type="text" file="nimble3.bnf" />
+      <grammar name="nimble" type="text" file="nimble5.bnf" />
       <grammar name="build" type="text" file="build_log.bnf" />
       <grammar name="resource" type="text" file="rc.bnf" />
       <grammar name="text" type="text" file="text2.bnf" />
@@ -140,13 +138,13 @@
       <grammar name="flashcard" type="text" file="flash-card.bnf" />
       <grammar name="bbcbasic" type="text" file="bbc-basic.bnf" />
       <grammar name="tinybasic" type="text" file="tiny-basic.bnf" />
-	  <grammar name="filename" type="text" file="filenames.bnf" />
-	  <grammar name="epsoncommands" type="text" file="epson-cmds.bnf" />
+      <grammar name="filename" type="text" file="filenames.bnf" />
     </grammars>
     <maps>
       <!-- when you map one of these extensions, you will be using the parsed text document type -->
       <!-- overriding any controller you might have mapped to the extension. so be aware! -->
       <!-- Map the extension to a grammar name -->
+      <map extn=".adi" grammar="html" />
       <map extn=".rs" grammar="text" />
       <map extn=".toml" grammar="ini" />
       <map extn=".deck" grammar="flashcard" />
@@ -160,7 +158,7 @@
       <map extn=".pl" grammar="perl" />
       <map extn=".ini" grammar="ini" />
       <map extn=".idl" grammar="idl" />
-      <map extn=".nbl3" grammar="nimble" />
+      <map extn=".nbl" grammar="nimble" />
       <map extn=".rdl" grammar="html" />
       <map extn=".rds" grammar="html" />
       <map extn=".wiq" grammar="html" />
@@ -173,6 +171,8 @@
       <map extn=".man" grammar="html" />
       <map extn=".mum" grammar="html" />
       <map extn=".lci" grammar="html" />
+	  <map extn=".xml" grammar="html" />
+	  <map extn=".asmprg" grammar="html" />
       <map extn=".rc" grammar="resource" />
       <map extn=".resx" grammar="html" />
       <map extn=".txt" grammar="text" />
@@ -197,23 +197,22 @@
       <map extn=".bbc" grammar="bbcbasic" />
       <map extn=".btx" grammar="bbcbasic" />
       <map extn=".tbtxt" grammar="tinybasic" />
-	  <map extn=".epsn" grammar="epsoncommands" />
     </maps>
   </languages>
   <mainwindow>
     <location left="200" top="20" width="1000" height="800" />
     <margin left="360" right="0" bottom="100" tools="0" options="0" />
     <docking>
-      <dock visible="false" edge="bottom" display="Clock" decor="{7E93BF3B-16DB-4967-8F2D-3170240CE1A7}" />
-      <dock visible="false" edge="bottom" display="Find" decor="{83A290C0-F2FA-4992-B35D-BC331F95BEE3}" />
-      <dock visible="false" edge="bottom" display="Results" decor="{49297D21-146F-4AF8-8D51-76BC70E30C98}" />
-      <dock visible="true"  edge="left" display="Outline" decor="{64EC31FE-F28E-49A6-A12A-9194214DD0D6}" />
-      <dock visible="false" edge="left" display="Properties" decor="{1509A246-5CB0-41B1-A6D2-572D38EEC9C5}" />
-      <dock visible="false" edge="bottom" display="Views" decor="{8FB60D70-371A-4E93-B44A-AEEDBCCF3A15}" />
-      <dock visible="false" edge="bottom" display="Alerts" decor="{FDC20452-76D1-4CFB-A67C-E5A044BD0C28}" />
-      <dock visible="false" edge="left" display="Productions" decor="{266BE614-5336-4B45-A132-43640E659F69}" />
+      <dock visible="false" edge="bottom"  display="Clock" decor="{7E93BF3B-16DB-4967-8F2D-3170240CE1A7}" />
+      <dock visible="false" edge="bottom"  display="Find" decor="{83A290C0-F2FA-4992-B35D-BC331F95BEE3}" />
+      <dock visible="false" edge="bottom"  display="Results" decor="{49297D21-146F-4AF8-8D51-76BC70E30C98}" />
+      <dock visible="true"  edge="left"    display="Outline" decor="{64EC31FE-F28E-49A6-A12A-9194214DD0D6}" />
+      <dock visible="false" edge="left"    display="Properties" decor="{1509A246-5CB0-41B1-A6D2-572D38EEC9C5}" />
+      <dock visible="false" edge="bottom"  display="Views" decor="{8FB60D70-371A-4E93-B44A-AEEDBCCF3A15}" />
+      <dock visible="false" edge="bottom"  display="Alerts" decor="{FDC20452-76D1-4CFB-A67C-E5A044BD0C28}" />
+      <dock visible="false" edge="left"    display="Productions" decor="{266BE614-5336-4B45-A132-43640E659F69}" />
       <dock visible="false" edge="options" display="Options" decor="{6AECF17A-D91B-452F-9B67-840144446DDB}" />
-      <dock visible="false" edge="tools" display="Tools" decor="{83F0CB89-16BC-4DA8-8A79-A6F13DF57DA9}" />
+      <dock visible="false" edge="tools"   display="Tools" decor="{83F0CB89-16BC-4DA8-8A79-A6F13DF57DA9}" />
     </docking>
     <documents bgcolor="white">
     </documents>
