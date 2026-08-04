@@ -82,12 +82,12 @@ namespace Monitor {
         IPgCommandView,
         IReadableBag<Row>
     {
-        internal class ViewLabels : EditWindow2 {
+        internal class ViewOutline : EditWindow2 {
             readonly ViewDisassembly _oOwnerView;
-            public ViewLabels( IPgViewSite     oSiteView, 
-                               ViewDisassembly oOwnerView, 
-                               bool            fReadOnly   = false, 
-                               bool            fSingleLine = false) : 
+            public ViewOutline( IPgViewSite     oSiteView, 
+                                ViewDisassembly oOwnerView, 
+                                bool            fReadOnly   = false, 
+                                bool            fSingleLine = false) : 
                 base( oSiteView, oOwnerView._oMonDoc.Doc_Outl, fReadOnly, fSingleLine ) 
             {
                 _oOwnerView = oOwnerView;
@@ -244,7 +244,7 @@ namespace Monitor {
 
         public object? Decorate(IPgViewSite oBaseSite, Guid sGuid) {
             if( sGuid == GlobalDecor.Outline ) {
-                return new ViewLabels( oBaseSite, this, fReadOnly:true );
+                return new ViewOutline( oBaseSite, this, fReadOnly:true );
             }
             if( sGuid == GlobalDecor.Properties ) {
                 return new WindowStandardProperties( oBaseSite, _oMonDoc.Doc_Props );
