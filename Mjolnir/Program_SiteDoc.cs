@@ -983,7 +983,7 @@ namespace Mjolnir {
                 base.GuestSet( value );
 
                 _oGuestLoad = (IPgLoadUrl)value;
-                _oGuestSave = value as IPgSaveUrl;
+                _oGuestSave = (IPgSaveUrl)value;
             }
 
             public override bool InitNew() {
@@ -1002,24 +1002,16 @@ namespace Mjolnir {
                 return _oGuestLoad.LoadUrl( strFileName );
             }
 
+            public override string FilePath => _oGuestSave.Moniker;
+
             /// <summary>
             /// So for the disassembler, we'll want to save our symbols. So while our
             /// moniker might NOT change, our symbols file might do so.
             /// </summary>
             public bool Save( bool fRename ) {
-                if( _oGuestSave == null ) {
-                    LogError( "Cannot persist " + Title, ". The object does not support IPgSaveURL." );
-                    return true;
-                }
-
-                // If the caller didn't implement save then our filepath
-                // will simply be the original load path.
-                FilePath = _oGuestSave.Moniker;
-
                 _oGuestSave.Save();
 
                 _oHost.Raise_UpdateTitles( this );
-                _oHost.SessionSave       ( false );
 
                 return true;
             }

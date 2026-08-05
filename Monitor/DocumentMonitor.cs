@@ -1,17 +1,16 @@
-﻿using System.Text;
-using System.Text.RegularExpressions;
-using System.Security;
-using System.Xml;
-using System.Reflection;
-
-using z80;
-
-using Play.Interfaces.Embedding;
+﻿using Play.Drawing;
 using Play.Edit; 
-using Play.Parse;
 using Play.Forms;
-using Play.Drawing;
+using Play.Interfaces.Embedding;
+using Play.Parse;
 using SkiaSharp;
+using System.Reflection;
+using System.Security;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Xml;
+using z80;
+using static Monitor.Z80Dissambler;
 
 namespace Monitor {
 
@@ -604,6 +603,8 @@ namespace Monitor {
         public MonitorProperties Doc_Props   { get; }
         public DocTerminal       Doc_Terminal{ get; }
 
+        protected List<int> _rgLabels;
+
         public bool IsDirty => Doc_Asm.IsDirty;
 
         public class DocSlot :
@@ -744,7 +745,7 @@ namespace Monitor {
         /// Start address and memory size hard coded atm but
         /// later we'll make those property page stuff.
         /// </summary>
-        /// <seealso cref="Load">
+        /// <seealso cref="LoadUrl">
         public bool InitNew() {
             if( !Doc_Outl.InitNew() )
                 return false;
@@ -761,8 +762,10 @@ namespace Monitor {
             if( !Doc_Terminal.InitNew() )
                 return false;
 
-            Dissassemble();
-            StatusUpdate();
+            // Given there's nothing to dissassemble makes
+            // no sense to do much.
+
+            StatusUpdate ();
 
             return true;
         }
@@ -982,11 +985,10 @@ namespace Monitor {
                 if( !LoadBinaryFile( strUrl ) ) {
                     return false;
                 }
-                Dissassemble();
-
-                LoadSymbols ();
-
-                StatusUpdate();
+                Dissassemble ();
+                LoadSymbols  ();
+                PatchUpLabels( _rgLabels );
+                StatusUpdate ();
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( IOException ),
                                     typeof( OutOfMemoryException ),
@@ -1009,13 +1011,14 @@ namespace Monitor {
             }
 
             try {
-                Doc_Asm .Clear();
-                Doc_Outl.Clear();
+                Doc_Asm.Clear();
 
                 using Z80Dissambler oDeCompile = 
-                    new Z80Dissambler( _rgZ80Def, Z80Memory, Doc_Outl, Doc_Asm, LogError );
+                    new Z80Dissambler( _rgZ80Def, Z80Memory, Doc_Asm, LogError );
 
                 oDeCompile.Dissassemble();
+
+                _rgLabels = oDeCompile.Labels;
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( ArgumentNullException ),
@@ -1024,6 +1027,45 @@ namespace Monitor {
                     throw;
 
                 LogError( "Monitor", "Null Ref Exception in Dissassembler." );
+            }
+        }
+
+        /// <summary>
+        /// Do this AFTER we've attempted to load the symbols so we
+        /// can have discriptive text in teh outline!
+        /// </summary>
+        public void PatchUpLabels( List<int> rgOutlineLabels ) {
+            if( rgOutlineLabels is null ) {
+                LogError( "disassemble", "odd that the labels list is null" );
+                return;
+            }
+
+            Doc_Outl.Clear();
+
+            using BaseEditor.Manipulator oBulkOutline = Doc_Outl.CreateManipulator();
+
+            // Take all the labels and stick them in the outline.
+            foreach( int i in rgOutlineLabels ) {
+                // TODO: Add label/jump formattng to line.
+                string strAddr = i.ToString( "X" ); // Memory offset displayed in HEX.
+                Line   oJump   = oBulkOutline.LineAppend( strAddr );
+                oJump.Formatting.Add( new HyperLinkCpuJump( 0, strAddr.Length, 1 ) );
+
+                // Go thru the assembler and update the address
+                // column entry if that row is a jump target.
+                foreach( Row oRow in Doc_Asm ) {
+                    if( oRow is AsmRow oAsmRow &&
+                        oAsmRow.AddressMap == i )
+                    {
+                        if( oAsmRow.Label != null ) {
+                            oAsmRow.Label.TryReplace( i.ToString( "X" ) );
+                        } else {
+                            // Spew an error
+                        }
+                        oJump.TryAppend( " " + oAsmRow.Comment );
+                        break;
+                    }
+                }
             }
         }
 
@@ -1175,7 +1217,9 @@ namespace Monitor {
                 Doc_Asm.HighLight = null;
                 Doc_Display.Clear();
                 Doc_Terminal.Clear();
-                StatusUpdate();
+
+                PatchUpLabels( _rgLabels );
+                StatusUpdate ();
             } catch( Exception oEx ) {
                 if( _rgStdErrors.IsUnhandled( oEx ) )
                     throw;
@@ -1220,13 +1264,11 @@ namespace Monitor {
         IDisposable
     {
         readonly AsmEditor.Mangler     _oBulkAsm;
-        readonly Editor.Manipulator    _oBulkOutline;
         readonly SortedSet<int>        _rgOutlineLabels = new();
         readonly StringBuilder         _sbBuilder       = new();
         readonly StringBuilder         _sbData          = new();
         readonly Z80Memory             _rgRam;
         readonly Z80Definitions        _oZ80Info;
-        readonly IEnumerable<Row>      _oAsmEnu;
         readonly Action<string,string> _fnLogError;
 
         struct AsmData {
@@ -1242,22 +1284,18 @@ namespace Monitor {
         public Z80Dissambler( 
             Z80Definitions        oDefinitions, 
             Z80Memory             rgMemory, 
-            Editor                oOutDoc,
             AsmEditor             oAsmDoc,
             Action<string,string> fnLogError
         ) {
             _rgRam        = rgMemory     ?? throw new ArgumentNullException();
             _oZ80Info     = oDefinitions ?? throw new ArgumentNullException(); 
-            _oAsmEnu      = oAsmDoc      ?? throw new ArgumentNullException();
             _fnLogError   = fnLogError   ?? throw new ArgumentNullException();
 
             _oBulkAsm     = new AsmEditor.Mangler( oAsmDoc );
-            _oBulkOutline = oOutDoc.CreateManipulator();
         }
 
         public void Dispose() {
             _oBulkAsm    .Dispose();
-            _oBulkOutline.Dispose();
         }
 
         public class HyperLinkCpuJump : 
@@ -1449,28 +1487,12 @@ namespace Monitor {
                 }
                 iAddr += sInstr.Length;
             }
-
-            // Take all the labels and stick them in the outline.
-            foreach( int i in _rgOutlineLabels ) {
-                // TODO: Add label/jump formattng to line.
-                string strAddr = i.ToString( "X" ); // Memory offset displayed in HEX.
-                Line   oJump   = _oBulkOutline.LineAppend( strAddr );
-                oJump.Formatting.Add( new HyperLinkCpuJump( 0, strAddr.Length, 1 ) );
-
-                // Go thru the assembler and update the address
-                // column entry if that row is a jump target.
-                foreach( Row oRow in _oAsmEnu ) {
-                    if( oRow is AsmRow oAsmRow &&
-                        oAsmRow.AddressMap == i )
-                    {
-                        if( oAsmRow.Label != null ) {
-                            oAsmRow.Label.TryReplace( i.ToString( "X" ) );
-                        } else {
-                            // Spew an error
-                        }
-                    }
-                }
-            }
         } // end method
+
+        public List<int> Labels {
+            get {
+                return _rgOutlineLabels.ToList<int>();
+            }
+        }
     } // end class
 }
