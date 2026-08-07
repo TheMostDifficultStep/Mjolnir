@@ -594,8 +594,6 @@ namespace Monitor {
         protected string _strBinaryFileName = string.Empty;
         public    string FileName { get; protected set; }  = string.Empty;
         protected SortedSet<ushort> _rgBreakPoints = new SortedSet<ushort>();
-        protected IPorts Ports { get; set; }
-
 
         public             Z80Memory      Z80Memory { get; }
         protected          Z80Definitions _rgZ80Def;
@@ -697,10 +695,8 @@ namespace Monitor {
             _rgZ80Def = new Z80Definitions();
             Z80Memory = new Z80Memory();
 
-            // Default value might get updated at load phase
-            Ports       = new PortsTinyBasic( this );
-
-            _cpuZ80     = new Z80( Z80Memory, Ports );
+            // Default ports might get updated at load phase
+            _cpuZ80     = new Z80( Z80Memory, new PortsTinyBasic( this ) );
             _cpuZ80.Pc  = 0x100; // CPM 2.2 start address.
 
             Doc_Asm     = new ( new DocSlot( this ) );
@@ -806,7 +802,7 @@ namespace Monitor {
                 xmlRoot.AppendChild( xmlComments );
 
                 xmlBinary.InnerText = FileName;
-                xmlBinary.InnerText = Ports.Name;
+                xmlBinary.InnerText = _cpuZ80.Ports.Name;
 
                 foreach( Row oNote in Doc_Asm ) {
                     if( oNote is AsmRow oInstr &&
@@ -927,17 +923,16 @@ namespace Monitor {
                 if( xmlRoot.SelectSingleNode( "ports" ) is XmlElement xmlPort ) {
                     switch( xmlPort.InnerText ) {
                         case "dazzler":
-                            Ports = new PortsDazzle( this );
+                            _cpuZ80.Ports = new PortsDazzle( this );
                             break;
                         case "tiny":
-                            Ports = new PortsTinyBasic( this );
+                            _cpuZ80.Ports = new PortsTinyBasic( this );
                             break;
                         default:
                             LogError( "Loading", "Using default Tiny Basic Ports" );
                             break;
                     }
                 }
-                _cpuZ80.Ports = Ports;
 
                 // This is only valid if disassembled the binary first ... :-)
                 if( xmlRoot.SelectNodes( "documenting/note" ) is XmlNodeList rgNodes ) {
