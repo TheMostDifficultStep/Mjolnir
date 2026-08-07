@@ -193,8 +193,9 @@ namespace Play.Edit {
             int iTop = _rgOldCache[0].Top; //_oTextRect.Top;
 
             foreach( CacheRow oCRow in this ) {
-                if( fRemeasure ) 
-                    { RowMeasure( oCRow ); }
+                if( fRemeasure ) { 
+                    RowMeasure( oCRow ); 
+                }
 
                 FlexColumns( oCRow ); // BUG: If colum expands, cursor might get pushed off bottom.
                 RowLayout  ( oCRow );
@@ -270,7 +271,7 @@ namespace Play.Edit {
               //bool     fIsVisible = IsCaretIntersect( oSeedRow );
 
                 //if( oSeedRow is null /* || !fIsVisible */ ) {
-                CacheRow oSeedRow = CacheLocateTop();
+                CacheRow oSeedRow = CacheLocate( DocumentPosition.TOP );
                 //}
 
                 if( oSeedRow is null ) {
@@ -400,7 +401,7 @@ namespace Play.Edit {
             
             _oTextRect.SetScalar(SET.RIGID, SCALAR.TOP, iTopNew );
 
-            CacheRow oSeedCache = CacheLocateTop();
+            CacheRow oSeedCache = CacheLocate( DocumentPosition.TOP );
 
             if( oSeedCache == null )
                 oSeedCache = CacheReset(RefreshNeighborhood.SCROLL);
@@ -494,30 +495,37 @@ namespace Play.Edit {
         /// <remarks>Requiring the row.At to be > 0 at present is the only way
         /// to detect deleted lines not yet flushed. But if the property page
         /// forgets to initialize the line number we end up failing here.
+        /// Note: It's possible that the TextRect moves BEYOND the top or bot
+        /// of the cached row's!! If so. Return the closest valid row.
         /// </remarks>
-        protected CacheRow CacheLocateTop() {
+        protected CacheRow CacheLocate( DocumentPosition e ) {
             if( _rgOldCache.Count <= 0 )
                 return null;
 
             CacheRow oSeedCache = null;
 
-            if( _oTextRect.Height <= 0 ) {
-                foreach( CacheRow oTestRow in _rgOldCache ) {
-                    if( oTestRow.At >= 0 ) {
-                        return oTestRow;
-                    }
-                }
-                return null;
-            }
-
+            // Try to find an element that is inside.
             foreach( CacheRow oTestRow in _rgOldCache ) {
                 if( IsInside( oTestRow ) && oTestRow.At >= 0 ) {
                     return oTestRow;
                 }
             }
-            foreach( CacheRow oTestRow in _rgOldCache ) {
-                if( IsEdge( oTestRow ) && oTestRow.At >= 0 ) {
-                    return oTestRow;
+
+            // Try to find the element closest to the new
+            // visible portion.
+            if( e == DocumentPosition.TOP ) {
+                for( int i=0; i<_rgOldCache.Count; ++i ) {
+                    CacheRow oTestRow = _rgOldCache[i];
+                    if( oTestRow.At >= 0 ) {
+                        return oTestRow;
+                    }
+                }
+            } else {
+                for( int i=_rgOldCache.Count-1; i>=0; --i ) {
+                    CacheRow oTestRow = _rgOldCache[i];
+                    if( oTestRow.At >= 0 ) {
+                        return oTestRow;
+                    }
                 }
             }
 
@@ -531,17 +539,22 @@ namespace Play.Edit {
         /// at least partially visible...
         /// </remarks>
         protected bool IsEdge( CacheRow oTestRow ) {
-            if( oTestRow.Top < _oTextRect.Top &&
+            if( oTestRow.Top    < _oTextRect.Top &&
                 oTestRow.Bottom > _oTextRect.Top )
                 return true;
 
-            if( oTestRow.Top < _oTextRect.Bottom &&
+            if( oTestRow.Top    < _oTextRect.Bottom &&
                 oTestRow.Bottom > _oTextRect.Bottom )
                 return true;
 
             return false;
         }
 
+        /// <summary>
+        /// As long as there is any overlap we are inside.
+        /// or the row is taller (top above, bottom below)
+        /// than the text view.
+        /// </summary>
         protected bool IsInside( CacheRow oTestRow ) {
             if( oTestRow.Top    < _oTextRect.Bottom &&
                 oTestRow.Bottom > _oTextRect.Top )
@@ -703,8 +716,9 @@ namespace Play.Edit {
         /// Visual Studio editor moves the caret too. But if we scroll with the
         /// mouse or scroll bar they don't move the caret... hmmm...
         /// </summary>
-        /// <remarks>BUG: Need to set the caret on scroll from keystrokes...</remarks>
-        /// <param name="e"></param>
+        /// <remarks>BUG: Need to set the caret on scroll from keystrokes...
+        /// NOTE: It's possible we move the TextRect TOO FAR outside of the
+        /// cached elements. CacheWalker() must consider this.</remarks>
         public void OnScrollBar_Vertical( ScrollEvents e ) {
             int iHeight       = _oTextRect.Height;
             int iTopOld       = _oTextRect.Top;
@@ -714,19 +728,19 @@ namespace Play.Edit {
                 // These events move incrementally from where we were.
                 case ScrollEvents.LargeDecrement:
                     _oTextRect.SetScalar(SET.RIGID, SCALAR.TOP, iTopOld - iHeight - iSafetyMargin );
-                    CacheWalker( CacheLocateTop(), fRemeasure:false );
+                    CacheWalker( CacheLocate( DocumentPosition.TOP ), fRemeasure:false );
                     break; 
                 case ScrollEvents.LargeIncrement:
                     _oTextRect.SetScalar(SET.RIGID, SCALAR.TOP, iTopOld + iHeight - iSafetyMargin );
-                    CacheWalker( CacheLocateTop(), fRemeasure:false );
+                    CacheWalker( CacheLocate( DocumentPosition.BOTTOM ), fRemeasure:false );
                     break;
                 case ScrollEvents.SmallDecrement:
                     _oTextRect.SetScalar(SET.RIGID, SCALAR.TOP, iTopOld - LineHeight );
-                    CacheWalker( CacheLocateTop(), fRemeasure:false );
+                    CacheWalker( CacheLocate( DocumentPosition.TOP ), fRemeasure:false );
                     break;
                 case ScrollEvents.SmallIncrement:
                     _oTextRect.SetScalar(SET.RIGID, SCALAR.TOP, iTopOld + LineHeight );
-                    CacheWalker( CacheLocateTop(), fRemeasure:false );
+                    CacheWalker( CacheLocate( DocumentPosition.BOTTOM ), fRemeasure:false );
                     break;
 
                 // We can potentialy render less until this final end scroll comes in.
@@ -1535,10 +1549,6 @@ namespace Play.Edit {
         /// Same goes for going up...</remarks>
         /// <seealso cref="ICacheManSite.OnRefreshComplete"/>
         protected override void CacheWalker( CacheRow oSeedCache, bool fRemeasure = false ) {
-            //if( oSeedCache == null ) {
-            //    LogError( "Cache construction error" );
-            //    return;
-            //}
             if( _oTextRect.Width <= 0 || _oTextRect.Height <= 0 ) {
                 _rgOldCache.Clear();
                 return;

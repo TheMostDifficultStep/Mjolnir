@@ -92,6 +92,9 @@ namespace Play.Edit {
             _oTextRect.SetScalar(SET.RIGID, SCALAR.TOP, iTopNew );
         }
 
+        /// <summary>
+        /// Move our coordinates space window. up/down small/large move.
+        /// </summary>
         public void OnScrollBar_Vertical( ScrollEvents e ) {
             int iHeight       = _oTextRect[ SCALAR.HEIGHT ];
             int iTopOld       = _oTextRect[ SCALAR.TOP    ];
