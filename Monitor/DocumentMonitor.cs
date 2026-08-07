@@ -1420,10 +1420,7 @@ namespace Monitor {
         }
 
         protected static char ToChar( byte bValue ) {
-            if( bValue >= 65 && bValue <= 90 ) { // Upper
-                return (char)bValue;
-            }
-            if( bValue >= 97 && bValue <= 122 ) { // Lower
+            if( bValue >= 0x20 && bValue <= 0x7d ) { // Upper
                 return (char)bValue;
             }
             return '.';
