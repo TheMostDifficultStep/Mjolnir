@@ -788,12 +788,14 @@ namespace Monitor {
         }
 
         public string Moniker => _strBinaryFileName;
+
+        /// <seealso cref="LoadXml(Stream)"
         protected bool SaveSymbols(TextWriter oStream) {
             try {
                 XmlDocument xmlDoc      = new XmlDocument();
                 XmlElement  xmlRoot     = xmlDoc.CreateElement( "root" );
                 XmlElement  xmlBinary   = xmlDoc.CreateElement( "binary" );
-                XmlElement  xmlPort     = xmlDoc.CreateElement( "port" );
+                XmlElement  xmlPort     = xmlDoc.CreateElement( "ports" );
                 XmlElement  xmlComments = xmlDoc.CreateElement( "documenting" );
 
                 xmlDoc .AppendChild( xmlRoot );
