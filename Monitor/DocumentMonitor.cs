@@ -455,7 +455,7 @@ namespace Monitor {
             Mon = oMon ?? throw new ArgumentNullException();
         }
 
-        public string Name => "dazzle";
+        public string Name => "dazzler";
 
         public bool NMI  => false;
         public bool MI   => false;
@@ -925,15 +925,20 @@ namespace Monitor {
 
             if( xmlDoc.SelectSingleNode( "root" ) is XmlNode xmlRoot) {
                 if( xmlRoot.SelectSingleNode( "ports" ) is XmlElement xmlPort ) {
-                    switch( xmlPort.Name ) {
-                        case "dazzle":
+                    switch( xmlPort.InnerText ) {
+                        case "dazzler":
                             Ports = new PortsDazzle( this );
                             break;
                         case "tiny":
                             Ports = new PortsTinyBasic( this );
                             break;
+                        default:
+                            LogError( "Loading", "Using default Tiny Basic Ports" );
+                            break;
                     }
                 }
+                _cpuZ80.Ports = Ports;
+
                 // This is only valid if disassembled the binary first ... :-)
                 if( xmlRoot.SelectNodes( "documenting/note" ) is XmlNodeList rgNodes ) {
                     foreach( XmlNode xmlNote in rgNodes ) {
