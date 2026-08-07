@@ -697,13 +697,11 @@ namespace Monitor {
             _rgZ80Def = new Z80Definitions();
             Z80Memory = new Z80Memory();
 
-            // Would be nice to set these in the load/init phase
-            // so I can toggle between the desired usage...
-            Ports     = new PortsDazzle( this );
-            //Ports     = new PortsTinyBasic( this );
+            // Default value might get updated at load phase
+            Ports       = new PortsTinyBasic( this );
 
-            _cpuZ80   = new Z80( Z80Memory, Ports );
-            _cpuZ80.Pc = 0x100; // CPM 2.2 start address.
+            _cpuZ80     = new Z80( Z80Memory, Ports );
+            _cpuZ80.Pc  = 0x100; // CPM 2.2 start address.
 
             Doc_Asm     = new ( new DocSlot( this ) );
             Doc_Outl    = new ( new DocSlot( this ) );
