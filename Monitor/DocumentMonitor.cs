@@ -455,6 +455,8 @@ namespace Monitor {
             Mon = oMon ?? throw new ArgumentNullException();
         }
 
+        public string Name => "dazzle";
+
         public bool NMI  => false;
         public bool MI   => false;
         public byte Data => 0x00;
@@ -509,6 +511,8 @@ namespace Monitor {
         public PortsTinyBasic( DocumentMonitor oMon ) { 
             Mon = oMon ?? throw new ArgumentNullException();
         }
+
+        public string Name => "tiny";
 
         public bool NMI  => false;
         public bool MI   => false;
@@ -590,7 +594,7 @@ namespace Monitor {
         protected string _strBinaryFileName = string.Empty;
         public    string FileName { get; protected set; }  = string.Empty;
         protected SortedSet<ushort> _rgBreakPoints = new SortedSet<ushort>();
-        protected IPorts Ports { get; }
+        protected IPorts Ports { get; set; }
 
 
         public             Z80Memory      Z80Memory { get; }
@@ -795,13 +799,16 @@ namespace Monitor {
                 XmlDocument xmlDoc      = new XmlDocument();
                 XmlElement  xmlRoot     = xmlDoc.CreateElement( "root" );
                 XmlElement  xmlBinary   = xmlDoc.CreateElement( "binary" );
+                XmlElement  xmlPort     = xmlDoc.CreateElement( "port" );
                 XmlElement  xmlComments = xmlDoc.CreateElement( "documenting" );
 
                 xmlDoc .AppendChild( xmlRoot );
                 xmlRoot.AppendChild( xmlBinary ); // Just so we know for sure.
+                xmlRoot.AppendChild( xmlPort );
                 xmlRoot.AppendChild( xmlComments );
 
                 xmlBinary.InnerText = FileName;
+                xmlBinary.InnerText = Ports.Name;
 
                 foreach( Row oNote in Doc_Asm ) {
                     if( oNote is AsmRow oInstr &&
@@ -919,6 +926,16 @@ namespace Monitor {
             xmlDoc.Load( oReader );
 
             if( xmlDoc.SelectSingleNode( "root" ) is XmlNode xmlRoot) {
+                if( xmlRoot.SelectSingleNode( "ports" ) is XmlElement xmlPort ) {
+                    switch( xmlPort.Name ) {
+                        case "dazzle":
+                            Ports = new PortsDazzle( this );
+                            break;
+                        case "tiny":
+                            Ports = new PortsTinyBasic( this );
+                            break;
+                    }
+                }
                 // This is only valid if disassembled the binary first ... :-)
                 if( xmlRoot.SelectNodes( "documenting/note" ) is XmlNodeList rgNodes ) {
                     foreach( XmlNode xmlNote in rgNodes ) {
