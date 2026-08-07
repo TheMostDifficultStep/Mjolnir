@@ -789,7 +789,7 @@ namespace Monitor {
 
         public string Moniker => _strBinaryFileName;
 
-        /// <seealso cref="LoadXml(Stream)"
+        /// <seealso cref="LoadSymbols(Stream)"
         protected bool SaveSymbols(TextWriter oStream) {
             try {
                 XmlDocument xmlDoc      = new XmlDocument();
@@ -917,7 +917,8 @@ namespace Monitor {
             }
             return false;
         }
-        protected void LoadXml( Stream oReader ) {
+        /// <seealso cref="SaveSymbols" />
+        protected void LoadSymbols( Stream oReader ) {
             XmlDocument xmlDoc = new XmlDocument();
             xmlDoc.Load( oReader );
 
@@ -961,8 +962,8 @@ namespace Monitor {
 
         protected string FileNameForSymbols {
             get {
-                string strFileName = Path.GetFileNameWithoutExtension( FileName ) + ".asmprg";
-                string strFileDir  = Path.GetDirectoryName( _strBinaryFileName );
+                string  strFileName = Path.GetFileNameWithoutExtension( FileName ) + ".asmprg";
+                string? strFileDir  = Path.GetDirectoryName( _strBinaryFileName );
 
                 string strFilePath;
                 if( strFileDir is not null )
@@ -979,7 +980,7 @@ namespace Monitor {
                 FileInfo         oFile   = new FileInfo( FileNameForSymbols );
                 using FileStream oStream = oFile.OpenRead();
 
-                LoadXml( oStream );
+                LoadSymbols( oStream );
 			} catch( Exception oEx ) {
 				if( _rgFileErrors.IsUnhandled( oEx ) )
 					throw;
