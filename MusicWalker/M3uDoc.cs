@@ -49,10 +49,9 @@ namespace Play.MusicWalker {
 
 			public SongWorker1( IPgBaseSite oSiteBase, ICollection<SongEntry> rgSongs ) : base( oSiteBase ) {
 				_oSiteHighlight = oSiteBase as IPgSiteHilight ?? throw new ArgumentException( "Site must support IPgSiteHilight" );
-				if( rgSongs == null )
-					throw new ArgumentNullException( "Need list of songs." );
+                ArgumentNullException.ThrowIfNull(rgSongs);
 
-				_iterSongs = rgSongs.GetEnumerator() ?? throw new ArgumentException( "Couldn't get iterator from song collection." );
+                _iterSongs = rgSongs.GetEnumerator() ?? throw new ArgumentException( "Couldn't get iterator from song collection." );
 
 				if( !GetNextSong() )
 					throw new ArgumentException( "Couldn't play any of the songs" );
@@ -113,9 +112,10 @@ namespace Play.MusicWalker {
 						//					rgPlay.Add( new SongEntryExpanded(oLine, oElem, _oSiteFile.FilePath) ); 
 						//				},
 						//				"single");
+						string strDirectory = Path.GetDirectoryName( _oSiteFile.FilePath );
 						rgPlay.Add( new SongEntryExpanded( oLine, 
 														   new ColorRange( 0, oLine.ElementCount, -1 ), 
-														   _oSiteFile.FilePath) );
+														   strDirectory) );
 					}
 				}
 			} catch( Exception oEx ) {
@@ -201,7 +201,7 @@ namespace Play.MusicWalker {
 	/// </summary>
 	/// <remarks>Used to implement from EditorWithParser. Now untangled it still works but no colorization atm.</remarks>
 	public class M3UDocument : EditorWithMusic {
-		public ImageWalkerDir  AlbumArt        { get; }
+		public ImageWalkerDir   AlbumArt        { get; }
 		public AlbumProperties2 AlbumProperties { get; }
 
         public M3UDocument( IPgBaseSite oSite ) : base( oSite ) {
@@ -212,7 +212,9 @@ namespace Play.MusicWalker {
 		private void AlbumPropertiesLoad() {
 			string strFullPath = string.Empty;
 			try {
-				strFullPath = Path.Combine( FilePath, "album-properties.txt" );
+				string strFileDir = Path.GetDirectoryName( FilePath );
+
+				strFullPath = Path.Combine( strFileDir, "album-properties.txt" );
 
 				using( TextReader oReader = new StreamReader( strFullPath ) ) {
 					AlbumProperties.Load( oReader );
@@ -235,7 +237,9 @@ namespace Play.MusicWalker {
 		private void AlbumArtLoad() {
 			string strFullPath = string.Empty;
 			try {
-				strFullPath = Path.Combine( FilePath, "album.jpg" );
+				string strFileDir = Path.GetDirectoryName( FilePath );
+
+				strFullPath = Path.Combine( strFileDir, "album.jpg" );
 				// Ok to not load art if not found. We'll still show default icon.
 				// Unless the load fails really bad. Would expect an exception in that case.
 				AlbumArt.LoadUrl( strFullPath );
