@@ -68,10 +68,6 @@ namespace Play.MorsePractice {
                 return;
 
 			switch( e.KeyChar ) {
-				case '\t':
-					int iDir = ModifierKeys == Keys.Shift ? -1 : 1;
-					_oCacheMan.CaretTab( iDir );
-					break;
 				case '\r':
 					// Not likely unset upon key press. But problematic if negative.
 					if( _oCacheMan.CaretAt < 0 )

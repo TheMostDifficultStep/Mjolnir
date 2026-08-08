@@ -53,6 +53,11 @@ namespace Play.Clock {
             return true;
         }
 
+        /// <summary>
+        /// This exposes a problem with my new Input state.
+        /// I really should override the MultiInputNormal handler
+        /// AND it needs to become the default state.
+        /// </summary>
         protected override void OnKeyPress(KeyPressEventArgs e) {
             if( IsDisposed )
                 return;
@@ -62,10 +67,6 @@ namespace Play.Clock {
                 return;
 
 			switch( e.KeyChar ) {
-				case '\t':
-					int iDir = ModifierKeys == Keys.Shift ? -1 : 1;
-					_oCacheMan.CaretTab( iDir );
-					break;
 				case '\r':
 					// Not likely unset upon key press. But problematic if negative.
                     int iPosition = _oCacheMan.CaretAt + 1;
@@ -84,11 +85,7 @@ namespace Play.Clock {
 		}
 
         protected override void OnKeyDown(KeyEventArgs e) {
-            if( e.KeyCode == Keys.Delete && e.Shift ) {
-                _oDocContainer.DocSched.RemoveAt( _oCacheMan.CaretAt );
-            } else {
-                base.OnKeyDown(e);
-            }
+            base.OnKeyDown(e);
         }
 
         protected override void OnMouseDown(MouseEventArgs e) {

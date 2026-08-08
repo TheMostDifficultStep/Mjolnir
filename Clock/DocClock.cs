@@ -576,8 +576,8 @@ namespace Play.Clock {
         /// Note: It's perfectly legal to insert at the element count.
         /// This is effectively an append.
         /// </summary>
-        /// <remarks>I could return an actual LogRow... :-/</remarks>
-        /// <returns>Newly inserted LogRow</returns>
+        /// <remarks>I could return an actual RowSched... :-/</remarks>
+        /// <returns>Newly inserted RowSched</returns>
         public Row InsertNew( int iRow ) {
             try {
                 Raise_DocUpdateBegin();

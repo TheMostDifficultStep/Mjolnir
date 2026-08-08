@@ -563,6 +563,11 @@ namespace Play.Edit {
                         // Note: This comes in occasionally even if keep pressing ctrl.
                         _oHost.CursorUpdate();
                         break;
+                    case Keys.Delete:
+                        if( e.Shift && !_oHost.IsReadOnly && _oCacheMan.CopyCaret() is CaretInfo oCaret2) {
+                            _oHost._oDocOps.RowDelete( oCaret2.Row );
+                        }
+                        break;
                 }
             }
 
@@ -629,6 +634,11 @@ namespace Play.Edit {
             public override void OnKeyPress(KeyPressEventArgs e) {
                 if( _oHost._oViewEvents.IsCommandPress( e.KeyChar ) )
                     return;
+				if( e.KeyChar == '\t' ) {
+					int iDir = ModifierKeys == Keys.Shift ? -1 : 1;
+					_oCacheMan.CaretTab( iDir );
+                    return;
+                }
                 if( _oHost.IsReadOnly )
                     return;
 
