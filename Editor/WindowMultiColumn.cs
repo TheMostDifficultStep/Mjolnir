@@ -722,6 +722,19 @@ namespace Play.Edit {
             }
         } // end class
 
+        /// <summary>
+        /// When double click is detected, we need to just eat
+        /// the following mouse up event.
+        /// </summary>
+        public class MultiDoubleClk : MultiInputBase {
+            public MultiDoubleClk( WindowMultiColumn oHost) : base( oHost ) { 
+            }
+
+            public override void OnMouseUp( MouseEventArgs e ) {
+                Pop();
+            }
+        } // end class
+
         public WindowMultiColumn( IPgViewSite oViewSite, object oDocument ) {
             _oDocEnum   = (IEnumerable     <Row>)oDocument;
             _oDocList   = (IReadableBag    <Row>)oDocument;
@@ -1470,6 +1483,8 @@ namespace Play.Edit {
             Input.OnMouseDoubleClick( e );
         }
 
+        private DateTime _lastClickTime = DateTime.MinValue;
+
         protected override void OnMouseUp(MouseEventArgs e) {
             if( IsDisposed )
                 return;
@@ -1481,7 +1496,17 @@ namespace Play.Edit {
             if( IsDisposed )
                 return;
 
-            Input.OnMouseDown( e );
+            TimeSpan sElapsed = DateTime.Now - _lastClickTime;
+    
+            // Check if the two clicks happened within the OS double-click time window
+            if( sElapsed.TotalMilliseconds <= SystemInformation.DoubleClickTime ) {
+                OnMouseDoubleClick( e );
+                Push( new MultiDoubleClk( this ) );
+            } else {
+                Input.OnMouseDown( e );
+            }
+    
+            _lastClickTime = DateTime.Now;
         }
 
         protected override void OnMouseMove(MouseEventArgs e) {
