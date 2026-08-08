@@ -943,23 +943,24 @@ namespace Play.Edit {
         /// the cachemanager. DoParse() does eventually cause the formatting to
         /// be updated but that's 2 seconds later... :-/
         /// </summary>
-        /// <remarks>I think this code would be cleaner if the caret was a first
+        /// <remarks>This code supports the single cell selection model only.
+        /// I think this code would be cleaner if the caret was a first
         /// class object like the selection. We'll work on that soon.</remarks>
         public void OnCut(object o, EventArgs e ) {
             try {
                 Selection oSelector = _oCacheMan.Selector;
-                if( oSelector.RowCount == 1 ) {
-                    if( oSelector.IsSingleColumn( out int iColumn ) ) {
-                        ClipboardCopyTo();
+                Row       oRow      = _oDocList[_oCacheMan.CaretAt];
+                if( oSelector.RowCount == 0 && 
+                    oSelector.IsSingleColumn( out int iColumn ) ) 
+                {
+                    ClipboardCopyTo();
 
-                        Row          oRow   = _oDocList[_oCacheMan.CaretAt];
-                        IMemoryRange oRange = oSelector[iColumn];
+                    IMemoryRange oRange = oSelector[iColumn];
 
-                        _oCacheMan.CaretOffset = oRange.Offset;
-                        oSelector.Clear(); // Do before TryReplace...
+                    _oCacheMan.CaretOffset = oRange.Offset;
+                    oSelector.Clear(); // Do before TryReplace...
 
-                        _oDocOps.TryReplaceAt( oRow, iColumn, oRange, string.Empty );
-                    }
+                    _oDocOps.TryReplaceAt( oRow, iColumn, oRange, string.Empty );
                 }
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
