@@ -166,6 +166,12 @@ namespace Monitor {
 			}
         }
 
+        protected override void Dispose(bool disposing) {
+            _oMonDoc.RefreshScreen -= OnRefreshScreen_MonDoc;
+
+            base.Dispose(disposing);
+        }
+
         /// <remarks>
         /// This won't work for the data look ups atm. This executes
         /// the hyperlink jump from the asm params to the target mem location.
@@ -212,6 +218,10 @@ namespace Monitor {
             }
         }
 
+        private void OnRefreshScreen_MonDoc(int obj) {
+            Invalidate();
+        }
+
         /// <remarks>
         /// I want to push layout to the init phase so we could potentially
         /// load our layout from a file! ^_^
@@ -230,6 +240,8 @@ namespace Monitor {
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None ), AsmRow.ColumnComment ); 
 
             HyperLinks.Add( "CpuJump", OnCpuJump );
+
+            _oMonDoc.RefreshScreen += OnRefreshScreen_MonDoc;
 
             try {
                 _rgHistory.AddFirst( _oMonDoc.Doc_Asm[0] ); 

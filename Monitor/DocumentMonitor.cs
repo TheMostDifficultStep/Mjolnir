@@ -599,6 +599,8 @@ namespace Monitor {
         protected          Z80Definitions _rgZ80Def;
         protected readonly Z80            _cpuZ80;
 
+        public event Action<int> RefreshScreen;
+
         public AsmEditor         Doc_Asm     { get; }
         public Editor            Doc_Outl    { get; } // Call address list.
         public DazzleDisplay     Doc_Display { get; }
@@ -804,7 +806,7 @@ namespace Monitor {
                 xmlRoot.AppendChild( xmlComments );
 
                 xmlBinary.InnerText = FileName;
-                xmlBinary.InnerText = _cpuZ80.Ports.Name;
+                xmlPort  .InnerText = _cpuZ80.Ports.Name;
 
                 foreach( Row oNote in Doc_Asm ) {
                     if( oNote is AsmRow oInstr &&
@@ -1098,6 +1100,8 @@ namespace Monitor {
                 Doc_Asm    .UpdateHighlightLine( _cpuZ80.Pc );
                 Doc_Props  .Update( this );
                 Doc_Display.Load( Z80Memory.RawMemory );
+
+                RefreshScreen?.Invoke( 0 );
             } catch( Exception oEx ) {
                 if( _rgStdErrors.IsUnhandled( oEx ) )
                     throw;
