@@ -122,9 +122,9 @@ namespace Monitor {
         }
         public static Guid GUID { get; } = new Guid( "{1DBE2048-619C-44EA-882C-024DF5087743}" );
 
-        public string    Banner => "Assembly Monitor : " + _oMonDoc.FileName;
+        public string   Banner => "Assembly Monitor : " + _oMonDoc.FileName;
 		public SKImage? Icon { get; protected set; }
-        public Guid      Catagory => GUID;
+        public Guid     Catagory => GUID;
 
         public int ElementCount => _oMonDoc.Z80Memory.Count;
 
@@ -147,10 +147,10 @@ namespace Monitor {
         readonly DocumentMonitor _oMonDoc;
         readonly LinkedList<Row> _rgHistory = new LinkedList<Row>();
 
-        static readonly Type[] _rgErrors = { typeof( NullReferenceException ),
+        static readonly Type[] _rgErrors = [ typeof( NullReferenceException ),
                                              typeof( ArgumentOutOfRangeException ),
                                              typeof( IndexOutOfRangeException ),
-                                             typeof( InvalidOperationException ) };
+                                             typeof( InvalidOperationException ) ];
 
         public ViewDisassembly( 
             IPgViewSite     oSiteView, 
@@ -219,6 +219,9 @@ namespace Monitor {
         }
 
         private void OnRefreshScreen_MonDoc(int obj) {
+            //_oCacheMan.SetCaretPositionAndScroll( oTry.At, 1, 0, 0 ) )
+
+            SelectionSet( _oMonDoc.Doc_Asm.HighLight.At, 4, 0, 0 );
             Invalidate();
         }
 

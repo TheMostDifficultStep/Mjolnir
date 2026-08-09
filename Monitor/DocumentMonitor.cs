@@ -599,7 +599,7 @@ namespace Monitor {
         protected          Z80Definitions _rgZ80Def;
         protected readonly Z80            _cpuZ80;
 
-        public event Action<int> RefreshScreen;
+        public event Action<int>? RefreshScreen;
 
         public AsmEditor         Doc_Asm     { get; }
         public Editor            Doc_Outl    { get; } // Call address list.
@@ -607,7 +607,7 @@ namespace Monitor {
         public MonitorProperties Doc_Props   { get; }
         public DocTerminal       Doc_Terminal{ get; }
 
-        protected List<int> _rgLabels;
+        protected List<int>? _rgLabels;
 
         public bool IsDirty => Doc_Asm.IsDirty;
 
@@ -687,7 +687,20 @@ namespace Monitor {
                 oBulk.SetValue( (int)Labels.PC,    oMon._cpuZ80.Pc.ToString( "X4" ) );
                 oBulk.SetValue( (int)Labels.Halt,  oMon._cpuZ80.Halt ? "yes" : "no" );
               //oBulk.SetValue( (int)Labels.Caret, oMon.Z80Memory[oMon._cpuZ80.Pc].ToString( "X4" ) );
-           }
+            }
+
+            public void Blank() {
+                using Manipulator oBulk = new Manipulator( this );
+
+                oBulk.SetValue( (int)Labels.Acc,   "--" );
+                oBulk.SetValue( (int)Labels.Flags, "--" );
+                oBulk.SetValue( (int)Labels.BC,    "----" );
+                oBulk.SetValue( (int)Labels.DE,    "----" );
+                oBulk.SetValue( (int)Labels.HL,    "----" );
+                oBulk.SetValue( (int)Labels.SP,    "----" );
+                oBulk.SetValue( (int)Labels.PC,    "----" );
+                oBulk.SetValue( (int)Labels.Halt,  "?" );
+            }
         } // end class MonitorProperties
 
         public DocumentMonitor( IPgBaseSite oBaseSite ) {
@@ -1054,7 +1067,7 @@ namespace Monitor {
         /// Do this AFTER we've attempted to load the symbols so we
         /// can have discriptive text in teh outline!
         /// </summary>
-        public void PatchUpLabels( List<int> rgOutlineLabels ) {
+        public void PatchUpLabels( List<int>? rgOutlineLabels ) {
             if( rgOutlineLabels is null ) {
                 LogError( "disassemble", "odd that the labels list is null" );
                 return;
@@ -1172,6 +1185,9 @@ namespace Monitor {
         }
 
         public void CpuStart() {
+            Doc_Asm  .HighLight = null;
+            Doc_Props.Blank();
+
             switch( _oWorkPlace.Status ) {
                 case WorkerStatus.FREE:
                     _oWorkPlace.Stop();

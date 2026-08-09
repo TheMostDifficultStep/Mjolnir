@@ -172,7 +172,10 @@ namespace Monitor {
         }
 
         public void UpdateHighlightLine( int iRow ) {
-            FindRowAtAddress( iRow, out AsmRow? _ );
+            FindRowAtAddress( iRow, out AsmRow? oRow );
+            if( oRow is not null ) {
+                HighLight = oRow;
+            }
         }
         public override WorkerStatus PlayStatus {
             
