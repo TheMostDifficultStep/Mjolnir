@@ -479,6 +479,12 @@ namespace Monitor {
             return bValue;
         }
 
+        /// <summary>
+        /// The address might have the Acc set as the high byte
+        /// It's some weird implementation deal. Might be a deal
+        /// breaker for instructions that send a 16 bit addr AND
+        /// the Acc? Like OUT (BC)
+        /// </summary>
         public void WritePort(ushort usAddress, byte bValue) {
             byte bLowAddr = (byte)( 0x00ff & usAddress );
 
