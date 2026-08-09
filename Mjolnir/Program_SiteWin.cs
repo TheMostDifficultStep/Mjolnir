@@ -1,5 +1,4 @@
-﻿using Play.Interfaces.Embedding;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -7,6 +6,8 @@ using System.Text;
 using System.Web;
 using System.Windows.Forms;
 using System.Xml;
+
+using Play.Interfaces.Embedding;
 
 namespace Mjolnir {
 	public partial class Program {
@@ -79,8 +80,8 @@ namespace Mjolnir {
             IDocSlot,
             IXmlSlot
         {
-            protected IPgSave<XmlNode>    _oGuestSave;
-            protected IPgLoad<TextReader> _oGuestLoad;
+            protected IPgSave<XmlNode>?    _oGuestSave;
+            protected IPgLoad<TextReader>? _oGuestLoad;
             Encoding _oEncoding;
 
             public XmlSlotRefCount2( Program oProgram, PgDocDescr oDescriptor, string strName ) : 
@@ -112,23 +113,27 @@ namespace Mjolnir {
             public void SetID( int iID ) { ID = iID; }
 
             public override bool InitNew() {
-                IPgLoad<TextReader> oGuestReader = _oGuestSave as IPgLoad<TextReader>;
-                if( oGuestReader == null ) {
+                if( _oGuestLoad is null ) {
                     LogError( "Guest does not support IPgLoad<TextReader>." );
                     return( false );
                 }
 
-                oGuestReader.InitNew();
+                _oGuestLoad.InitNew();
                 return( true );
             }
 
             public bool Save( XmlNode oXmlFileNode ) {
-                if( oXmlFileNode == null ) {
+                if( oXmlFileNode is null || oXmlFileNode.OwnerDocument is null ) {
                     LogError( "Missing file node to save into" );
                     return false;
                 }
 
                 XmlNode xmlFrag = oXmlFileNode.OwnerDocument.CreateDocumentFragment();
+
+                if( _oGuestSave is null ) {
+                    LogError( "Document does not support save." );
+                    return false;
+                }
 
                 if( _oGuestSave.Save( xmlFrag ) ) {
                     oXmlFileNode.AppendChild( xmlFrag );
@@ -145,7 +150,7 @@ namespace Mjolnir {
                 Encoding utf8NoBom = new UTF8Encoding(false);
 
                 try {
-                    FileInfo oFile = new FileInfo(strFileName);
+                    FileInfo oFile = new (strFileName);
 
                     FileStream oByteStream = oFile.OpenRead(); // by default StreamReader closes the stream.
                     // Overridable versions of StreamReader can prevent that in higher versions of .net
@@ -190,7 +195,7 @@ namespace Mjolnir {
                     return false;
                 }
 
-                IPgLoad<XmlNode> oGuestXmlLoad = _oGuestSave as IPgLoad<XmlNode>;
+                IPgLoad<XmlNode>? oGuestXmlLoad = _oGuestSave as IPgLoad<XmlNode>;
                 if( oGuestXmlLoad is not null ) {
                     if( oGuestXmlLoad.Load( xmlParent ) ) {
                         return true;
@@ -201,7 +206,7 @@ namespace Mjolnir {
                 // TODO: I can probably remove this case now since both our
                 // xml persisters, the clock and the fileman now correctl persist
                 // as xml.
-                IPgLoad<TextReader> oGuestTxtLoad = _oGuestSave as IPgLoad<TextReader>;
+                IPgLoad<TextReader>? oGuestTxtLoad = _oGuestSave as IPgLoad<TextReader>;
                 if( oGuestTxtLoad is not null ) {
                     using TextReader oReader = new StringReader(HttpUtility.HtmlDecode( xmlParent.InnerXml ));
                     if( oGuestTxtLoad.Load( oReader ) ) {

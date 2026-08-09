@@ -964,8 +964,8 @@ namespace Mjolnir {
 		/// <seealso cref="SessionDirtySet"/>
         /// <seealso cref="Initialize"/>
 		public bool Load( TextReader oSessionStream ) {
-            XmlDocument xmlSession    = new XmlDocument();
-			XmlNodeList rgSessionDocs = null;
+            XmlDocument  xmlSession    = new ();
+			XmlNodeList? rgSessionDocs = null;
 
             try {
                 xmlSession.Load( oSessionStream );
@@ -977,7 +977,7 @@ namespace Mjolnir {
 			try {
                 int iHighestID = 0;
 				// Load up the documents.
-                if( rgSessionDocs != null ) {
+                if( rgSessionDocs is not null ) {
 				    foreach( XmlElement xmlFileNode in rgSessionDocs ) {
                         string strEmbedding = xmlFileNode.GetAttribute( "internal" );
 
