@@ -239,7 +239,8 @@ namespace Mjolnir {
 
         protected Editor      _oDoc_Alerts;
         protected Editor      _oDoc_Recents;
-        public SearchResults Doc_Results { get; protected set; }
+        public SearchResults     Doc_Results    { get; protected set; }
+        public ProgramProperties Doc_Properties { get; protected set; }
 
         // The textslots and xmlslots we could make cache the editor pointers on load
         // so we spot load errors sooner instead of later after the program boots.
@@ -367,7 +368,8 @@ namespace Mjolnir {
                 //      an array to hold REALLY EARLY errors like this and then spew 'em when we're we're able.
             }
 
-            Doc_Results = new SearchResults( new TransientSlot( this ) );
+            Doc_Results    = new ( new TransientSlot( this ) );
+            Doc_Properties = new ( new TransientSlot( this ) );
 
             _oFTManager = new FTManager();
         }
@@ -651,7 +653,7 @@ namespace Mjolnir {
 		/// BUG: Set up a simple string array to collect startup errors. We can pop up a
 		/// dialog, or write a file and then die. That would be way useful.
 		/// </summary>
-        public void LogError( IPgBaseSite oSite, string strCatagory, string strDetails, bool fAlert = true ) {
+        public void LogError( IPgBaseSite? oSite, string strCatagory, string strDetails, bool fAlert = true ) {
             if( strDetails == null )
                 strDetails = string.Empty;
             if( strCatagory == null )
@@ -767,12 +769,14 @@ namespace Mjolnir {
 
             using( Editor.Manipulator oManip = _oDoc_Recents.CreateManipulator() ) {
 				try {
-					XmlNodeList lstFaves = xmlConfig.SelectNodes("config/mainwindow/favorites/fav");
-					for( int i=0; i<lstFaves.Count; ++i ) {
-						if (lstFaves[i] is XmlElement xmlNode) {
-							Line oLine = oManip.LineAppendNoUndo(xmlNode.GetAttribute("src"));
-						}
-					}
+					XmlNodeList? lstFaves = xmlConfig.SelectNodes("config/mainwindow/favorites/fav");
+                    if( lstFaves is not null ) {
+					    for( int i=0; i<lstFaves.Count; ++i ) {
+						    if (lstFaves[i] is XmlElement xmlNode) {
+							    Line oLine = oManip.LineAppendNoUndo(xmlNode.GetAttribute("src"));
+						    }
+					    }
+                    }
 				} catch( XPathException ) {
 				}
             }
@@ -940,6 +944,9 @@ namespace Mjolnir {
             HomeSlot.IsInternal = true;
             _rgDocSites.Add(HomeSlot);
 
+            Doc_Results   .InitNew();
+            Doc_Properties.InitNew();
+
 			if( !MainWindow.InitNew() ) {
                 LogError( "program initnew", "Couldn't initialize main window." );
 				return false;
@@ -963,6 +970,7 @@ namespace Mjolnir {
 		/// </summary>
 		/// <seealso cref="SessionDirtySet"/>
         /// <seealso cref="Initialize"/>
+        /// <seealso cref="Save( TextWriter)"
 		public bool Load( TextReader oSessionStream ) {
             XmlDocument  xmlSession    = new ();
 			XmlNodeList? rgSessionDocs = null;
@@ -1032,6 +1040,16 @@ namespace Mjolnir {
                     HomeSlot.IsInternal = true;
                     _rgDocSites.Add( HomeSlot );
                 }
+
+                Doc_Results.InitNew();
+
+				XmlNode? rgPropertyDoc = xmlSession.SelectSingleNode("Session/PropDoc");
+                if( rgPropertyDoc is not null ) {
+                    Doc_Properties.Load( rgPropertyDoc );
+                } else {
+                    Doc_Properties.InitNew();
+                }
+
 			} catch( Exception oEx ) {
 				TryLogXmlError( oEx, "Trouble reading documents from session file" );
 			}
@@ -1055,7 +1073,7 @@ namespace Mjolnir {
 
             // Load up the find string.
 			try {
-                XmlElement xmlFindString = xmlSession.SelectSingleNode( "Session/FindString" ) as XmlElement;
+                XmlElement? xmlFindString = xmlSession.SelectSingleNode( "Session/FindString" ) as XmlElement;
                 SearchSlot.Load( xmlFindString );
 			} catch( Exception oEx ) {
                 TryLogXmlError( oEx, "Couldn't read find string." );
@@ -1072,7 +1090,7 @@ namespace Mjolnir {
             // load the window session. You can always open a new instance and
             // attempt to edit the pvs file.
 			try {
-                XmlElement xmlMainWindow = xmlSession.SelectSingleNode( "Session/Windows/Window[@name='MainWindow']" ) as XmlElement;
+                XmlElement? xmlMainWindow = xmlSession.SelectSingleNode( "Session/Windows/Window[@name='MainWindow']" ) as XmlElement;
 				if( !MainWindow.Load( xmlMainWindow ) ) {
 					LogError( "MainWindow", "Failed to load successfully" );
                     return false;
@@ -1092,6 +1110,7 @@ namespace Mjolnir {
 			return true;
 		}
 
+        /// <seealso cref="Load(TextReader)"
 		public bool Save( TextWriter oSessionStream ) {
 			void LogError( Exception oEx, string strMessage ) {
 				Type[] rgErrors = { typeof( XPathException ),
@@ -1108,11 +1127,13 @@ namespace Mjolnir {
             XmlElement  xmlSession = xmlRoot.CreateElement( "Session" );
 			XmlElement  xmlWindows = xmlRoot.CreateElement( "Windows" );
             XmlElement  xmlDocs    = xmlRoot.CreateElement( "Documents" ); 
+            XmlElement  xmlProps   = xmlRoot.CreateElement( "PropDoc" );
 
 			try {
 				xmlRoot   .AppendChild( xmlSession );
 				xmlSession.AppendChild( xmlDocs );
 				xmlSession.AppendChild( xmlWindows );
+                xmlSession.AppendChild( xmlProps );
 			} catch( Exception oEx ) {
 				LogError( oEx, "Problem creating session/documents in session stream" );
 				return false;
@@ -1179,9 +1200,21 @@ namespace Mjolnir {
 				}
 
 				xmlMainWindow.AppendChild( xmlFrag );
-				xmlWindows.AppendChild( xmlMainWindow );
+				xmlWindows   .AppendChild( xmlMainWindow );
             } catch( Exception oEx ) {
                 LogError( oEx, "Couldn't save Main window xml fragment into session." );
+            }
+
+            try {
+                Doc_Properties.Save( xmlProps );
+            } catch( Exception oEx ) {
+                Type[] rgErrors = [ typeof( InvalidOperationException ), 
+                                    typeof( ArgumentException ),
+                                    typeof( XmlException ),
+                                    typeof( NullReferenceException ) ];
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+                LogError( oEx, "Couldn't save session properties" );
             }
 
             try {

@@ -189,8 +189,8 @@ namespace Mjolnir {
                 return false;
             }
 
-            public bool Load( XmlNode xmlParent ) {
-                if( xmlParent == null ) {
+            public bool Load( XmlNode? xmlParent ) {
+                if( xmlParent is null ) {
                     LogError( "Missing Parent XML node to load from" );
                     return false;
                 }

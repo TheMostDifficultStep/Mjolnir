@@ -7,7 +7,7 @@ using Play.Edit;
 using Play.Interfaces.Embedding;
 
 namespace Mjolnir {
-    internal class Program_Properties : 
+    public class ProgramProperties : 
         EditMultiColumn,
         IPgLoad<XmlNode>,
         IPgSave<XmlNode>
@@ -47,7 +47,7 @@ namespace Mjolnir {
 
         }
 
-        public Program_Properties(IPgBaseSite oSiteBase) : base(oSiteBase) {
+        public ProgramProperties(IPgBaseSite oSiteBase) : base(oSiteBase) {
         }
 
 

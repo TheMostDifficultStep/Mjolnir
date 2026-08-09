@@ -861,7 +861,7 @@ namespace Mjolnir {
         /// the open window for the subsequent messages.</remarks>
         /// <param name="oSite">Might be null!</param>
         /// <param name="strCatagory"></param>
-        public void LogError( IPgBaseSite oSite, string strCatagory, string strDetails, bool fShow=true ) {
+        public void LogError( IPgBaseSite? oSite, string strCatagory, string strDetails, bool fShow=true ) {
             Document.LogError( oSite, strCatagory, strDetails, fShow );
         }
 
@@ -2735,7 +2735,7 @@ namespace Mjolnir {
 		/// <summary>
 		/// 12/3/2018 : New way of loading session.
 		/// </summary>
-		public bool Load( XmlElement xmlWinRoot ) {
+		public bool Load( XmlElement? xmlWinRoot ) {
 			void LogError( Exception oEx, string strMessage ) {
 				Type[] rgErrors = { typeof( XPathException ),
 									typeof( XmlException ),
@@ -2755,7 +2755,7 @@ namespace Mjolnir {
             Document.RecentsAddListener( new MainWin_Recent( this ) );
             Document.EventUpdateTitles += UpdateAllTitlesFor;
 
-            if( xmlWinRoot == null ) {
+            if( xmlWinRoot is null ) {
                 this.LogError( null, "windows session", "Session missing" );
                 return true;
             }

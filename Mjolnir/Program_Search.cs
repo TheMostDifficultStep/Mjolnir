@@ -7,7 +7,6 @@ using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Parse;
 using static Mjolnir.SearchResults;
-using static Play.FileManager.FileFavorites;
 
 namespace Mjolnir {
     public class TransientSlot : IPgBaseSite {
