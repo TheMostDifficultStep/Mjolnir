@@ -100,10 +100,14 @@ namespace Mjolnir {
 					// Check if workier is not null since stop called in MoveNext() will set
 					// our worker to null but the site will get re-queue for more work depending
 					// on the current value returned (0).
-                    if( _oWorker != null && _oWorker.MoveNext() ) {
-						uiWaitInMS = (uint)_oWorker.Current;
-						_iStartTick = DateTime.Now.AddMilliseconds( uiWaitInMS ).Ticks;
-						return( true );
+					if( _oWorker != null && _oWorker.MoveNext() ) {
+						// Check start tick AFTER MoveNext() since in there
+						// the user might pause our 'thread'.
+						if( _iStartTick != Timeout.Infinite ) {
+							uiWaitInMS = (uint)_oWorker.Current;
+							_iStartTick = DateTime.Now.AddMilliseconds( uiWaitInMS ).Ticks;
+						}
+						return true;
 					}
                 } catch( Exception oEx ) {
 					// Unfortunately we can't predict all the errors, much less the one's we
