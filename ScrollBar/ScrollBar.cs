@@ -163,9 +163,9 @@ namespace Play.Controls {
                 _oSiteWorkThumb = oScheduler.CreateWorkPlace(); // Just disables auto page scroll.
             }
 
-            _rgRender.Add( _oUp );
-            _rgRender.Add( _oDown );
-            _rgRender.Add( _oMiddle  );
+            _rgRender.Add( _oUp     );
+            _rgRender.Add( _oDown   );
+            _rgRender.Add( _oMiddle );
             _rgRender.Add( _oThumb  );
 
             // Alas, can't get the window yet, just a stub.
