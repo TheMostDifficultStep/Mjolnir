@@ -70,7 +70,7 @@ namespace Mjolnir {
 
         readonly MainWinDecorMenus _rgDecorEnum;
 
-        readonly Dictionary<Guid, SmartHerderBase> _rgShepards  = new Dictionary<Guid, SmartHerderBase>(); 
+        readonly Dictionary<Guid, SmartHerderBase> _rgShepards  = []; 
 
         readonly LayoutStackVertical _oLayoutPrimary; // New general layout.
         readonly LayoutFlowSquare    _oLayoutCenterAlt; 
@@ -2272,7 +2272,7 @@ namespace Mjolnir {
 		/// call, remember to shuffle the document decor after a new view is created.
         /// </summary>
         /// <returns>A viewsite from the view created to edit the given document (site)</returns>
-        public ViewSlot ViewCreate( IDocSlot oDocSite, Guid guidViewType, EditorShowEnum eShow = EditorShowEnum.FOCUS ) {
+        public ViewSlot? ViewCreate( IDocSlot oDocSite, Guid guidViewType, EditorShowEnum eShow = EditorShowEnum.FOCUS ) {
             ViewSlot oViewSite = ViewCreateBase( oDocSite, guidViewType );
             if( oViewSite == null )
                 return( null );

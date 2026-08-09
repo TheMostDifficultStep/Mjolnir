@@ -37,11 +37,11 @@ namespace Mjolnir {
             IPgLoad<XmlElement>
         {
             protected List<string> _rgExtensions = new List<string>();
-            protected string       _strDescr;
+            protected string       _strDescr = string.Empty;
             public Guid   GUID        { get; protected set; }
-            public string Name        { get; protected set; }
-            public string Description { get; protected set; }
-            public IPgController2 Controller { get; set; }
+            public string Name        { get; protected set; } = string.Empty;
+            public string Description { get; protected set; } = string.Empty;
+            public IPgController2? Controller { get; set; }
 
             public IEnumerator<string> GetEnumerator() {
                 return _rgExtensions.GetEnumerator();
@@ -104,9 +104,9 @@ namespace Mjolnir {
             IEnumerable<Use>,
             IPgLoad<XmlElement>
         {
-            public string FilePath { get; protected set; }
-            public string FileName { get; protected set; }
-            public string TypeName { get; protected set; }
+            public string FilePath { get; protected set; } = string.Empty;
+            public string FileName { get; protected set; } = string.Empty;
+            public string TypeName { get; protected set; } = string.Empty;
 
             public    List<Use>          _rgUses = new();
             protected IControllerFactory _oFactory;
@@ -133,18 +133,27 @@ namespace Mjolnir {
                     throw new InvalidProgramException();
 
                 try {
-                    FilePath = Path.GetDirectoryName( Assembly.GetExecutingAssembly().Location );
-                    FileName = oXml.GetAttribute    ( "assm" );
-                    TypeName = oXml.GetAttribute    ( "factory" );
+                    string? strPath = Path.GetDirectoryName( Assembly.GetExecutingAssembly().Location );
+                    if( strPath is null )
+                        strPath = string.Empty;
+
+                    FilePath = strPath;
+                    FileName = oXml.GetAttribute( "assm" );
+                    TypeName = oXml.GetAttribute( "factory" );
+
+                    if( FilePath is null )
+                        FilePath = string.Empty;
 
                     if( string.IsNullOrEmpty( FileName ) )
                         return false;
 
-                    foreach( XmlElement oNode in oXml.SelectNodes( "use" ) ) {
-                        Use oUse = new Use();
-                        if( !oUse.Load( oNode ) )
-                            return false;
-                        _rgUses.Add( oUse );
+                    if( oXml.SelectNodes( "use" ) is XmlNodeList rgUses ) {
+                        foreach( XmlElement oNode in rgUses ) {
+                            Use oUse = new Use();
+                            if( !oUse.Load( oNode ) )
+                                return false;
+                            _rgUses.Add( oUse );
+                        }
                     }
                 } catch( Exception oEx ) {
                     Type[] rgErrors = { typeof( NotSupportedException ),

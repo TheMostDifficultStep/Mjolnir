@@ -26,11 +26,7 @@ namespace Play.Controls {
         /// Bug: We used to be able to get this on the Graphics pointer in GDI32 on paint.
         /// SKControl doesn't seem to have anything so hard coded for now.
         /// </summary>
-        [Obsolete]public SKPoint Dpi {
-            get {
-                return new SKPoint( 96, 96 );
-            }
-        }
+        public SKPoint Dpi { get; set; } = new SKPoint( 96, 96 );
 
         public SKColor BaseColor {
             get {
@@ -171,6 +167,15 @@ namespace Play.Controls {
             _rgRender.Add( _oDown );
             _rgRender.Add( _oMiddle  );
             _rgRender.Add( _oThumb  );
+
+            // Alas, can't get the window yet, just a stub.
+            if( Services is IPgMainWindow oMainWin ) {
+                SKPoint pntDpi = oMainWin.MainDisplayInfo.pntDpi;
+
+                foreach( GadgetRect oGadget in _rgRender ) {
+                    oGadget.Dpi = pntDpi;
+                }
+            }
 
             this.Cursor = Cursors.Hand;
             
