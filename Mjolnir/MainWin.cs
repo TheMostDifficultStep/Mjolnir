@@ -2317,8 +2317,13 @@ namespace Mjolnir {
                     oInfo.pntDpi.X = oGraphics.DpiX;
                     oInfo.pntDpi.Y = oGraphics.DpiY;
                 }
-                oInfo.pntSize.X = Screen.PrimaryScreen.Bounds.Width;
-                oInfo.pntSize.Y = Screen.PrimaryScreen.Bounds.Height;
+                if( Screen.PrimaryScreen is not null ) {
+                    oInfo.pntSize.X = Screen.PrimaryScreen.Bounds.Width;
+                    oInfo.pntSize.Y = Screen.PrimaryScreen.Bounds.Height;
+                } else {
+                    oInfo.pntSize.X = Width;
+                    oInfo.pntSize.Y = Height;
+                }
 
                 return oInfo;
             }

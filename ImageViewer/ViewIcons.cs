@@ -196,10 +196,10 @@ namespace Play.ImageViewer {
             _oDocument.TextLoaded    += OnTextLoaded;
 			_oScrollBarVirt.Scroll   += OnScrollBar;
 
-            IPgMainWindow.PgDisplayInfo oInfo = new IPgMainWindow.PgDisplayInfo();
-            if( _oViewSite.Host.TopWindow is IPgMainWindow oMainWin ) {
-                oInfo = oMainWin.MainDisplayInfo;
-            }
+            //IPgMainWindow.PgDisplayInfo oInfo = new IPgMainWindow.PgDisplayInfo();
+            //if( _oViewSite.Host.TopWindow is IPgMainWindow oMainWin ) {
+            //    oInfo = oMainWin.MainDisplayInfo;
+            //}
 
             _uiStdFont = _oStdUI.StdFontAt( StdUIFaces.Text );
 
