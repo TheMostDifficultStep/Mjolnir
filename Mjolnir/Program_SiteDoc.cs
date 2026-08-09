@@ -848,7 +848,7 @@ namespace Mjolnir {
             }
 
             public bool Save( XmlNode oXmlFileNode ) {
-                if( oXmlFileNode == null ) {
+                if( oXmlFileNode == null || oXmlFileNode.OwnerDocument is null ) {
                     LogError( "Missing file node to save into" );
                     return false;
                 }

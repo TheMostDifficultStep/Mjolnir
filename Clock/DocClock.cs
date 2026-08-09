@@ -234,7 +234,7 @@ namespace Play.Clock {
         IPgLoad<XmlNode>,
         IPgSave<XmlNode>
     {
-        public class RowSched : Row
+        internal class RowSched : Row
         {
             public struct EnumDayOfWeek : IEnumerable<DayOfWeek> {
                 private readonly RowSched _oRow;
@@ -460,15 +460,17 @@ namespace Play.Clock {
         public bool Load(XmlNode oXmlRoot) {
             ArgumentNullException.ThrowIfNull( oXmlRoot );
 
-            foreach( XmlNode oNode in oXmlRoot.SelectNodes( "Events/Event" ) ) {
-                if( oNode is XmlElement oXmlNode ) {
-                  //string strUtc  = oXmlNode.GetAttribute( "utc" );
-                    string strTime = oXmlNode.GetAttribute( "time" );
-                    string strFreq = oXmlNode.GetAttribute( "freq" );
-                    string strOn   = oXmlNode.GetAttribute( "on" );
-                    string strDesc = oXmlNode.InnerText;
+            if( oXmlRoot.SelectNodes( "Events/Event" ) is XmlNodeList rgNodes ) {
+                foreach( XmlNode oNode in rgNodes ) {
+                    if( oNode is XmlElement oXmlNode ) {
+                      //string strUtc  = oXmlNode.GetAttribute( "utc" );
+                        string strTime = oXmlNode.GetAttribute( "time" );
+                        string strFreq = oXmlNode.GetAttribute( "freq" );
+                        string strOn   = oXmlNode.GetAttribute( "on" );
+                        string strDesc = oXmlNode.InnerText;
 
-                    _rgRows.Add( new RowSched( null, strTime, strFreq, strOn, strDesc ));
+                        _rgRows.Add( new RowSched( null, strTime, strFreq, strOn, strDesc ));
+                    }
                 }
             }
             RenumberAndSumate();
@@ -480,6 +482,9 @@ namespace Play.Clock {
 
         public bool Save(XmlNode oStream) {
             XmlDocument  oOwner  = oStream.OwnerDocument;
+            if( oOwner is null )
+                return false;
+
             XmlElement   oRoot   = oOwner.CreateElement( "Events" );
             TimeZoneInfo oInfo   = TimeZoneInfo.Local;// TODO: get from row.
 
@@ -500,7 +505,7 @@ namespace Play.Clock {
             return true;
         }
 
-        protected readonly List<WatchItem> _rgWatch    = new ();
+        internal  readonly List<WatchItem> _rgWatch    = new ();
         protected          DateTime        _sLastCheck = DateTime.Now;
 
         /// <summary>
@@ -533,7 +538,7 @@ namespace Play.Clock {
             }
         }
 
-        protected class WatchItem {
+        internal class WatchItem {
             public RowSched Row     { get; protected set; }
             public DateTime Time    { get; protected set; }
             public bool     IsValid { get; set; } = true;
