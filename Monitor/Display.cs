@@ -1,7 +1,7 @@
-﻿using SkiaSharp;
-
+﻿using Play.Drawing;
 using Play.Interfaces.Embedding;
-using Play.Drawing;
+
+using SkiaSharp;
 
 namespace Monitor {
     public class DazzleDisplay :
@@ -57,6 +57,34 @@ namespace Monitor {
                 SKColors.AliceBlue
         };
 
+
+        // Decodes the original Cromemco Dazzler hardware color mapping
+
+        private SKColor DecodeDazzlerColor(byte code)
+        {
+            // Bit 3 = Intensity (High/Low)
+            // Bit 2 = Red, Bit 1 = Green, Bit 0 = Blue
+
+            bool intensity = (code & 0x08) != 0;
+            int r = ((code & 0x04) != 0) ? 1 : 0;
+            int g = ((code & 0x02) != 0) ? 1 : 0;
+            int b = ((code & 0x01) != 0) ? 1 : 0;
+
+            // Apply multiplier based on intensity bit
+
+            int mult = intensity ? 255 : 128;
+            // Special case: true black when all RGB bits are 0
+
+            if (r == 0 && g == 0 && b == 0) 
+                return SKColors.Black;
+
+            return GetColor(r * mult, g * mult, b * mult);
+        }
+
+        protected SKColor GetColor( int iR, int iG, int iB ) {
+            return new SKColor( (byte)iR, (byte)iG, (byte)iB );
+        }
+
         protected SKColor GetColor( int iIndex ) {
             if( iIndex >= 16 )
                 return SKColors.White;
@@ -80,12 +108,12 @@ namespace Monitor {
 
                 int a = Address;
                 for( int y = 0; y < ImageSize.Height; y+=1 ) {
-                    for( int i = 0; i < ImageSize.Width; i += 2 ) {
-                        int iLow  =   rgMemory[a] & 0x0f;
-                        int iHigh = ( rgMemory[a] & 0xf0 ) >> 4;
+                    for( int x = 0; x < ImageSize.Width; x += 2 ) {
+                        byte iLow  = (byte)(  rgMemory[a] & 0x0f );       // low  nibble.
+                        byte iHigh = (byte)(( rgMemory[a] & 0xf0 ) >> 4); // high nibble.
 
-                        Surface.Canvas.DrawPoint( i,   y, GetColor( iLow ) );
-                        Surface.Canvas.DrawPoint( i+1, y, GetColor( iHigh ) );
+                        Surface.Canvas.DrawPoint( x,   y, DecodeDazzlerColor( iLow  ) );
+                        Surface.Canvas.DrawPoint( x+1, y, DecodeDazzlerColor( iHigh ) );
 
                         a++;
                     }

@@ -485,6 +485,17 @@ namespace Monitor {
         /// breaker for instructions that send a 16 bit addr AND
         /// the Acc? Like OUT (BC)
         /// </summary>
+        /// <remarks>
+        /// Dazzler Modes Overview:
+        /// * 32 x 32 Color Mode: Used by KScope; 
+        ///   each nibble (4 bits) defines color and intensity 
+        ///   for a pixel on a low-resolution grid.
+        /// * 64 x 64 Color Mode: Uses a 2K 
+        ///   memory block with 2 bits per pixel. 
+        /// * 64 x 64 / 128 x 128 
+        ///   Monochrome Modes: Higher-resolution black-and-white 
+        ///   configurations.
+        /// </remarks>
         public void WritePort(ushort usAddress, byte bValue) {
             byte bLowAddr = (byte)( 0x00ff & usAddress );
 
