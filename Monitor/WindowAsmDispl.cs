@@ -16,7 +16,7 @@ namespace Monitor {
     /// This shows our dazzler image. Or anything using the display image
     /// I suppose.
     /// </summary>
-    internal class ViewEmulatorImage :
+    internal class ViewDazzleDisplay :
         ViewSurface,
         IPgCommandView,
         IPgSave<XmlDocumentFragment>,
@@ -34,7 +34,7 @@ namespace Monitor {
 
         public bool IsDirty => false;
 
-        public ViewEmulatorImage(IPgViewSite oBaseSite, DocumentMonitor oMon ) : 
+        public ViewDazzleDisplay(IPgViewSite oBaseSite, DocumentMonitor oMon ) : 
             base(oBaseSite, oMon.Doc_Display ) 
         {
             Mon = oMon ?? throw new ArgumentNullException();
@@ -68,6 +68,14 @@ namespace Monitor {
 
         protected override void OnKeyPress(KeyPressEventArgs e) {
             Mon.TerminalKeyPress( e.KeyChar );
+        }
+
+        protected override void OnKeyDown(KeyEventArgs e) {
+            base.OnKeyDown(e);
+
+            if( e.KeyCode == Keys.T && e.Control ) {
+                Mon.DazzleTestPattern();
+            }
         }
     }
 

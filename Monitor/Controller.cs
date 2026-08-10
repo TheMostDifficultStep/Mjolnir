@@ -139,8 +139,8 @@ namespace Monitor {
 			    try {
                     if( guidViewType == ViewDisassembly.GUID )
                         return new ViewDisassembly  ( oViewSite, oMonitorDoc );
-                    if( guidViewType == ViewEmulatorImage.GUID )
-                        return new ViewEmulatorImage( oViewSite, oMonitorDoc );
+                    if( guidViewType == ViewDazzleDisplay.GUID )
+                        return new ViewDazzleDisplay( oViewSite, oMonitorDoc );
                     if( guidViewType == ViewTerminal.GUID )
                         return new ViewTerminal( oViewSite, oMonitorDoc.Doc_Terminal );
 
@@ -169,7 +169,7 @@ namespace Monitor {
         }
         public override IEnumerator<IPgViewType> GetEnumerator() {
             yield return new ViewType( "Assembly Display", ViewDisassembly  .GUID );
-            yield return new ViewType( "Dazzle Display",   ViewEmulatorImage.GUID );
+            yield return new ViewType( "Dazzle Display",   ViewDazzleDisplay.GUID );
             yield return new ViewType( "Terminal",         ViewTerminal     .GUID );
         }
     }

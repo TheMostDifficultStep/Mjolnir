@@ -1140,6 +1140,13 @@ namespace Monitor {
             }
         }
 
+        public void DazzleTestPattern() {
+            Doc_Display.GenerateTestPattern( Z80Memory.RawMemory );
+            Doc_Display.Load           ( Z80Memory.RawMemory );
+
+            RefreshScreen?.Invoke( 0 );
+        }
+
         /// <summary>
         /// Right now I don't get any event in particular when the
         /// user set's break points. So we call this function liberaly
