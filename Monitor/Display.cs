@@ -67,7 +67,7 @@ namespace Monitor {
         }
 
         /// <summary>
-        /// This shows the 64x64 4bit color display.
+        /// This shows the 4bit color display.
         /// </summary>
         /// <param name="rgMemory"></param>
         /// <param name="iStart"></param>
@@ -80,13 +80,12 @@ namespace Monitor {
 
                 int a = Address;
                 for( int y = 0; y < ImageSize.Height; y+=1 ) {
-                    for( int i = 0; i < iBmpHalfWidth; i += 1 ) {
-                        int x = i<<1;
-                        int iLow  = rgMemory[a] & 0x0f;
+                    for( int i = 0; i < ImageSize.Width; i += 2 ) {
+                        int iLow  =   rgMemory[a] & 0x0f;
                         int iHigh = ( rgMemory[a] & 0xf0 ) >> 4;
 
-                        Surface.Canvas.DrawPoint( x,   y, GetColor( iLow ) );
-                        Surface.Canvas.DrawPoint( x+1, y, GetColor( iHigh ) );
+                        Surface.Canvas.DrawPoint( i,   y, GetColor( iLow ) );
+                        Surface.Canvas.DrawPoint( i+1, y, GetColor( iHigh ) );
 
                         a++;
                     }

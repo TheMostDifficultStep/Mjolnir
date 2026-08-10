@@ -501,7 +501,7 @@ namespace Monitor {
                     Mon.Doc_Display.Address = iDazzleAddr;
                     break;
                 case 0x0f:
-                    // Check size from bValue
+                    // Check size from bValue. BUG s/b 32x32 for k-scope.
                     if( ( bValue & (1 << 5) ) > 0 )
                         Mon.Doc_Display.SetSize( DazzleDisplay.ImageSizes.SixtyFour );
                     else
