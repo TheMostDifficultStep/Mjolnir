@@ -81,10 +81,15 @@ namespace Play.MusicWalker {
 		bool IEnumerator.MoveNext() {
 			do {
 				try {
-					_uiWait = ( _oPlayer.Play( _oDecoder ) >> 1 ) + 1;
-					if( _oDecoder.IsReading )
-						return true;
-					// If decoder is done, move on to the next song!
+					// If the song file is not found, it's possible the
+					// player never got created in the first place. we allow
+					// this on start since the NEXT song MIGHT be ok.
+					if( _oPlayer is not null ) {
+						_uiWait = ( _oPlayer.Play( _oDecoder ) >> 1 ) + 1;
+						if( _oDecoder.IsReading )
+							return true;
+						// If decoder is done, move on to the next song!
+					}
 				} catch( Exception oEx ) {
 					Type[] rgErrors = { typeof( NullReferenceException ),
 										typeof( ArgumentNullException ),
@@ -98,7 +103,7 @@ namespace Play.MusicWalker {
 			// TODO: If we move to the next song but it's a different Spec we might
 			//       interrupt the player before it has bled off. Need to check that case.
 
-			return( false );
+			return false;
 		}
 
 		void IEnumerator.Reset() {
@@ -226,17 +231,26 @@ namespace Play.MusicWalker {
 
 			// If we fail the first song, we'll try to go to the next.
 			_oDecoder = GetReader( SongFileName() );
+			if( _oDecoder is null ) {
+				// BUT, clear out the failing song else it's stuck 
+				// in the playlist and we are wedged!
+				SongMoveNext();
+			}
 			if( _oDecoder != null )
 				_oPlayer = GetPlayer( _oPlayer, _oDecoder.Spec );
 		}
 
 
 		public override bool SongMoveNext() { 
+			if( _rgEditor.ElementCount <= 0 ) {
+				_oSitePlayer.OnSongClear();
+				return false;
+			}
 			using( BaseEditor.Manipulator oManip = _rgEditor.CreateManipulator() ) {
 				oManip.LineDelete( 0 ); // BUG: Make a no-undo version.
 			}
 
-			if( _rgEditor[0].Extra == null ) {
+			if( _rgEditor[0].Extra is null ) {
 				_oSitePlayer.OnSongClear();
 				return false;
 			}
@@ -950,6 +964,8 @@ namespace Play.MusicWalker {
 
 		public bool PlayPlay( string strAlbum, int iStartSong ) {
 			// TODO: Might be still playing last song, but play list is empty. Need to check that.
+			// BUG : Even worse, if we can't play a song it's stuck in the queue and we can't move
+			//       forward!!!
 			if( IsPlayListEmpty ) {
 				PlayQueue( strAlbum, iStartSong );
 			}
@@ -973,6 +989,7 @@ namespace Play.MusicWalker {
 							_oSiteBase.LogError( "player", "Unable to queue up current request." );
 							Albums.HighLight = null;
 							SongCurrent      = null;
+							PlayList.Clear();
 						}
 					}
 					break;
