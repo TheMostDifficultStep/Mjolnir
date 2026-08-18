@@ -66,7 +66,6 @@ namespace Monitor {
         }
     }
 
-    /// <seealso cref="BasicCompiler.FindInst(int)"
     public class Z80Definitions {
         Z80Instr[] _rgMain = new Z80Instr[256];
         Z80Instr[] _rgMisc = new Z80Instr[256];  // ED
@@ -385,6 +384,7 @@ namespace Monitor {
             return _rgMain[iIndex];
         }
 
+        /// <seealso cref="BasicCompiler.FindInst(int)" />
         public Z80Instr FindInst( Z80Memory _rgRam, int iAddr ) {
             byte iLowByte = _rgRam[iAddr];
             byte iHiByte  = _rgRam[iAddr + 1 ];
