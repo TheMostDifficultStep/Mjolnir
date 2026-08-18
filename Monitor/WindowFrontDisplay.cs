@@ -74,7 +74,8 @@ namespace Monitor {
     }
 
     public class PropertyWindow : WindowStandardProperties {
-        public PropertyWindow( IPgViewSite oViewSite, CpuProperties oPropDoc ) : base( oViewSite, oPropDoc ) {
+        public PropertyWindow( IPgViewSite oViewSite, CpuProperties oPropDoc ) : 
+            base( oViewSite, oPropDoc ) {
         }
     }
 

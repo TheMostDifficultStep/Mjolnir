@@ -242,8 +242,12 @@ namespace Play.Forms {
         public Double ValueAsDouble( int iIndex, double? dblDefault ) {
             return _rgRows[iIndex][1].GetAsDouble( dblDefault );
         }
-        public int    ValueAsInt( int iIndex, int? iDefault ) {
+        public int    ValueAsInt( int iIndex, int? iDefault = null ) {
             return _rgRows[iIndex][1].GetAsInt( iDefault );
+        }
+
+        public int    ValueAsHex( int iIndex, int? iDefault = null ) {
+            return _rgRows[iIndex][1].GetAsHex( iDefault );
         }
 
         public bool   ValueAsBool( int iIndex ) {

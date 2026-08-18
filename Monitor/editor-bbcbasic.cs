@@ -765,14 +765,19 @@ namespace Monitor {
             _rgProgram.Add( sInstr.Instr );
         }
 
+        /// <see cref="Z80Definitions.FindInst(z80.Z80Memory, int)" />
         protected Z80Instr FindInst( int iAddr ) {
             byte iLowByte = _rgProgram[iAddr];
 
             switch( iLowByte ) {
                 case 0xec:
-                    return _rgZ80Definitions.BitI(_rgProgram[iAddr + 1]);
+                    return _rgZ80Definitions.BitI( _rgProgram[iAddr + 1]);
                 case 0xed:
-                    return _rgZ80Definitions.Misc(_rgProgram[iAddr + 1]);
+                    return _rgZ80Definitions.Misc( _rgProgram[iAddr + 1]);
+                case 0xdd:
+                    return _rgZ80Definitions.ExDD( _rgProgram[iAddr + 1]);
+                case 0xfd:
+                    return _rgZ80Definitions.ExFD( _rgProgram[iAddr + 1]);
                 default: 
                     return _rgZ80Definitions.FindMain( iLowByte );
             }

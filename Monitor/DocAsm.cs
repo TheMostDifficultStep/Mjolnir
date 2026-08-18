@@ -171,8 +171,8 @@ namespace Monitor {
             return false;
         }
 
-        public void UpdateHighlightLine( int iRow ) {
-            FindRowAtAddress( iRow, out AsmRow? oRow );
+        public void UpdateHighlightLine( int iAddress ) {
+            FindRowAtAddress( iAddress, out AsmRow? oRow );
             if( oRow is not null ) {
                 HighLight = oRow;
             }

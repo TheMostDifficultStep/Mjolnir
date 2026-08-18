@@ -25,6 +25,8 @@ namespace Monitor {
         Rel
     }
     public class Z80Instr {
+        byte _bExt = 0;
+
         public string     Name { get; }
         public string     Params { get; }
         public byte       Instr { get; set; }
@@ -33,7 +35,10 @@ namespace Monitor {
         public JumpType   Jump { get; set; }
         public bool       IsCall { get; set; }     
         public IMemoryRange? NumberLocation { get; set; }
-        public byte       InstrExt { get; set; } = 0;
+        public byte       InstrExt { 
+                              get { return _bExt; } 
+                              set { _bExt = value; Length = 2; }
+                          }
 
         public Z80Instr( string strName, string? strParams = null ) {
             Instr   = 0;
@@ -61,10 +66,13 @@ namespace Monitor {
         }
     }
 
+    /// <seealso cref="BasicCompiler.FindInst(int)"
     public class Z80Definitions {
         Z80Instr[] _rgMain = new Z80Instr[256];
         Z80Instr[] _rgMisc = new Z80Instr[256];  // ED
         Z80Instr[] _rgBitI = new Z80Instr[256];  // CB
+        Z80Instr[] _rgExDD = new Z80Instr[256];  
+        Z80Instr[] _rgExFD = new Z80Instr[256];  
 
         /// <exception cref="ArgumentException" />
         /// <exception cref="ArgumentNullException" />
@@ -348,7 +356,22 @@ namespace Monitor {
             _rgMisc[0x62] = new Z80Instr( "sbc", "hl, hl" ) { InstrExt = 0xED }; // weird but there is is.
             _rgMisc[0x72] = new Z80Instr( "sbc", "hl, sp" ) { InstrExt = 0xED };
 
-            _rgBitI[0x24] = new Z80Instr( "sla", "h" ) { InstrExt = 0xCB };
+            _rgBitI[0x24] = new Z80Instr( "sla", "h"   ) { InstrExt = 0xCB };
+
+            _rgExDD[0x24] = new Z80Instr( "inc", "ixh" ) { InstrExt = 0xDD };
+            _rgExDD[0x2C] = new Z80Instr( "inc", "ixl" ) { InstrExt = 0xDD };
+            _rgExDD[0x25] = new Z80Instr( "dec", "ixh" ) { InstrExt = 0xDD };
+            _rgExDD[0x2d] = new Z80Instr( "dec", "ixl" ) { InstrExt = 0xDD };
+            _rgExDD[0x09] = new Z80Instr( "add", "ix, bc" ) { InstrExt = 0xdd };
+            _rgExDD[0x94] = new Z80Instr( "sub", "a, IXH" ) { InstrExt = 0xdd };
+            _rgExDD[0x84] = new Z80Instr( "add", "a, ixh" ) { InstrExt = 0xdd };
+
+            _rgExFD[0x24] = new Z80Instr( "inc", "iyh" ) { InstrExt = 0xFD };
+            _rgExFD[0x2c] = new Z80Instr( "inc", "iyl" ) { InstrExt = 0xFD };
+            _rgExFD[0x25] = new Z80Instr( "dec", "iyh" ) { InstrExt = 0xFD };
+            _rgExFD[0x2d] = new Z80Instr( "dec", "iyl" ) { InstrExt = 0xFD };
+            _rgExFD[0xb6] = new Z80Instr( "or" , "(iy+d)" ) { InstrExt = 0xfd, Length = 3 };
+            _rgExFD[0X09] = new Z80Instr( "add", "iy, bc" ) { InstrExt = 0xfd };
 
             InitNew();
         }
@@ -362,6 +385,39 @@ namespace Monitor {
             return _rgMain[iIndex];
         }
 
+        public Z80Instr FindInst( Z80Memory _rgRam, int iAddr ) {
+            byte iLowByte = _rgRam[iAddr];
+            byte iHiByte  = _rgRam[iAddr + 1 ];
+
+            Z80Instr oInst;
+
+            switch( iLowByte ) {
+                case 0xec:
+                    oInst = BitI( iHiByte );
+                    break;
+                case 0xed:
+                    oInst = Misc( iHiByte );
+                    break;
+                case 0xdd:
+                    oInst = ExDD( iHiByte );
+                    break;
+                case 0xfd:
+                    oInst = ExFD( iHiByte );
+                    break;
+                default: 
+                    return _rgMain[ iLowByte ];
+            }
+            // This will work for all but the 3 byte instructions!
+            if( oInst is null ) {
+                oInst = new Z80Instr( "udoc", "?" ) { 
+                    InstrExt = iHiByte, 
+                    Instr = iLowByte,
+                    NumberLocation = new ColorRange( 0, 0 ) };
+            }
+            return oInst;
+        }
+
+
         public Z80Instr this [ int iIndex ] {
             get => _rgMain[iIndex];
         }
@@ -371,6 +427,14 @@ namespace Monitor {
         }
         public Z80Instr BitI( int iIndex ) {
             return _rgBitI[iIndex];
+        }
+
+        public Z80Instr ExDD( int iIndex ) {
+            return _rgExDD[iIndex];
+        }
+
+        public Z80Instr ExFD( int iIndex ) {
+            return _rgExFD[iIndex];
         }
 
         /// <summary>
@@ -384,6 +448,8 @@ namespace Monitor {
             InitArray( _rgMain, oReg );
             InitArray( _rgBitI, oReg );
             InitArray( _rgMisc, oReg );
+            InitArray( _rgExDD, oReg );
+            InitArray( _rgExFD, oReg );
         }
 
         private void InitArray( Z80Instr[] rgInstrs, Regex oReg ) {
@@ -391,7 +457,7 @@ namespace Monitor {
                 Z80Instr oInstr = rgInstrs[i];
                 // not all the biti instr's are defined.
                 if( oInstr is not null ) {
-                    Match    oMatch = oReg.Match( oInstr.Params );
+                    Match oMatch = oReg.Match( oInstr.Params );
 
                     Setup( oInstr, i, oMatch );
                 }
@@ -656,6 +722,8 @@ namespace Monitor {
                 HL,
                 SP,
                 PC,
+                IX,
+                IY,
                 Halt
 		    }
 
@@ -702,6 +770,8 @@ namespace Monitor {
                 oBulk.SetValue( (int)Labels.HL,    oMon._cpuZ80.Hl.ToString( "X4" ) );
                 oBulk.SetValue( (int)Labels.SP,    oMon._cpuZ80.Sp.ToString( "X4" ) );
                 oBulk.SetValue( (int)Labels.PC,    oMon._cpuZ80.Pc.ToString( "X4" ) );
+                oBulk.SetValue( (int)Labels.IX,    oMon._cpuZ80.Ix.ToString( "X4" ) );
+                oBulk.SetValue( (int)Labels.IY,    oMon._cpuZ80.Iy.ToString( "X4" ) );
                 oBulk.SetValue( (int)Labels.Halt,  oMon._cpuZ80.Halt ? "yes" : "no" );
               //oBulk.SetValue( (int)Labels.Caret, oMon.Z80Memory[oMon._cpuZ80.Pc].ToString( "X4" ) );
             }
@@ -716,6 +786,8 @@ namespace Monitor {
                 oBulk.SetValue( (int)Labels.HL,    "----" );
                 oBulk.SetValue( (int)Labels.SP,    "----" );
                 oBulk.SetValue( (int)Labels.PC,    "----" );
+                oBulk.SetValue( (int)Labels.IX,    "----" );
+                oBulk.SetValue( (int)Labels.IY,    "----" );
                 oBulk.SetValue( (int)Labels.Halt,  "?" );
             }
         } // end class MonitorProperties
@@ -743,6 +815,7 @@ namespace Monitor {
         }
 
         public void Dispose() {
+            Doc_Props.SubmitEvent -= OnSubmitEvent_CpuProperties;
             _oWorkPlace.Stop();
         }
 
@@ -764,12 +837,28 @@ namespace Monitor {
                 if( _oWorkPlace.Status != WorkerStatus.FREE ) 
                     return _oWorkPlace.Status; 
 
-                if( _cpuZ80.Pc != 0 )
-                    return WorkerStatus.BUSY;
+                //if( _cpuZ80.Pc != 0 )
+                //    return WorkerStatus.BUSY;
 
                 return WorkerStatus.FREE;
             }
         }
+
+        protected void OnSubmitEvent_CpuProperties( int[] rgChangedProps ) {
+            foreach( int iProp in rgChangedProps ) {
+                switch( iProp ) {
+                    case (int)MonitorProperties.Labels.PC:
+                        _cpuZ80.Pc = (ushort)Doc_Props.ValueAsHex( iProp );
+                        break;
+                    case (int)MonitorProperties.Labels.Acc:
+                        _cpuZ80.Ac = (byte  )Doc_Props.ValueAsHex( iProp );
+                        break;
+                }
+            }
+            Doc_Asm       .UpdateHighlightLine( _cpuZ80.Pc );
+            RefreshScreen?.Invoke( 0 );
+        }
+
 
         /// <summary>
         /// Start address and memory size hard coded atm but
@@ -792,8 +881,7 @@ namespace Monitor {
             if( !Doc_Terminal.InitNew() )
                 return false;
 
-            // Given there's nothing to dissassemble makes
-            // no sense to do much.
+            Doc_Props.SubmitEvent += OnSubmitEvent_CpuProperties;
 
             StatusUpdate ();
 
@@ -1021,6 +1109,10 @@ namespace Monitor {
             }
         }
 
+        /// <summary>
+        /// Only call this once.
+        /// </summary>
+        /// <seealso cref="InitNew"/>
         public bool LoadUrl( string strUrl ) {
             if( !Doc_Outl    .InitNew() ) // do this first. Dissassembler needs it.
                 return false;
@@ -1030,6 +1122,8 @@ namespace Monitor {
                 return false;
             if( !Doc_Terminal.InitNew() )
                 return false;
+
+            Doc_Props.SubmitEvent += OnSubmitEvent_CpuProperties;
 
             try {
                 if( !LoadBinaryFile( strUrl ) ) {
@@ -1142,7 +1236,7 @@ namespace Monitor {
 
         public void DazzleTestPattern() {
             Doc_Display.GenerateTestPattern( Z80Memory.RawMemory );
-            Doc_Display.Load           ( Z80Memory.RawMemory );
+            Doc_Display.Load               ( Z80Memory.RawMemory );
 
             RefreshScreen?.Invoke( 0 );
         }
@@ -1398,10 +1492,12 @@ namespace Monitor {
                         return;
                 }
 
-                if( sInstr.NumberLocation == null && sInstr.Length > 1 ) {
-                    _fnLogError( "Dissembler", "Inconsistant z80 instr" );
-                    return;
-                }
+                // Our newer 2 and 3 byte instructions are failing this test
+                // so let's disable it for now. All seems to be ok.
+                //if( sInstr.NumberLocation == null && sInstr.Length > 1 ) {
+                //    _fnLogError( "Dissembler", "Inconsistant z80 instr" );
+                //    return;
+                //}
 
                 if( sInstr.NumberLocation != null ) {
                     Line oParms = new TextLine( 0, sInstr.Params );
@@ -1499,11 +1595,14 @@ namespace Monitor {
             //if( iAddr >= 0x196 ) {
             //    sInstr = new Z80Instr( _rgRam[iAddr ] );
             //} else {
-                oInstr = _oZ80Info.FindMain( _rgRam[iAddr] );
+                //oInstr = _oZ80Info.FindMain( _rgRam[iAddr] );
+                oInstr = _oZ80Info.FindInst( _rgRam, iAddr );
             //}
 
             return oInstr;
         }
+
+
 
         /// <summary>
         /// Write the byte as a ascii value or hex if not readible.

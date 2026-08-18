@@ -1,9 +1,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Text;
-
 using Play.Interfaces.Embedding;
 using Play.Parse;
 
@@ -80,13 +80,29 @@ namespace Play.Edit {
     public static class LineExtensions {
         public static int GetAsInt( this Line oLine, int? iDefault = null ) {
             if( iDefault.HasValue ) {
-                if( !int.TryParse( oLine.AsSpan, out int iValue ) ) {
+                if( !int.TryParse( oLine.AsSpan, out int iValue ) ) 
+                {
                     iValue = iDefault.Value;
                 }
                 return iValue;
             }
 
             return int.Parse( oLine.AsSpan );
+        }
+
+        public static int GetAsHex( this Line oLine, int? iDefault = null ) {
+            if( iDefault.HasValue ) {
+                if( !int.TryParse( oLine.AsSpan, 
+                                   NumberStyles.HexNumber,
+                                   CultureInfo.InvariantCulture, 
+                                   out int iValue ) ) 
+                {
+                    iValue = iDefault.Value;
+                }
+                return iValue;
+            }
+
+            return int.Parse( oLine.AsSpan, NumberStyles.HexNumber );
         }
 
         public static bool GetAsBool( this Line oLine ) {

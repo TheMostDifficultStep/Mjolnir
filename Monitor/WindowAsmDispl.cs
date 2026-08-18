@@ -79,6 +79,33 @@ namespace Monitor {
         }
     }
 
+    public class PropertyWindow2 : WindowStandardProperties {
+        readonly DocumentMonitor _oMonDoc;
+        public PropertyWindow2( IPgViewSite oViewSite, DocumentMonitor oMonDoc ) : 
+            base( oViewSite, oMonDoc.Doc_Props ) 
+        {
+            _oMonDoc = oMonDoc;
+        }
+
+        /// <summary>
+        /// I've never used this feature. I might add it to the standard properties
+        /// window later...
+        /// </summary>
+        protected override void OnKeyDown(KeyEventArgs e) {
+            if( e.KeyCode == Keys.Enter ) {
+                // BUG: Only want to change if paused...
+                if( _oMonDoc.PlayStatus == WorkerStatus.PAUSED ||
+                    _oMonDoc.PlayStatus == WorkerStatus.FREE ) 
+                {
+                    Document.Raise_Submit();
+                    e.Handled = true;
+                    return;
+                }
+            }
+            base.OnKeyDown(e);
+        }  
+    }
+
     /// <summary>
     /// This is the multicolumn display for the AsmEditor. Also using
     /// it as the main window for the monitor atm.
@@ -270,7 +297,7 @@ namespace Monitor {
                 return new ViewOutline( oBaseSite, this, fReadOnly:true );
             }
             if( sGuid == GlobalDecor.Properties ) {
-                return new WindowStandardProperties( oBaseSite, _oMonDoc.Doc_Props );
+                return new PropertyWindow2( oBaseSite, _oMonDoc );
             }
             return null;
         }
