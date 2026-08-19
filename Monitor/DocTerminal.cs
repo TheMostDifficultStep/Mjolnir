@@ -58,9 +58,9 @@ namespace Monitor {
         }
 
         public override bool Execute(Guid sGuid) {
-            //if( sGuid == GlobalCommands.Save ) {
-            //    return Save();
-            //}
+            if( sGuid == GlobalCommands.Save ) {
+                return Save();
+            }
             return false;
         }
 

@@ -364,6 +364,8 @@ namespace Monitor {
             _rgExDD[0x09] = new Z80Instr( "add", "ix, bc" ) { InstrExt = 0xdd };
             _rgExDD[0x94] = new Z80Instr( "sub", "a, IXH" ) { InstrExt = 0xdd };
             _rgExDD[0x84] = new Z80Instr( "add", "a, ixh" ) { InstrExt = 0xdd };
+            _rgExDD[0x26] = new Z80Instr( "ld" , "ixh, n" ) { InstrExt = 0xdd, Length = 3 }; //11T
+            _rgExDD[0x2E] = new Z80Instr( "ld" , "ixl, n" ) { InstrExt = 0xdd, Length = 3 }; //11T
 
             _rgExFD[0x24] = new Z80Instr( "inc", "iyh" ) { InstrExt = 0xFD };
             _rgExFD[0x2c] = new Z80Instr( "inc", "iyl" ) { InstrExt = 0xFD };
@@ -371,6 +373,8 @@ namespace Monitor {
             _rgExFD[0x2d] = new Z80Instr( "dec", "iyl" ) { InstrExt = 0xFD };
             _rgExFD[0xb6] = new Z80Instr( "or" , "(iy+d)" ) { InstrExt = 0xfd, Length = 3 };
             _rgExFD[0X09] = new Z80Instr( "add", "iy, bc" ) { InstrExt = 0xfd };
+            _rgExFD[0x26] = new Z80Instr( "ld" , "iyh, n" ) { InstrExt = 0xfd, Length = 3 }; //11T
+            _rgExFD[0x2E] = new Z80Instr( "ld" , "iyl, n" ) { InstrExt = 0xfd, Length = 3 }; //11T
 
             InitNew();
         }
