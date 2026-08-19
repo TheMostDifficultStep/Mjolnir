@@ -797,7 +797,7 @@ namespace Play.ImageViewer {
 			base( oBaseSite, oViewOwner.Document.FileList )
         {
             Cursor   = Cursors.Hand;
-            ReadOnly = true;
+            IsReadOnly = true;
 
             // We'll still get a line event in the owner view, but it'll be where we already are.
             CaretPos.Line   = oViewOwner.Document.CurrentElement;

@@ -1018,7 +1018,7 @@ namespace Play.Edit {
 
             Raise_BufferEvent( BUFFEREVENTS.LOADED );  
 
-            return (true);
+            return true;
         }
 
 		public bool Load( string strText ) {
@@ -1138,7 +1138,7 @@ namespace Play.Edit {
         public virtual bool Save( TextWriter oStream )
         {
             if( _oSiteBase == null )
-                return( false );
+                return false;
 
             bool fReturn = false;
 
@@ -1170,7 +1170,7 @@ namespace Play.Edit {
                 oStream.Flush();
             }
 
-            return( fReturn );
+            return fReturn;
         }
         
         public bool Save( XmlNode oNode ) {
@@ -1183,7 +1183,6 @@ namespace Play.Edit {
 
             return false;
         }
-
         /// <summary>
         /// Has the file changed since last saved? 
         /// </summary>
@@ -1205,8 +1204,7 @@ namespace Play.Edit {
             }
         }
 
-
-#endregion // IPersistStream
+        #endregion // IPersistStream
 
         // This probably belongs on the subclassed editor so I can return the
         // proper type. EditorEnumLines

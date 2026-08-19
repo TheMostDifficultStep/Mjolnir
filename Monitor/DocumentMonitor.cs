@@ -376,11 +376,12 @@ namespace Monitor {
         }
 
         /// <summary>
-        /// BUG: Need to fix this up so we can look at two bytes worth of instruction.
+        /// This is the old entry to find the instruction use
+        /// FindInst instead!
         /// </summary>
         /// <param name="iIndex"></param>
         /// <returns></returns>
-        public Z80Instr FindMain( int iIndex ) {
+        [Obsolete]public Z80Instr FindMain( int iIndex ) {
             return _rgMain[iIndex];
         }
 

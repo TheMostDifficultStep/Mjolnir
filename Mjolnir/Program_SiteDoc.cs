@@ -59,7 +59,7 @@ namespace Mjolnir {
             protected readonly Program        _oHost;
             protected readonly IPgController2 _oController;
 
-            protected IDisposable _oGuestDispose;
+            protected IDisposable? _oGuestDispose;
 
             protected int       _iDocCount   = -1;
             protected int       _iReferences = 0;
@@ -177,6 +177,11 @@ namespace Mjolnir {
                 return FilePath;
             }
 
+            /// <summary>
+            /// I have some second thoughts about having the controller
+            /// here in our slot and this create doc here...
+            /// </summary>
+            /// <returns></returns>
             public bool CreateDocument() {
                 if( _oGuestDispose != null ) {
                     LogError( "The document has already been created for this slot" );
@@ -379,8 +384,8 @@ namespace Mjolnir {
             IPgFileSite,
             IDocSlot 
         {
-            protected IPgLoad<TextReader> _oGuestLoad;
-            protected IPgSave<TextWriter> _oGuestSave;
+            protected IPgLoad<TextReader>? _oGuestLoad;
+            protected IPgSave<TextWriter>? _oGuestSave;
 
 		    Encoding        _oEncoding = new UTF8Encoding( false, true ); // Don't emit BOM, tho I think it ignores me anyway.
 			bool            _fLoaded   = false;

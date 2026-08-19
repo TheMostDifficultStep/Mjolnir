@@ -556,7 +556,7 @@ namespace Play.Edit {
 
         public virtual SKImage Icon { get; protected set; }
 
-        public string Banner {
+        public virtual string Banner {
             get { 
                 try {
                     // Find first non blank character.
@@ -697,8 +697,8 @@ namespace Play.Edit {
             }
         }
 
-        public bool ReadOnly {
-            get { return( _fReadOnly ); }
+        public bool IsReadOnly {
+            get { return _fReadOnly; }
             set { _fReadOnly = value; }
         }
 
