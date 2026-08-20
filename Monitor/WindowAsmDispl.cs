@@ -161,7 +161,7 @@ namespace Monitor {
 		public SKImage? Icon { get; protected set; }
         public Guid     Catagory => GUID;
 
-        public int ElementCount => _oMonDoc.Z80Memory.Count;
+        public int ElementCount => _oMonDoc.Memory.Count;
 
         /// <summary>
         /// Override the normal row behavior so we can search for lines

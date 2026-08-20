@@ -683,7 +683,7 @@ namespace Monitor {
         public    string FileName { get; protected set; }  = string.Empty;
         protected SortedSet<ushort> _rgBreakPoints = new SortedSet<ushort>();
 
-        public             Z80Memory      Z80Memory { get; }
+        public             Z80Memory      Memory { get; }
         protected          Z80Definitions _rgZ80Def;
         protected readonly Z80            _cpuZ80;
 
@@ -756,17 +756,17 @@ namespace Monitor {
                 StringBuilder sbFlags = new();
 
                 sbFlags.Append( "S:" );
-                sbFlags.Append( ( oMon._cpuZ80.Flags & (byte)Z80.Fl.S ) > 0 ? "1" : "0" );
+                sbFlags.Append( ( oMon._cpuZ80.Flags & Z80.Fl_S ) > 0 ? "1" : "0" );
                 sbFlags.Append( " Z:" );
-                sbFlags.Append( ( oMon._cpuZ80.Flags & (byte)Z80.Fl.Z ) > 0 ? "1" : "0" );
+                sbFlags.Append( ( oMon._cpuZ80.Flags & Z80.Fl_Z ) > 0 ? "1" : "0" );
                 sbFlags.Append( " H:" );
-                sbFlags.Append( ( oMon._cpuZ80.Flags & (byte)Z80.Fl.H ) > 0 ? "1" : "0" );
+                sbFlags.Append( ( oMon._cpuZ80.Flags & Z80.Fl_H ) > 0 ? "1" : "0" );
                 sbFlags.Append( " PV:" );
-                sbFlags.Append( ( oMon._cpuZ80.Flags & (byte)Z80.Fl.PV ) > 0 ? "1" : "0" );
+                sbFlags.Append( ( oMon._cpuZ80.Flags & Z80.Fl_PV ) > 0 ? "1" : "0" );
                 sbFlags.Append( " N:" );
-                sbFlags.Append( ( oMon._cpuZ80.Flags & (byte)Z80.Fl.N ) > 0 ? "1" : "0" );
+                sbFlags.Append( ( oMon._cpuZ80.Flags & Z80.Fl_N ) > 0 ? "1" : "0" );
                 sbFlags.Append( " C:" );
-                sbFlags.Append( ( oMon._cpuZ80.Flags & (byte)Z80.Fl.C ) > 0 ? "1" : "0" );
+                sbFlags.Append( ( oMon._cpuZ80.Flags & Z80.Fl_C ) > 0 ? "1" : "0" );
 
                 oBulk.SetValue( (int)Labels.Acc,   oMon._cpuZ80.Ac.ToString( "X2" ) );
                 oBulk.SetValue( (int)Labels.Flags, sbFlags.ToString() );
@@ -802,11 +802,12 @@ namespace Monitor {
             _oWorkPlace = ((IPgScheduler)Services).CreateWorkPlace() ?? throw new InvalidProgramException();
 
             _rgZ80Def = new Z80Definitions();
-            Z80Memory = new Z80Memory();
+            Memory    = new Z80Memory( (int)Math.Pow( 2, 16 ) );
 
             // Default ports might get updated at load phase
-            _cpuZ80     = new Z80( Z80Memory, new PortsTinyBasic( this ) );
-            _cpuZ80.Pc  = 0x100; // CPM 2.2 start address.
+            _cpuZ80   = new Z80( Memory, new PortsTinyBasic( this ) ) {
+                Pc = 0x100 // CPM 2.2 start address.
+            };
 
             Doc_Asm     = new ( new DocSlot( this ) );
             Doc_Outl    = new ( new DocSlot( this ) );
@@ -997,20 +998,20 @@ namespace Monitor {
             // This isn't necessarily the z80 emulator memory. Let's
             // see how this turns out. Memory size is still tricky.
             // Well add that to property pages and .asmprg file.
-            byte[] rgRWRam = new byte[64000];
+            //byte[] rgRWRam = new byte[64000];
             int    iCount  = fComFile ? 0x100 : 0x00; 
 
             for( int iByte = oStream.ReadByte();
                  iByte != -1;
                  iByte = oStream.ReadByte() ) 
             {
-                if( iCount + 1 > rgRWRam.Length )
+                if( iCount + 1 > Memory.Length )
                     return false;
 
-                rgRWRam[iCount++] = (byte)iByte;
+                Memory[iCount++] = (byte)iByte;
             }
 
-            Z80Memory.Reset( rgRWRam, (ushort)iCount, fComFile );
+            Memory.Reset( Memory.RawMemory, (ushort)iCount, fComFile );
 
             return true;
         }
@@ -1154,7 +1155,7 @@ namespace Monitor {
         }
 
         public void Dissassemble( ) {
-            if( Z80Memory == null ) {
+            if( Memory == null ) {
                 LogError( "Monitor", "Load a binary first." );
                 return;
             }
@@ -1163,7 +1164,7 @@ namespace Monitor {
                 Doc_Asm.Clear();
 
                 using Z80Dissambler oDeCompile = 
-                    new Z80Dissambler( _rgZ80Def, Z80Memory, Doc_Asm, LogError );
+                    new Z80Dissambler( _rgZ80Def, Memory, Doc_Asm, LogError );
 
                 oDeCompile.Dissassemble();
 
@@ -1228,7 +1229,7 @@ namespace Monitor {
               //Doc_Asm    .Mirror( Z80Memory );
                 Doc_Asm    .UpdateHighlightLine( _cpuZ80.Pc );
                 Doc_Props  .Update( this );
-                Doc_Display.Load( Z80Memory.RawMemory );
+                Doc_Display.Load( Memory.RawMemory );
 
                 RefreshScreen?.Invoke( 0 );
             } catch( Exception oEx ) {
@@ -1240,8 +1241,8 @@ namespace Monitor {
         }
 
         public void DazzleTestPattern() {
-            Doc_Display.GenerateTestPattern( Z80Memory.RawMemory );
-            Doc_Display.Load               ( Z80Memory.RawMemory );
+            Doc_Display.GenerateTestPattern( Memory.RawMemory );
+            Doc_Display.Load               ( Memory.RawMemory );
 
             RefreshScreen?.Invoke( 0 );
         }
@@ -1302,7 +1303,7 @@ namespace Monitor {
                     }
                 }
 
-                Doc_Display.Load( Z80Memory.RawMemory );
+                Doc_Display.Load( Memory.RawMemory );
                 yield return 0;
             }
         }
@@ -1351,7 +1352,7 @@ namespace Monitor {
                       //Doc_Asm    .Mirror( Z80Memory );
                         Doc_Asm    .UpdateHighlightLine( _cpuZ80.Pc );
                         Doc_Props  .Update( this );
-                        Doc_Display.Load( Z80Memory.RawMemory );
+                        Doc_Display.Load( Memory.RawMemory );
                         break;
                     case WorkerStatus.BUSY:
                         LogError( "CPU", "Pause to single step" );

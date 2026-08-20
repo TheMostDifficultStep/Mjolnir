@@ -108,8 +108,8 @@ namespace Mjolnir {
             public string FileName { get; protected set; } = string.Empty;
             public string TypeName { get; protected set; } = string.Empty;
 
-            public    List<Use>          _rgUses = new();
-            protected IControllerFactory _oFactory;
+            public    List<Use>           _rgUses = new();
+            protected IControllerFactory? _oFactory;
 
             public override string ToString() {
                 return FileName;
@@ -171,13 +171,16 @@ namespace Mjolnir {
             }
             /// <param name="sG">Guid for the use case controller we are looking for on this stub.</param>
             public IPgController2 GetController( Guid sG ) {
-                if( _oFactory == null ) {
+                if( _oFactory is null ) {
                     try {
                         Assembly oAsm         = Assembly.LoadFile( Path.Combine( FilePath, FileName ) );
-                        Type     oFactoryType = oAsm    .GetType ( TypeName );
 
-                        _oFactory = (IControllerFactory)Activator.CreateInstance( oFactoryType );
-                    
+                        Type? oFactoryType = oAsm.GetType(TypeName) ?? throw new NotSupportedException("Factory type not found");
+
+                        _oFactory = Activator.CreateInstance( oFactoryType ) as IControllerFactory;
+                        if( _oFactory is null )
+                            throw new NotSupportedException( "Could not create instance of factory." );
+
                         foreach( Use oUse in _rgUses ) {
                             oUse.Controller = _oFactory.GetController( oUse.GUID );
                         }
