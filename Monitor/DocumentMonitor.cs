@@ -683,9 +683,9 @@ namespace Monitor {
         public    string FileName { get; protected set; }  = string.Empty;
         protected SortedSet<ushort> _rgBreakPoints = new SortedSet<ushort>();
 
-        public             Z80Memory      Memory { get; }
-        protected          Z80Definitions _rgZ80Def;
-        protected readonly Z80            _cpuZ80;
+        public    Z80Memory      Memory { get; }
+        protected Z80Definitions _rgZ80Def;
+        public    Z80            Cpu { get; protected set; }
 
         public event Action<int>? RefreshScreen;
 
@@ -756,28 +756,28 @@ namespace Monitor {
                 StringBuilder sbFlags = new();
 
                 sbFlags.Append( "S:" );
-                sbFlags.Append( ( oMon._cpuZ80.Flags & Z80.Fl_S ) > 0 ? "1" : "0" );
+                sbFlags.Append( ( oMon.Cpu.Flags & Z80.Fl_S ) > 0 ? "1" : "0" );
                 sbFlags.Append( " Z:" );
-                sbFlags.Append( ( oMon._cpuZ80.Flags & Z80.Fl_Z ) > 0 ? "1" : "0" );
+                sbFlags.Append( ( oMon.Cpu.Flags & Z80.Fl_Z ) > 0 ? "1" : "0" );
                 sbFlags.Append( " H:" );
-                sbFlags.Append( ( oMon._cpuZ80.Flags & Z80.Fl_H ) > 0 ? "1" : "0" );
+                sbFlags.Append( ( oMon.Cpu.Flags & Z80.Fl_H ) > 0 ? "1" : "0" );
                 sbFlags.Append( " PV:" );
-                sbFlags.Append( ( oMon._cpuZ80.Flags & Z80.Fl_PV ) > 0 ? "1" : "0" );
+                sbFlags.Append( ( oMon.Cpu.Flags & Z80.Fl_PV ) > 0 ? "1" : "0" );
                 sbFlags.Append( " N:" );
-                sbFlags.Append( ( oMon._cpuZ80.Flags & Z80.Fl_N ) > 0 ? "1" : "0" );
+                sbFlags.Append( ( oMon.Cpu.Flags & Z80.Fl_N ) > 0 ? "1" : "0" );
                 sbFlags.Append( " C:" );
-                sbFlags.Append( ( oMon._cpuZ80.Flags & Z80.Fl_C ) > 0 ? "1" : "0" );
+                sbFlags.Append( ( oMon.Cpu.Flags & Z80.Fl_C ) > 0 ? "1" : "0" );
 
-                oBulk.SetValue( (int)Labels.Acc,   oMon._cpuZ80.Ac.ToString( "X2" ) );
+                oBulk.SetValue( (int)Labels.Acc,   oMon.Cpu.Ac.ToString( "X2" ) );
                 oBulk.SetValue( (int)Labels.Flags, sbFlags.ToString() );
-                oBulk.SetValue( (int)Labels.BC,    oMon._cpuZ80.Bc.ToString( "X4" ) );
-                oBulk.SetValue( (int)Labels.DE,    oMon._cpuZ80.De.ToString( "X4" ) );
-                oBulk.SetValue( (int)Labels.HL,    oMon._cpuZ80.Hl.ToString( "X4" ) );
-                oBulk.SetValue( (int)Labels.SP,    oMon._cpuZ80.Sp.ToString( "X4" ) );
-                oBulk.SetValue( (int)Labels.PC,    oMon._cpuZ80.Pc.ToString( "X4" ) );
-                oBulk.SetValue( (int)Labels.IX,    oMon._cpuZ80.Ix.ToString( "X4" ) );
-                oBulk.SetValue( (int)Labels.IY,    oMon._cpuZ80.Iy.ToString( "X4" ) );
-                oBulk.SetValue( (int)Labels.Halt,  oMon._cpuZ80.Halt ? "yes" : "no" );
+                oBulk.SetValue( (int)Labels.BC,    oMon.Cpu.Bc.ToString( "X4" ) );
+                oBulk.SetValue( (int)Labels.DE,    oMon.Cpu.De.ToString( "X4" ) );
+                oBulk.SetValue( (int)Labels.HL,    oMon.Cpu.Hl.ToString( "X4" ) );
+                oBulk.SetValue( (int)Labels.SP,    oMon.Cpu.Sp.ToString( "X4" ) );
+                oBulk.SetValue( (int)Labels.PC,    oMon.Cpu.Pc.ToString( "X4" ) );
+                oBulk.SetValue( (int)Labels.IX,    oMon.Cpu.Ix.ToString( "X4" ) );
+                oBulk.SetValue( (int)Labels.IY,    oMon.Cpu.Iy.ToString( "X4" ) );
+                oBulk.SetValue( (int)Labels.Halt,  oMon.Cpu.Halt ? "yes" : "no" );
               //oBulk.SetValue( (int)Labels.Caret, oMon.Z80Memory[oMon._cpuZ80.Pc].ToString( "X4" ) );
             }
 
@@ -805,7 +805,7 @@ namespace Monitor {
             Memory    = new Z80Memory( (int)Math.Pow( 2, 16 ) );
 
             // Default ports might get updated at load phase
-            _cpuZ80   = new Z80( Memory, new PortsTinyBasic( this ) ) {
+            Cpu   = new Z80( Memory, new PortsTinyBasic( this ) ) {
                 Pc = 0x100 // CPM 2.2 start address.
             };
 
@@ -832,7 +832,7 @@ namespace Monitor {
 			return SKImageResourceHelper.GetImageResource( oAsm, strRes );
 		}
 
-        public ushort PC => _cpuZ80.Pc;
+        public ushort PC => Cpu.Pc;
 
         /// <summary>
         /// This is needed by the embedded Doc_Asm to determine
@@ -854,14 +854,14 @@ namespace Monitor {
             foreach( int iProp in rgChangedProps ) {
                 switch( iProp ) {
                     case (int)MonitorProperties.Labels.PC:
-                        _cpuZ80.Pc = (ushort)Doc_Props.ValueAsHex( iProp );
+                        Cpu.Pc = (ushort)Doc_Props.ValueAsHex( iProp );
                         break;
                     case (int)MonitorProperties.Labels.Acc:
-                        _cpuZ80.Ac = (byte  )Doc_Props.ValueAsHex( iProp );
+                        Cpu.Ac = (byte  )Doc_Props.ValueAsHex( iProp );
                         break;
                 }
             }
-            Doc_Asm       .UpdateHighlightLine( _cpuZ80.Pc );
+            Doc_Asm       .UpdateHighlightLine( Cpu.Pc );
             RefreshScreen?.Invoke( 0 );
         }
 
@@ -930,7 +930,7 @@ namespace Monitor {
                 xmlRoot.AppendChild( xmlComments );
 
                 xmlBinary.InnerText = FileName;
-                xmlPort  .InnerText = _cpuZ80.Ports.Name;
+                xmlPort  .InnerText = Cpu.Ports.Name;
 
                 foreach( Row oNote in Doc_Asm ) {
                     if( oNote is AsmRow oInstr &&
@@ -1052,10 +1052,10 @@ namespace Monitor {
                 if( xmlRoot.SelectSingleNode( "ports" ) is XmlElement xmlPort ) {
                     switch( xmlPort.InnerText ) {
                         case "dazzler":
-                            _cpuZ80.Ports = new PortsDazzle( this );
+                            Cpu.Ports = new PortsDazzle( this );
                             break;
                         case "tiny":
-                            _cpuZ80.Ports = new PortsTinyBasic( this );
+                            Cpu.Ports = new PortsTinyBasic( this );
                             break;
                         default:
                             LogError( "Loading", "Using default Tiny Basic Ports" );
@@ -1227,7 +1227,7 @@ namespace Monitor {
         protected void StatusUpdate() {
             try {
               //Doc_Asm    .Mirror( Z80Memory );
-                Doc_Asm    .UpdateHighlightLine( _cpuZ80.Pc );
+                Doc_Asm    .UpdateHighlightLine( Cpu.Pc );
                 Doc_Props  .Update( this );
                 Doc_Display.Load( Memory.RawMemory );
 
@@ -1269,7 +1269,7 @@ namespace Monitor {
         /// a bit.
         /// </summary>
         public IEnumerator<int> GetProcessor() {
-            if( _cpuZ80 == null ) {
+            if( Cpu == null ) {
                 LogError( "Monitor", "CPU not available" );
                 yield break;
             }
@@ -1279,14 +1279,14 @@ namespace Monitor {
             while( true ) {
                 for( int i=0; i<1000; ++i ) {
                     if( _rgBreakPoints.Count > 0 &&
-                        _rgBreakPoints.Contains( _cpuZ80.Pc ) ) 
+                        _rgBreakPoints.Contains( Cpu.Pc ) ) 
                     {
                         StatusUpdate();
                         _oWorkPlace.Pause();
                         yield return int.MaxValue;
                     }
                     try {
-                        _cpuZ80.Parse();
+                        Cpu.Parse();
                     } catch( Exception oEx ) {
                         if( _rgStdErrors.IsUnhandled( oEx ) )
                             throw;
@@ -1297,7 +1297,7 @@ namespace Monitor {
                         yield break;
                     }
 
-                    if( _cpuZ80.Halt ) {
+                    if( Cpu.Halt ) {
                         StatusUpdate();
                         yield break;
                     }
@@ -1347,10 +1347,10 @@ namespace Monitor {
                 switch( _oWorkPlace.Status ) {
                     case WorkerStatus.FREE:
                     case WorkerStatus.PAUSED:
-                        _cpuZ80    .Parse();
+                        Cpu    .Parse();
 
                       //Doc_Asm    .Mirror( Z80Memory );
-                        Doc_Asm    .UpdateHighlightLine( _cpuZ80.Pc );
+                        Doc_Asm    .UpdateHighlightLine( Cpu.Pc );
                         Doc_Props  .Update( this );
                         Doc_Display.Load( Memory.RawMemory );
                         break;
@@ -1358,7 +1358,7 @@ namespace Monitor {
                         LogError( "CPU", "Pause to single step" );
                         break;
                     default:
-                        if( _cpuZ80.Halt ) 
+                        if( Cpu.Halt ) 
                             LogError( "CPU", "Cpu is halted." );
                         else
                             LogError( "CPU", "Confused." );
@@ -1374,8 +1374,8 @@ namespace Monitor {
 
         public void CpuRecycle() {
             try {
-                _cpuZ80.Reset();
-                _cpuZ80.Pc = 0x100;
+                Cpu.Reset();
+                Cpu.Pc = 0x100;
                 Doc_Asm.HighLight = null;
                 Doc_Display.Clear();
                 Doc_Terminal.Clear();

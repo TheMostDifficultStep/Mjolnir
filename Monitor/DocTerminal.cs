@@ -170,6 +170,16 @@ namespace Monitor {
                 //       Let's just use streamwriter with filename direcly since we're not dealing with binary objects yet. 
                 using( StreamWriter oWriter = new StreamWriter( strPath, false, _oEncoding ) ) {
                     fSaved = Save( oWriter );
+                    oWriter.WriteLine();
+                    oWriter.WriteLine( "Missing Instructions:" );
+
+                    if( _oSiteBase.Host is DocumentMonitor oParent ) {
+                        foreach( int iMissing in oParent.Cpu._rgMissingInstructions.Keys ) {
+                            oWriter.Write    ( iMissing.ToString( "X4" ) );
+                            oWriter.WriteLine();
+                        }
+                    }
+
 					oWriter.Flush();
                 }
             } catch( Exception oEx ) {
