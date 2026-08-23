@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows7.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Play.Games</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Content\icons8-video-game-64.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Drawing\Drawing.csproj" />
+    <ProjectReference Include="..\Editor\Editor.csproj" />
+    <ProjectReference Include="..\ImageViewer\ImageViewer.csproj" />
+    <ProjectReference Include="..\Interfaces\Interfaces.csproj" />
+  </ItemGroup>
+
+</Project>
