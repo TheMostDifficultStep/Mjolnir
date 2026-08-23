@@ -30,11 +30,6 @@ namespace Play.Spectrum {
             Attr = oAttr;
         }
 
-        public Block() {
-            Img = 0;
-            Attr = new Attribute(0);
-        }
-
         public Attribute Attr { get; set; }
         public int       Img  { get; set; }
     }
@@ -58,12 +53,16 @@ namespace Play.Spectrum {
             Surface = SKSurface.Create( new SKImageInfo( 256, 192, SKColorType.Bgra8888 ) );
         }
 
+        /// <summary>
+        /// Fill out our screen black.
+        /// </summary>
         public virtual bool InitNew() {
-            SetUDG( 0, [0,0,0,0,0,0,0,0] );
+            SetGraphic( 0, [0,0,0,0,0,0,0,0] ); // Gives us a solid block.
 
             for( int iY = 0; iY< Screen.GetLength(1); ++iY ) {
                 for( int iX = 0; iX < Screen.GetLength(0); ++iX ) {
-                    Screen[iX, iY] = new Block();
+                    // Attribute 0 is black foreground and background.
+                    Screen[iX, iY] = new Block(0, new Attribute( 0 ) );
                 }
             }
 
@@ -74,13 +73,14 @@ namespace Play.Spectrum {
             _oSiteBase.LogError( "Spectrum", strMessage );
         }
 
-        /// <summary>Create the Image that backs the User
-        /// Defined Graphics (UDG) block.</summary>
+        /// <summary>Create the Image that backs the Graphics 
+        /// block. I'll set them in flat and you as the programmer
+        /// will set the UDG's starting at 0x90</summary>
         /// <remarks>
         /// In the future, I'll make a bulk loader so I can just
         /// create the Scratch surface during the load.
         /// </remarks>
-        public void SetUDG( int i, byte[] rgUdg ) {
+        public void SetGraphic( int i, byte[] rgUdg ) {
             ArgumentNullException.ThrowIfNull( rgUdg ); 
 
             for( int iY = 0; iY<8; ++iY ) {
@@ -96,7 +96,8 @@ namespace Play.Spectrum {
         }
 
         /// <summary>
-        /// Set's the given graphics onto the screen.
+        /// Set's the given graphics onto the screen. If you
+        /// want a regular character. 
         /// </summary>
         /// <param name="iRow"></param>
         /// <param name="iCol"></param>
@@ -104,10 +105,14 @@ namespace Play.Spectrum {
         public void PutUDGAt( int iRow, int iCol, char cUdg ) {
             int iUdg = (byte)( (Int16)cUdg - 'A' + 0x90);
 
+            PutChar( iRow, iCol, (char)iUdg );
+        }
+
+        public void PutChar( int iRow, int iCol, char cChar ) {
             try {
                 Block oBlock = Screen[iCol, iRow];
 
-                oBlock.Img  = iUdg;
+                oBlock.Img  = cChar;
                 oBlock.Attr = Attr;
             } catch( Exception oEx ) {
                 Type[] rgErrors = [ 
@@ -132,6 +137,10 @@ namespace Play.Spectrum {
                         SKPoint pntLoc = new( iX*8, iY*8 );
                         Block   oBlock = Screen[iX, iY];
                         SKImage oUdg   = Images[oBlock.Img];
+
+                        if( oUdg is null ) {
+                            oUdg = Images[0];
+                        }
 
                         Surface.Canvas.DrawImage( oUdg, pntLoc );
                     }
@@ -253,7 +262,7 @@ namespace Play.Spectrum {
             Speccy.InitNew();
 
             for( int i=0; i<rgUdg.GetLength(0); ++i ) {
-                Speccy.SetUDG( i+0x90, rgUdg[i] );
+                Speccy.SetGraphic( i+0x90, rgUdg[i] );
             }
         }
 
@@ -276,23 +285,24 @@ namespace Play.Spectrum {
                 string strC = string.Empty;
                 string strZ = strGrid[iZ];
 
+                // Create a 24 character long string.
                 for( int iC=0; iC < strZ.Length; ++iC ) { 
-                    int d = strZ[iC] - 0x30;
+                    int d = strZ[iC] - 0x30 - 1; // b/c because basic...
                     strC += strT[d..(d+3)]; // fill in 3 chars from T
                 }
-
+                // Load up that string on the screen.
                 Attr = new Attribute( 114 );
-                At( iZ+iU-1, iU+1, strC );
+                UdgAt( iZ+iU, iU+1, strC );
 
-                //Attr = new Attribute( 0 );
+                Attr = new Attribute(0);
 
-                //for( int iV = 1; iV<strC.Length; ++iV ) {
-                //    if( strC[iV] == 'b' ) {
-                //        char cTmp = (char)(145 + R( iV+iZ, 2 ));
+                for( int iV = 0; iV < strC.Length; ++iV ) {
+                    if( strC[iV] == 'B' ) {
+                        char cTmp = (char)( 0x91 + R(iV + iZ, 2) );
 
-                //        At( iZ+iU-1, iU+iV, cTmp );
-                //    }
-                //}
+                        At(iZ + iU, iU + iV + 1, cTmp);
+                    }
+                }
             }
 
             Speccy.Refresh();
@@ -302,7 +312,7 @@ namespace Play.Spectrum {
             Speccy.PutUDGAt( iRow, iCol, cUDG );
         }
 
-        public void At( int iRow, int iCol, string strV ) {
+        public void UdgAt( int iRow, int iCol, string strV ) {
             foreach( char cV in strV ) {
                 Speccy.PutUDGAt( iRow, iCol++, cV );
             }
