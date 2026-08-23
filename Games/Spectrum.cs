@@ -230,9 +230,7 @@ namespace Play.Spectrum {
 
             Speccy.InitNew();
 
-            int iMax = rgUdg.GetLength(0);
-
-            for( int i=0; i<iMax; ++i ) {
+            for( int i=0; i<rgUdg.GetLength(0); ++i ) {
                 Speccy.SetUDG( i, rgUdg[i] );
             }
 
@@ -257,10 +255,10 @@ namespace Play.Spectrum {
                 At( 31, iY, 'B' );
             }
             // Corners.
-            At( 0,   0, 'C' );
-            At( 0,  23, 'C' );
-            At( 31,  0, 'C' );
-            At( 31, 23, 'C' );
+            At( 0,   0, 'B' );
+            At( 0,  23, 'B' );
+            At( 31,  0, 'B' );
+            At( 31, 23, 'B' );
 
             Speccy.Refresh();
         }
