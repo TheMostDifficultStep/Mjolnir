@@ -5,15 +5,23 @@ using Play.Interfaces.Embedding;
 using SkiaSharp;
 
 using System.Reflection;
+using System.Security.Policy;
 using System.Xml;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Play.Spectrum {
     public class Attribute {
-        byte _bBlock;
         bool _fFlash;
         bool _fBright;
         byte _bInk;
         byte _bPaper;
+
+        public Attribute( byte iAttr ) {
+            _fFlash  = ( iAttr & 0x80 ) > 0;
+            _fBright = ( iAttr & 0x40 ) > 0;
+            _bPaper  = (byte)(( iAttr & 0x38 ) >> 3 );
+            _bInk    = (byte)(iAttr & 0x7 );
+        }
     }
 
     public class Block {
@@ -24,7 +32,7 @@ namespace Play.Spectrum {
 
         public Block() {
             Img = 0;
-            Attr = new Attribute();
+            Attr = new Attribute(0);
         }
 
         public Attribute Attr { get; set; }
@@ -38,7 +46,7 @@ namespace Play.Spectrum {
         public SKSurface Scratch { get; } // Make a bulk loader in the future...
         public SKImage[] Images  { get; } // Our constructed UDG's
 
-        protected Attribute _oAttrCurrent = new();
+        public Attribute Attr    { get;set; } = new Attribute(0);
 
         public SpectrumGraphics( IPgBaseSite oSite, string strMode ) : base( oSite ) {
             if( string.Compare( strMode, "std" ) != 0 ) {
@@ -89,17 +97,17 @@ namespace Play.Spectrum {
         /// <summary>
         /// Set's the given graphics onto the screen.
         /// </summary>
-        /// <param name="iX"></param>
-        /// <param name="iY"></param>
+        /// <param name="iRow"></param>
+        /// <param name="iCol"></param>
         /// <param name="cUdg">Graphic block starting at 'A'</param>
-        public void PutUDGAt( int iX, int iY, char cUdg ) {
+        public void PutUDGAt( int iRow, int iCol, char cUdg ) {
             int iUdg = (byte)( (Int16)cUdg - 'A' );
 
             try {
-                Block oBlock = Screen[iX, iY];
+                Block oBlock = Screen[iCol, iRow];
 
                 oBlock.Img  = iUdg;
-                oBlock.Attr = _oAttrCurrent;
+                oBlock.Attr = Attr;
             } catch( Exception oEx ) {
                 Type[] rgErrors = [ 
                     typeof( NullReferenceException ),
@@ -172,6 +180,12 @@ namespace Play.Spectrum {
             }
         }
 
+        Attribute Attr {
+            get { return Speccy.Attr; }
+            set { Speccy.Attr = value; }
+        }
+
+        const int iU = 3;
 
         public DocumentTutTut( IPgBaseSite oBaseSite ) {
             _oBaseSite  = oBaseSite ?? throw new ArgumentNullException( nameof( oBaseSite ) );
@@ -204,6 +218,13 @@ namespace Play.Spectrum {
         }
 
         protected virtual bool Initialize() {
+            InitUDG ();
+            TestGrid();
+
+            return true;
+        }
+
+        public void InitUDG() {
             byte[][] rgUdg = [
                 [127,65, 91, 67, 109, 111, 127, 0], // 'A'
                 [24, 216, 76, 62, 7, 12, 20, 50],   // 'B'...
@@ -233,32 +254,68 @@ namespace Play.Spectrum {
             for( int i=0; i<rgUdg.GetLength(0); ++i ) {
                 Speccy.SetUDG( i, rgUdg[i] );
             }
-
-            InitLevel();
-            
-            return true;
         }
 
-        public void At( int iX, int iY, char cUDG ) {
-            Speccy.PutUDGAt( iX, iY, cUDG );
+        public static int R( int a, int b ) {
+            return a - (a/b)*b;
+        }
+        public static int M( int a, int b ) {
+            return a/b;
         }
 
-        public void InitLevel() {
-            // Horizontals
-            for( int iX=0; iX<32; ++iX ) {
-                At( iX,  0, 'B' );
-                At( iX, 23, 'B' );
+        public void InitGrid( int _ ) {
+            string   strT    = "BABAAABBBAA";
+            string[] strGrid = [
+                "44444444","67777778","45444544","45444544","45444444",
+                "67777778","44444544","44444544","44444544","67777778",
+                "45444444","45444444","45444544","67777778","44444444" ];
+
+            // Fill in 15 rows where each row is iZ
+            for( int iZ = 0; iZ < strGrid.Length ; iZ++ ) {
+                string strC = string.Empty;
+                string strZ = strGrid[iZ];
+
+                for( int iC=0; iC < strZ.Length; ++iC ) { 
+                    int d = strZ[iC] - 0x30;
+                    strC += strT[d..(d+3)]; // fill in 3 chars from T
+                }
+
+                Attr = new Attribute( 114 );
+                At( iZ+iU-1, iU+1, strC );
+
+                //Attr = new Attribute( 0 );
+
+                //for( int iV = 1; iV<strC.Length; ++iV ) {
+                //    if( strC[iV] == 'b' ) {
+                //        char cTmp = (char)(145 + R( iV+iZ, 2 ));
+
+                //        At( iZ+iU-1, iU+iV, cTmp );
+                //    }
+                //}
             }
-            // Verticals
-            for( int iY=1; iY<24; ++iY ) {
-                At( 0,  iY, 'B' );
-                At( 31, iY, 'B' );
+
+            Speccy.Refresh();
+        }
+
+        public void At( int iRow, int iCol, char cUDG ) {
+            Speccy.PutUDGAt( iRow, iCol, cUDG );
+        }
+
+        public void At( int iRow, int iCol, string strV ) {
+            foreach( char cV in strV ) {
+                Speccy.PutUDGAt( iRow, iCol++, cV );
             }
-            // Corners.
-            At( 0,   0, 'B' );
-            At( 0,  23, 'B' );
-            At( 31,  0, 'B' );
-            At( 31, 23, 'B' );
+        }
+
+        /// <summary>
+        /// Let's take a look at all the UDG's.
+        /// </summary>
+        public void TestGrid() {
+            for( int iRow=0; iRow<24; ++iRow ) {
+                for( int iCol=0; iCol<32; ++iCol ) {
+                    At( iRow, iCol, (char)( iCol%21 + 'A' ) );
+                }
+            }
 
             Speccy.Refresh();
         }
