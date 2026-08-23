@@ -53,7 +53,7 @@ namespace Play.Spectrum {
                 throw new ArgumentOutOfRangeException();
             }
             Screen  = new Block[32,24];
-            Images  = new SKImage[21];
+            Images  = new SKImage[256];
             Scratch = SKSurface.Create( new SKImageInfo( 8,     8, SKColorType.Bgra8888 ) );
             Surface = SKSurface.Create( new SKImageInfo( 256, 192, SKColorType.Bgra8888 ) );
         }
@@ -85,8 +85,9 @@ namespace Play.Spectrum {
 
             for( int iY = 0; iY<8; ++iY ) {
                 byte bRow = rgUdg[iY];
-                for( int iX = 7; iX >= 0; --iX ) {
-                    SKColor sColor = ( bRow & iX ) > 0 ? SKColors.White : SKColors.Black;
+                for( int iX = 0; iX < 8; ++iX ) {
+                    // Highest bit is the lowest X value...
+                    SKColor sColor = ( bRow & 1<<(7-iX) ) > 0 ? SKColors.White : SKColors.Black;
 
                     Scratch.Canvas.DrawPoint( iX, iY, sColor );
                 }
@@ -101,7 +102,7 @@ namespace Play.Spectrum {
         /// <param name="iCol"></param>
         /// <param name="cUdg">Graphic block starting at 'A'</param>
         public void PutUDGAt( int iRow, int iCol, char cUdg ) {
-            int iUdg = (byte)( (Int16)cUdg - 'A' );
+            int iUdg = (byte)( (Int16)cUdg - 'A' + 0x90);
 
             try {
                 Block oBlock = Screen[iCol, iRow];
@@ -219,7 +220,7 @@ namespace Play.Spectrum {
 
         protected virtual bool Initialize() {
             InitUDG ();
-            TestGrid();
+            LoadGrid(0);
 
             return true;
         }
@@ -252,7 +253,7 @@ namespace Play.Spectrum {
             Speccy.InitNew();
 
             for( int i=0; i<rgUdg.GetLength(0); ++i ) {
-                Speccy.SetUDG( i, rgUdg[i] );
+                Speccy.SetUDG( i+0x90, rgUdg[i] );
             }
         }
 
@@ -263,7 +264,7 @@ namespace Play.Spectrum {
             return a/b;
         }
 
-        public void InitGrid( int _ ) {
+        public void LoadGrid( int _ ) {
             string   strT    = "BABAAABBBAA";
             string[] strGrid = [
                 "44444444","67777778","45444544","45444544","45444444",
