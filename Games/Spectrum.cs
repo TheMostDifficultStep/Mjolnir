@@ -184,7 +184,7 @@ namespace Play.Spectrum {
 
         public static SKImage GetResource( string strName ) {
 			Assembly oAsm   = Assembly.GetExecutingAssembly();
-            string   strRes = oAsm.GetName().Name + ".Content." + strName;
+            string   strRes = "Play.Games.Content." + strName;
 
 			return SKImageResourceHelper.GetImageResource( oAsm, strRes );
 		}
