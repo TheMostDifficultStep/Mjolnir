@@ -287,15 +287,15 @@ namespace Play.Spectrum {
 
                 // Create a 24 character long string.
                 for( int iC=0; iC < strZ.Length; ++iC ) { 
-                    int d = strZ[iC] - 0x30 - 1; // b/c because basic...
-                    strC += strT[d..(d+3)]; // fill in 3 chars from T
+                    int d = strZ[iC] - '0' - 1; // b/c because basic...
+                    strC += strT[d..(d+3)];     // fill in 3 chars from T
                 }
                 // Load up that string on the screen.
                 Attr = new Attribute( 114 );
                 UdgAt( iZ+iU, iU+1, strC );
 
+                // Now go back and add all the tunnles.
                 Attr = new Attribute(0);
-
                 for( int iV = 0; iV < strC.Length; ++iV ) {
                     if( strC[iV] == 'B' ) {
                         char cTmp = (char)( 0x91 + R(iV + iZ, 2) );
