@@ -3,7 +3,7 @@ using Play.ImageViewer;
 using Play.Interfaces.Embedding;
 
 using SkiaSharp;
-
+using System.Drawing.Printing;
 using System.Reflection;
 using System.Security.Policy;
 using System.Xml;
@@ -235,9 +235,11 @@ namespace Play.Spectrum {
         }
 
         protected virtual bool Initialize() {
-            InitUDG ();
-            LoadGrid(0);
-            LoadKeysAndMummy(0);
+            InitUDG  ();
+
+            LoadGrid (0);
+            LoadKAndM(0);
+            LoadStuff(0);
 
             Speccy.Refresh();
 
@@ -276,9 +278,16 @@ namespace Play.Spectrum {
             }
         }
 
+        /// <summary>
+        /// Calculate the remainder (modulus)
+        /// </summary>
         public static int R( int a, int b ) {
             return a - (a/b)*b;
         }
+
+        /// <summary>
+        /// Calculate the row...
+        /// </summary>
         public static int M( int a, int b ) {
             return a/b;
         }
@@ -315,7 +324,7 @@ namespace Play.Spectrum {
             }
         }
 
-        public void LoadKeysAndMummy( int _ ) {
+        public void LoadKAndM( int _ ) {
             int[] rgKeyMum = [
                 0, 0, 0, 438, 50, 167, 300, 418
             ]; // 0-3 keys, 4-7 mummies
@@ -331,30 +340,57 @@ namespace Play.Spectrum {
                     Attr = new Attribute( (byte)(iZ+64+1) ); // 0x41-0x44
                     At( iB, iV, 'D' );
                 }
-                // Next 4 are mummies.
+                // Next 4 are mummies. 2d pos encoded in one number!!
                 if( iZ > 3 ) {
                     // Address 22528 marks the exact start of the attribute
                     // file (color RAM), located right at the top-left corner
                     // of the screen grid
-                    rgMummy[iZ-4] = iZ+22528+iU*32+iU+1-1; // b/c basic 
+                    rgMummy[iZ-4] = iC+22528+iU*32+iU+1-1; // b/c basic 
                     Poke( rgMummy[iZ-4], 71 ); // 0x47 bright bg:black, fg:white
                     
                     // SetAttr( iU, iU+iZ, 71 ); use this once we're running.
+                    // Interesting that the UDG isn't set tho...
                 }
             }
 
         }
 
+        /// <summary>
+        /// Adds the TV and rocks.
+        /// </summary>
+        /// <param name="_"></param>
         public void LoadStuff( int _ ) {
-            int[][] rgStuff = [
-                [ 0, 0, 0, 0, 0 ],
-                [ 0, 0, 0, 0, 0 ],
-                [ 0, 0, 33, 0, 0 ],
-                [ 0, 54, 161, 310, 417 ]
+            int[] rgItems = [
+                0,  0,   0,   0,   0,
+                0,  0,   0,   0,   0,
+                0,  0,  33,   0,   0,
+                0, 54, 161, 310, 417 
             ];
 
-            for( int iZ=0; iZ<rgStuff.GetLength(0); iZ++ ) {
-                for( int iB=0; iB<rgStuff.GetLength(1); iB++ ) {
+            Bright = true;
+            int iIndex = 0;
+
+            for( int iZ=0; iZ<5; ++iZ ) {
+                for( int iB=0; iB<4; ++iB ) {
+                    int iC   = rgItems[iIndex++];
+                    int iCol = R( iC, 32 )+iU+1; // modulus, %
+                    int iRow = M( iC, 32 )+iU;
+
+                    if( iC > 0 && iZ<4 ) { // line 790
+                        Paper = 7;
+                        Ink   = (byte)iZ;
+
+                        At( iRow, iCol, 'E' );
+
+                        if( iZ == 3 ) {
+                            At( iRow, iCol, 'F' ); // Green tv
+                        }
+                    }
+                    if( iC > 0 && iZ > 3 ) {
+                        Attr = new Attribute( 6 );
+
+                        At( iRow, iCol, 'G' );
+                    }
                 }
             }
         }
@@ -384,8 +420,22 @@ namespace Play.Spectrum {
             SetAttr( iRow, iCol, bAttr );
         }
 
-        protected void Bright( bool fBright ) {
-            Speccy.Attr._fBright = fBright;
+        protected bool Bright {
+            set { 
+                Speccy.Attr._fBright = value;
+            }
+        }
+
+        protected byte Paper {
+            set { 
+                Speccy.Attr._bPaper = value;
+            }
+        }
+
+        protected byte Ink {
+            set { 
+                Speccy.Attr._bInk = value;
+            }
         }
 
         public void At( int iRow, int iCol, char cUDG ) {
