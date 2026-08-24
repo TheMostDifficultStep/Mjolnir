@@ -87,6 +87,12 @@
         <desc>BBC Basic parser. And Tiny Basic. Text persistant.</desc>
       </use>
     </add>
+	<add assm="Games.dll" factory="Play.Games.ControllerFactory" >
+      <use name="Tut Tut" guid="{CD0437CF-09F2-4824-9494-297AE5183233}" >
+        <e v="tut" />
+        <desc>Tut tut by David Stevenson. Ported by Me!</desc>
+      </use>
+	</add>
     <add assm="Kanji-Practice.dll" factory="Kanji_Practice.ControllerFactory">
       <use name="Kanji Practice" guid="{6D6AF151-4870-4407-A2A1-A8BE3510C7FC}">
         <e v="deck" />
@@ -197,6 +203,8 @@
       <map extn=".bbc" grammar="bbcbasic" />
       <map extn=".btx" grammar="bbcbasic" />
       <map extn=".tbtxt" grammar="tinybasic" />
+	  <map extn=".tasm" grammar="text" />
+	  <map extn=".z80" grammar="text" />
     </maps>
   </languages>
   <mainwindow>
