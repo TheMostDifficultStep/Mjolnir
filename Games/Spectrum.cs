@@ -11,16 +11,22 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Play.Spectrum {
     public class Attribute {
-        bool _fFlash;
-        bool _fBright;
-        byte _bInk;
-        byte _bPaper;
+        public bool _fFlash;
+        public bool _fBright;
+        public byte _bInk;
+        public byte _bPaper;
 
         public Attribute( byte iAttr ) {
-            _fFlash  = ( iAttr & 0x80 ) > 0;
-            _fBright = ( iAttr & 0x40 ) > 0;
-            _bPaper  = (byte)(( iAttr & 0x38 ) >> 3 );
-            _bInk    = (byte)(iAttr & 0x7 );
+            Value = iAttr;
+        }
+
+        public byte Value { 
+            set {
+                _fFlash  = ( value & 0x80 ) > 0;
+                _fBright = ( value & 0x40 ) > 0;
+                _bPaper  = (byte)(( value & 0x38 ) >> 3 );
+                _bInk    = (byte)(value & 0x7 );
+            }
         }
     }
 
@@ -96,8 +102,7 @@ namespace Play.Spectrum {
         }
 
         /// <summary>
-        /// Set's the given graphics onto the screen. If you
-        /// want a regular character. 
+        /// Set's a udg character on screen. 
         /// </summary>
         /// <param name="iRow"></param>
         /// <param name="iCol"></param>
@@ -195,7 +200,9 @@ namespace Play.Spectrum {
             set { Speccy.Attr = value; }
         }
 
-        const int iU = 3;
+        const    int   iU      = 3;
+        readonly int[] rgMummy = new int[4];
+
 
         public DocumentTutTut( IPgBaseSite oBaseSite ) {
             _oBaseSite  = oBaseSite ?? throw new ArgumentNullException( nameof( oBaseSite ) );
@@ -230,6 +237,9 @@ namespace Play.Spectrum {
         protected virtual bool Initialize() {
             InitUDG ();
             LoadGrid(0);
+            LoadKeysAndMummy(0);
+
+            Speccy.Refresh();
 
             return true;
         }
@@ -275,20 +285,19 @@ namespace Play.Spectrum {
 
         public void LoadGrid( int _ ) {
             string   strT    = "BABAAABBBAA";
-            string[] strGrid = [
+            string[] rgGrid = [
                 "44444444","67777778","45444544","45444544","45444444",
                 "67777778","44444544","44444544","44444544","67777778",
                 "45444444","45444444","45444544","67777778","44444444" ];
-
-            // Fill in 15 rows where each row is iZ
-            for( int iZ = 0; iZ < strGrid.Length ; iZ++ ) {
+            // Fill in 15 rows where each row is iZ. Line 690
+            for( int iZ = 0; iZ < rgGrid.Length ; iZ++ ) {
                 string strC = string.Empty;
-                string strZ = strGrid[iZ];
+                string strZ = rgGrid[iZ];
 
                 // Create a 24 character long string.
                 for( int iC=0; iC < strZ.Length; ++iC ) { 
-                    int d = strZ[iC] - '0' - 1; // b/c because basic...
-                    strC += strT[d..(d+3)];     // fill in 3 chars from T
+                    int iOffs = strZ[iC] - '0' - 1; // b/c because basic...
+                    strC += strT[iOffs..(iOffs+3)]; // fill in 3 chars from T
                 }
                 // Load up that string on the screen.
                 Attr = new Attribute( 114 );
@@ -304,8 +313,79 @@ namespace Play.Spectrum {
                     }
                 }
             }
+        }
 
-            Speccy.Refresh();
+        public void LoadKeysAndMummy( int _ ) {
+            int[] rgKeyMum = [
+                0, 0, 0, 438, 50, 167, 300, 418
+            ]; // 0-3 keys, 4-7 mummies
+            Attr = new Attribute(0); // line 750
+            for( int iZ =0; iZ < 8; ++iZ ) {
+                int iC = rgKeyMum[iZ];
+                // First 4 are keys, set if not zero.
+                if( iZ < 4 && iC > 0 ) {
+                    // Oh! Col...Row calculation!! TODO: Use r/c in future. 
+                    int iV = R(iC,32) + iU + 1;
+                    int iB = M(iC,32) + iU;
+
+                    Attr = new Attribute( (byte)(iZ+64+1) ); // 0x41-0x44
+                    At( iB, iV, 'D' );
+                }
+                // Next 4 are mummies.
+                if( iZ > 3 ) {
+                    // Address 22528 marks the exact start of the attribute
+                    // file (color RAM), located right at the top-left corner
+                    // of the screen grid
+                    rgMummy[iZ-4] = iZ+22528+iU*32+iU+1-1; // b/c basic 
+                    Poke( rgMummy[iZ-4], 71 ); // 0x47 bright bg:black, fg:white
+                    
+                    // SetAttr( iU, iU+iZ, 71 ); use this once we're running.
+                }
+            }
+
+        }
+
+        public void LoadStuff( int _ ) {
+            int[][] rgStuff = [
+                [ 0, 0, 0, 0, 0 ],
+                [ 0, 0, 0, 0, 0 ],
+                [ 0, 0, 33, 0, 0 ],
+                [ 0, 54, 161, 310, 417 ]
+            ];
+
+            for( int iZ=0; iZ<rgStuff.GetLength(0); iZ++ ) {
+                for( int iB=0; iB<rgStuff.GetLength(1); iB++ ) {
+                }
+            }
+        }
+
+        const int iAttrRam = 22528; // on the speccy.
+
+        protected void Poke( int iAddr, byte bValue ) {
+            
+            if( iAddr >= iAttrRam && iAddr < iAttrRam + 32*24 ) {
+                SetAttr( iAddr, bValue );
+            } else {
+                throw new ArgumentOutOfRangeException();
+            }
+        }
+
+        protected void SetAttr( int iRow, int iCol, byte iAttr ) {
+            Block oBlock = Speccy.Screen[iCol,iRow];
+
+            oBlock.Attr.Value = iAttr;
+        }
+
+        protected void SetAttr( int iOffset, byte bAttr ) {
+            iOffset -= 22528;
+            int iRow = iOffset / 32;
+            int iCol = iOffset % 32;
+
+            SetAttr( iRow, iCol, bAttr );
+        }
+
+        protected void Bright( bool fBright ) {
+            Speccy.Attr._fBright = fBright;
         }
 
         public void At( int iRow, int iCol, char cUDG ) {
