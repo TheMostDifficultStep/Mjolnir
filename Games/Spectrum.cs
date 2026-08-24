@@ -3,11 +3,8 @@ using Play.ImageViewer;
 using Play.Interfaces.Embedding;
 
 using SkiaSharp;
-using System.Drawing.Printing;
 using System.Reflection;
-using System.Security.Policy;
 using System.Xml;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Play.Spectrum {
     public class Attribute {
@@ -202,6 +199,8 @@ namespace Play.Spectrum {
 
         const    int   iU      = 3;
         readonly int[] rgMummy = new int[4];
+        protected SKPointI Explorer { get; set; }
+        protected SKPointI PrevExpl { get; set; }
 
 
         public DocumentTutTut( IPgBaseSite oBaseSite ) {
@@ -240,6 +239,7 @@ namespace Play.Spectrum {
             LoadGrid (0);
             LoadKAndM(0);
             LoadStuff(0);
+            LoadExplorer(0);
 
             Speccy.Refresh();
 
@@ -292,7 +292,7 @@ namespace Play.Spectrum {
             return a/b;
         }
 
-        public void LoadGrid( int _ ) {
+        protected void LoadGrid( int _ ) {
             string   strT    = "BABAAABBBAA";
             string[] rgGrid = [
                 "44444444","67777778","45444544","45444544","45444444",
@@ -324,7 +324,7 @@ namespace Play.Spectrum {
             }
         }
 
-        public void LoadKAndM( int _ ) {
+        protected void LoadKAndM( int _ ) {
             int[] rgKeyMum = [
                 0, 0, 0, 438, 50, 167, 300, 418
             ]; // 0-3 keys, 4-7 mummies
@@ -359,7 +359,7 @@ namespace Play.Spectrum {
         /// Adds the TV and rocks.
         /// </summary>
         /// <param name="_"></param>
-        public void LoadStuff( int _ ) {
+        protected void LoadStuff( int _ ) {
             int[] rgItems = [
                 0,  0,   0,   0,   0,
                 0,  0,   0,   0,   0,
@@ -393,6 +393,58 @@ namespace Play.Spectrum {
                     }
                 }
             }
+        }
+
+        protected void LoadExplorer( int _ ) {
+            int    iVal       = 113;
+            string strMessage = @"H\tPOG\l\sM";
+
+            Explorer = new SKPointI( R(iVal,32)+iU+1, M(iVal,32)+iU );
+            PrevExpl = Explorer;
+            //int iQ = iY;
+            //int iW = iX;
+
+            DrawExplorer(); // Call 225
+
+            // This is the first place we have a mixed string of UDG's
+            // and standard ASCII... I think!
+            List<char> rgTx = new List<char>();
+            for( int i=0; i< strMessage.Length; ++i ) {
+                if( strMessage[i] == '\\' ) {
+                    ++i;
+                    rgTx.Add( (char)(0x90 + char.ToUpper( strMessage[i] ) ) );
+                } else {
+                    rgTx.Add( strMessage[i] );
+                }
+            }
+
+            // Put something in the middle of the screen.
+            Attr = new Attribute( 66 );
+            int iHalf = rgTx.Count / 2;
+            for( int i=0; i< rgTx.Count; ++i ) {
+                Speccy.PutChar( iU+16,iU+12-iHalf+i, rgTx[i] );
+            }
+        }
+
+        protected void DrawExplorer( ) {
+            Attr.Value = 0;
+
+            // I don't think I need to keep this persistant, it's
+            // just being used to determine the direction the char
+            // is going.
+            int C = R( PrevExpl.X + PrevExpl.Y, 2 );
+
+            if( C != 0 ) {
+                At( PrevExpl, 'B' );
+                Attr.Value = 69;
+                At( Explorer, 'I' );
+            } else {
+                At( PrevExpl, 'C' );
+                Attr.Value = 69;
+                At( Explorer, 'H' );
+            }
+
+            PrevExpl = Explorer;
         }
 
         const int iAttrRam = 22528; // on the speccy.
@@ -440,6 +492,10 @@ namespace Play.Spectrum {
 
         public void At( int iRow, int iCol, char cUDG ) {
             Speccy.PutUDGAt( iRow, iCol, cUDG );
+        }
+
+        protected void At( SKPointI pntLoc, char cUDG ) {
+            At( pntLoc.Y, pntLoc.X, cUDG );
         }
 
         public void UdgAt( int iRow, int iCol, string strV ) {
