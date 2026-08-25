@@ -148,35 +148,17 @@ namespace Play.Spectrum {
             return new SKColor( (byte)iR, (byte)iG, (byte)iB );
         }
 
-        //0x000000, // black
-        //0x0000CD, // blue
-        //0xCD0000, // red
-        //0xCD00CD, // magenta
-        //0x00CD00, // green
-        //0x00CDCD, // cyan
-        //0xCDCD00, // yellow
-        //0xCDCDCD  // white.
-
-        int[] rgColors = [
-            0x00, // black
-            0x01, // blue
-            0x04, // red
-            0x05, // magenta
-            0x02, // green
-            0x03, // cyan
-            0x06, // yellow
-            0x07  // white.
-        ];
-
+        /// <summary>
+        /// The spectrum zx is a GRB 1 bit color palette!
+        /// </summary>
+        /// <param name="iCode">0-7</param>
         private SKColor DecodeColor( bool iIntensity, byte iCode)
         {
-
             int iMono  = iIntensity ? 0xFF : 0xCD; // Either bright or normal.
-            int iColor = rgColors[iCode];
 
-            int r = ((iColor & 0x04) != 0) ? iMono : 0;
-            int g = ((iColor & 0x02) != 0) ? iMono : 0;
-            int b = ((iColor & 0x01) != 0) ? iMono : 0;
+            int g = ( ( iCode & 0x04 ) != 0 ) ? iMono : 0;
+            int r = ( ( iCode & 0x02 ) != 0 ) ? iMono : 0;
+            int b = ( ( iCode & 0x01 ) != 0 ) ? iMono : 0;
 
             // Special case: true black when all RGB bits are 0
             if (r == 0 && g == 0 && b == 0) 
@@ -185,9 +167,17 @@ namespace Play.Spectrum {
             return GetColor( r, g, b );
         }
 
+        /// <summary>
+        /// The image must be an Alpha8 with the bits 1 to show and the
+        /// alpha channel 1 to show 0 not to show.
+        /// </summary>
+        /// <param name="oCanvas"></param>
+        /// <param name="oPaint">Set color attribute you want for the image.</param>
+        /// <param name="oRect">X, Y position of image. W&H s/b same as the image.</param>
+        /// <param name="oImage">the image to draw.</param>
         protected virtual void DrawImage( 
             SKCanvas oCanvas, 
-            SKPaint  oPaint,
+            SKPaint  oPaint, 
             SKRect   oRect, 
             SKImage  oImage
         ) {
@@ -202,7 +192,7 @@ namespace Play.Spectrum {
             // So the BG is already the color we wanted, it get's XOR'd and
             // has a transparency set, then we draw our text colored rect...
             oPaint .BlendMode = SKBlendMode.DstOver;
-            oCanvas.DrawRect( oRect, oPaint /*, oOptions */ );
+            oCanvas.DrawRect( oRect, oPaint );
         }
 
         /// <summary>
@@ -227,10 +217,13 @@ namespace Play.Spectrum {
                         SKRect skRect  = new SKRect( pntLoc.X, pntLoc.Y, 
                                                      pntLoc.X + oUdg.Width, 
                                                      pntLoc.Y + oUdg.Height );
+
+                        // This sets our background image.
                         oPaint .BlendMode = SKBlendMode.Src;
                         oPaint .Color     = DecodeColor( oBlock.Attr._fBright, oBlock.Attr._bPaper );
                         oCanvas.DrawRect( skRect, oPaint );
 
+                        // This does the XOR blit to display.
                         oPaint.Color = DecodeColor( oBlock.Attr._fBright, oBlock.Attr._bInk );
                         DrawImage( oCanvas, oPaint, skRect, oUdg );
                     }
@@ -425,7 +418,7 @@ namespace Play.Spectrum {
                     int iV = R(iC,32) + iU + 1;
                     int iB = M(iC,32) + iU;
 
-                    Attr = new Attribute( (byte)(iZ+64+1) ); // 0x41-0x44
+                    Attr = new Attribute( (byte)(iZ+0x40+1) ); // bright,paper:0,ink:z+1
                     At( iB, iV, 'D' );
                 }
                 // Next 4 are mummies. 2d pos encoded in one number!!
@@ -455,7 +448,9 @@ namespace Play.Spectrum {
                 0, 54, 161, 310, 417 
             ];
 
+            Attr   = new Attribute(0);
             Bright = true;
+
             int iIndex = 0;
 
             for( int iZ=0; iZ<5; ++iZ ) {
@@ -466,12 +461,12 @@ namespace Play.Spectrum {
 
                     if( iC > 0 && iZ<4 ) { // line 790
                         Paper = 7;
-                        Ink   = (byte)iZ;
+                        Ink   = (byte)(iZ+1); //+1 b/c basic.
 
                         At( iRow, iCol, 'E' );
 
                         if( iZ == 3 ) {
-                            At( iRow, iCol, 'F' ); // Green tv
+                            At( iRow, iCol, 'F' ); // Green tv/white bg
                         }
                     }
                     if( iC > 0 && iZ > 3 ) {
@@ -515,7 +510,7 @@ namespace Play.Spectrum {
         }
 
         protected void DrawExplorer( ) {
-            Attr.Value = 0;
+            Attr = new Attribute(0);
 
             // I don't think I need to keep this persistant, it's
             // just being used to determine the direction the char
@@ -538,7 +533,6 @@ namespace Play.Spectrum {
         const int iAttrRam = 22528; // on the speccy.
 
         protected void Poke( int iAddr, byte bValue ) {
-            
             if( iAddr >= iAttrRam && iAddr < iAttrRam + 32*24 ) {
                 SetAttr( iAddr, bValue );
             } else {
@@ -549,7 +543,7 @@ namespace Play.Spectrum {
         protected void SetAttr( int iRow, int iCol, byte iAttr ) {
             Block oBlock = Speccy.Screen[iCol,iRow];
 
-            oBlock.Attr.Value = iAttr;
+            oBlock.Attr = new Attribute( iAttr );
         }
 
         protected void SetAttr( int iOffset, byte bAttr ) {
@@ -560,6 +554,11 @@ namespace Play.Spectrum {
             SetAttr( iRow, iCol, bAttr );
         }
 
+        /// <summary>
+        /// these can cause side effects on following attributes. Be careful!
+        /// Make sure you assign a new attribute if you don't want following
+        /// assignments to affect the current attribute.
+        /// </summary>
         protected bool Bright {
             set { 
                 Speccy.Attr._fBright = value;
