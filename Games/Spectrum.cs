@@ -437,15 +437,16 @@ namespace Play.Spectrum {
         }
 
         /// <summary>
-        /// Adds the TV and rocks.
+        /// Adds the Exits, Gems, and other goodies..
         /// </summary>
         /// <param name="_"></param>
         protected void LoadStuff( int _ ) {
             int[] rgItems = [
-                0,  0,   0,   0,   0,
-                0,  0,   0,   0,   0,
-                0,  0,  33,   0,   0,
-                0, 54, 161, 310, 417 
+                0,  0,   0,   0,
+                0,  0,   0,   0,
+                0,  0,   0,   0,
+               33,  0,   0,   0,  // z=3, exits 
+               54, 161, 310, 417  // z=4, gems
             ];
 
             Attr   = new Attribute(0);
