@@ -41,7 +41,6 @@ namespace Play.Spectrum {
         IPgLoad
     {
         public Block[,]  Screen  { get; } // Speccy 32,24 ascii display.
-        public SKSurface Scratch { get; } // Make a bulk loader in the future...
         public SKImage[] Images  { get; } // Our constructed UDG's
 
         public Attribute Attr    { get;set; } = new Attribute(0);
@@ -50,9 +49,8 @@ namespace Play.Spectrum {
             if( string.Compare( strMode, "std" ) != 0 ) {
                 throw new ArgumentOutOfRangeException();
             }
-            Screen  = new Block[32,24];
+            Screen  = new Block  [32,24];
             Images  = new SKImage[256];
-            Scratch = SKSurface.Create( new SKImageInfo( 8,     8, SKColorType.Bgra8888 ) );
             Surface = SKSurface.Create( new SKImageInfo( 256, 192, SKColorType.Bgra8888 ) );
         }
 
@@ -60,7 +58,7 @@ namespace Play.Spectrum {
         /// Fill out our screen black.
         /// </summary>
         public virtual bool InitNew() {
-            SetGraphic( 0, [0,0,0,0,0,0,0,0] ); // Gives us a solid block.
+            SetGraphic2( 0, [0,0,0,0,0,0,0,0] ); // Gives us a solid block.
 
             for( int iY = 0; iY< Screen.GetLength(1); ++iY ) {
                 for( int iX = 0; iX < Screen.GetLength(0); ++iX ) {
@@ -82,8 +80,11 @@ namespace Play.Spectrum {
         /// <remarks>
         /// In the future, I'll make a bulk loader so I can just
         /// create the Scratch surface during the load.
+        /// I've depricated this code. But it might work with the
+        /// new rendering code by set the color as 
+        /// SKColor( FF, FF, FF, bByteValue );
         /// </remarks>
-        public void SetGraphic( int i, byte[] rgUdg ) {
+        public void SetBWGraphic( SKSurface oSurface, int i, byte[] rgUdg ) {
             ArgumentNullException.ThrowIfNull( rgUdg ); 
 
             for( int iY = 0; iY<8; ++iY ) {
@@ -92,10 +93,25 @@ namespace Play.Spectrum {
                     // Highest bit is the lowest X value...
                     SKColor sColor = ( bRow & 1<<(7-iX) ) > 0 ? SKColors.White : SKColors.Black;
 
-                    Scratch.Canvas.DrawPoint( iX, iY, sColor );
+                    Surface.Canvas.DrawPoint( iX, iY, sColor );
                 }
             }
-            Images[i] = Scratch.Snapshot();
+            Images[i] = oSurface.Snapshot();
+        }
+
+        public void SetGraphic2( int i, byte[] rgUdg ) {
+            using SKBitmap skBitmap = new SKBitmap( 8, 8, SKColorType.Alpha8, SKAlphaType.Opaque );
+
+            for( int iY = 0; iY<8; ++iY ) {
+                byte bRow = rgUdg[iY];
+                for( int iX = 0; iX < 8; ++iX ) {
+                    // Highest bit is the lowest X value...
+                    byte bByteValue = ( bRow & 1<<(7-iX) ) == 0 ? (byte)0 : (byte)255; 
+
+                    skBitmap.SetPixel( iX, iY, new SKColor( 0, 0, 0, bByteValue ));
+                }
+            }
+            Images[i] = SKImage.FromBitmap( skBitmap );
         }
 
         /// <summary>
@@ -128,11 +144,74 @@ namespace Play.Spectrum {
             }
         }
 
+        protected SKColor GetColor( int iR, int iG, int iB ) {
+            return new SKColor( (byte)iR, (byte)iG, (byte)iB );
+        }
+
+        //0x000000, // black
+        //0x0000CD, // blue
+        //0xCD0000, // red
+        //0xCD00CD, // magenta
+        //0x00CD00, // green
+        //0x00CDCD, // cyan
+        //0xCDCD00, // yellow
+        //0xCDCDCD  // white.
+
+        int[] rgColors = [
+            0x00, // black
+            0x01, // blue
+            0x04, // red
+            0x05, // magenta
+            0x02, // green
+            0x03, // cyan
+            0x06, // yellow
+            0x07  // white.
+        ];
+
+        private SKColor DecodeColor( bool iIntensity, byte iCode)
+        {
+
+            int iMono  = iIntensity ? 0xFF : 0xCD; // Either bright or normal.
+            int iColor = rgColors[iCode];
+
+            int r = ((iColor & 0x04) != 0) ? iMono : 0;
+            int g = ((iColor & 0x02) != 0) ? iMono : 0;
+            int b = ((iColor & 0x01) != 0) ? iMono : 0;
+
+            // Special case: true black when all RGB bits are 0
+            if (r == 0 && g == 0 && b == 0) 
+                return SKColors.Black;
+
+            return GetColor( r, g, b );
+        }
+
+        protected virtual void DrawImage( 
+            SKCanvas oCanvas, 
+            SKPaint  oPaint,
+            SKRect   oRect, 
+            SKImage  oImage
+        ) {
+            //Not sure how to use this yet.
+            SKSamplingOptions oOptions = new SKSamplingOptions( SKFilterMode.Linear );
+
+            // So XOR only works with alpha, which explains why my
+            // Alpha8 bitmap works with this.
+            oPaint .BlendMode = SKBlendMode.Xor;
+            oCanvas.DrawImage( oImage, oRect.Left, oRect.Top, oOptions, oPaint );
+
+            // So the BG is already the color we wanted, it get's XOR'd and
+            // has a transparency set, then we draw our text colored rect...
+            oPaint .BlendMode = SKBlendMode.DstOver;
+            oCanvas.DrawRect( oRect, oPaint /*, oOptions */ );
+        }
+
         /// <summary>
         /// After you have loaded your UDG's, you may attempt
         /// to refresh and draw the screen.
         /// </summary>
         public void Refresh() {
+            SKPaint  oPaint  = new SKPaint();
+            SKCanvas oCanvas = Surface.Canvas;
             try {
                 for( int iY = 0; iY<Screen.GetLength(1); ++iY ) {
                     for( int iX = 0; iX <Screen.GetLength(0); ++iX ) {
@@ -143,8 +222,17 @@ namespace Play.Spectrum {
                         if( oUdg is null ) {
                             oUdg = Images[0];
                         }
+                        //Surface.Canvas.DrawImage( oUdg, pntLoc );
 
-                        Surface.Canvas.DrawImage( oUdg, pntLoc );
+                        SKRect skRect  = new SKRect( pntLoc.X, pntLoc.Y, 
+                                                     pntLoc.X + oUdg.Width, 
+                                                     pntLoc.Y + oUdg.Height );
+                        oPaint .BlendMode = SKBlendMode.Src;
+                        oPaint .Color     = DecodeColor( oBlock.Attr._fBright, oBlock.Attr._bPaper );
+                        oCanvas.DrawRect( skRect, oPaint );
+
+                        oPaint.Color = DecodeColor( oBlock.Attr._fBright, oBlock.Attr._bInk );
+                        DrawImage( oCanvas, oPaint, skRect, oUdg );
                     }
                 }
             } catch( Exception oEx ) {
@@ -274,7 +362,7 @@ namespace Play.Spectrum {
             Speccy.InitNew();
 
             for( int i=0; i<rgUdg.GetLength(0); ++i ) {
-                Speccy.SetGraphic( i+0x90, rgUdg[i] );
+                Speccy.SetGraphic2( i+0x90, rgUdg[i] );
             }
         }
 
