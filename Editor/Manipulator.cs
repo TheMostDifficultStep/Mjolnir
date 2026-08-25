@@ -318,7 +318,7 @@ namespace Play.Edit {
 
                     Line oLine = _rgLines[iLine];
                     int  iSrcEnd = iSrcIndex + iSrcLength - 1;
-                    bool fResult = oLine.TryReplace(iDestOffset, 0, strSource.AsSpan(iSrcIndex..iSrcEnd) );
+                    bool fResult = oLine.TryReplace(iDestOffset, 0, strSource.AsSpan(iSrcIndex..(iSrcEnd+1)) );
 
                     if( fResult ) {
                         foreach( ILineRange oCaret in _oDocument.CaretEnumerable ) {
