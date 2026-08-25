@@ -35,6 +35,10 @@ namespace Play.Parse.Impl.Text
                 // This can happen when the literal is at the end of the line. Ignore control characters.
                 if( cChar < 32 ) 
                     break;
+                // This might bite me in the ass later. But Boreal basic
+                // uses this as the " character messing me up!!
+                if( cChar == '”' ) 
+                    break;
 
                 if( cChar > 127 || Char.IsLetter( cChar ) )
                     p_iMatch ++;
