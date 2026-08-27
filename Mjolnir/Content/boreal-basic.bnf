@@ -1,0 +1,923 @@
+<bnfstuff>
+    <metadata>
+        <colortable>
+            <color name="black"      value="black" />
+            <color name="keywords"   value="blue" />
+            <color name="red"        value="red"  />
+            <color name="darkred"    value="darkred"  />
+            <color name="green"      value="green"  />
+            <color name="gray"       value="gray" />
+            <color name="purple"     value="purple" />
+            <color name="subcall"    value="steelblue" />
+            <color name="darkorange" value="darkorange" />
+            <color name="operator"   value="cadetblue" />
+            <color name="vinstr"     value="violet" />
+			<color name="builtin"    value="darkblue" />
+        </colortable>
+        <terminals>
+            <term name="mytoken"   class="TextTermToken" />
+            <term name="myliteral" class="TextTermLiteral" />
+            <term name="mynumber"  class="TextTermNumber" />
+            <term name="myspace"   class="TextTermSpace" />
+            <term name="mycr"      class="TextTermCR" />
+            <!-- Must follow casing or we don't read this element in the reader
+	       need to fix that bug in the grammer reader -->
+            <term name="myEmpty"   class="TextTermEmpty" />
+            <term name="myanyof"   class="TextTermAnyOf" />
+        </terminals>
+    </metadata>
+    <bnftable>
+        <state name="start">
+			<capture>
+				<binding id="bbcbasic" array="false" />
+			</capture>
+			<production>
+                <nont state="bbcbasic" id="bbcbasic"/>
+            </production>
+        </state>
+        <state name="space"> <!-- no tabs for now -->
+            <production>
+                <term class="myspace" />
+                <nont state="space" />
+            </production>
+            <production>
+                <term class="myEmpty" />
+            </production>
+        </state>
+		<state name="param"> <!-- probably going to need array types -->
+			<production>
+				<term class="mynumber" />
+			</production>
+			<!-- This is actually a variable reference... -->
+			<production>
+				<nont state="vdecl" />
+			</production>
+            <production >
+				<nont state="expression" />
+            </production>
+			<production  >
+				<nont state="built-in-function-call" />
+				<nont state="space" />
+            </production>
+		</state>
+		<state name="forstep" >
+			<production>
+				<term class="mytoken" value="STEP" id="keywords" />
+				<nont state="space" />
+				<nont state="expression" id="forstep" />
+			</production>
+			<production>
+				<term class="myEmpty" />
+			</production>
+		</state>
+		<!-- might be able to share with "block" state -->
+		<state name="for-tail" >
+			<production>
+				<term class="mycr" />
+			</production>
+			<production>
+				<term class="mytoken" value=":" />
+			</production>
+		</state>
+
+		<state name="for" >
+            <capture>
+                <binding id="keywords" array="true"  color = "blue" />
+                <binding id="foriter"  array="false" color = "red" />
+                <binding id="forstart" array="false" color = "purple" />
+                <binding id="forend"   array="false" color = "purple" />
+                <binding id="forstep"  array="false" color = "purple" />
+                <binding id="fornext"  array="false" color = "blue" />
+				<binding id="bbcbasic"  array="false" />
+            </capture>
+			<production>
+				<term class="mytoken" value="FOR" id="keywords" />
+				<nont state="space" />
+				<nont state="vdecl" id="foriter" />
+				<nont state="space" />
+				<term class="mytoken" value="=" />
+				<nont state="space" />
+				<nont state="expression" id="forstart" />
+				<nont state="space" />
+				<term class="mytoken" value="TO" id="keywords" />
+				<nont state="space" />
+				<nont state="expression" id="forend" />
+				<nont state="space" />
+				<nont state="forstep" />
+				<nont state="space" />
+
+				<!--
+				<nont state="for-tail" />
+				<nont state="space" /> -->
+				<nont state="bbcbasic" id="bbcbasic" />
+
+				<nont state="space" />
+				<term class="mytoken" value="NEXT" id="keywords" /> <!-- was fornext" binding -->
+				<nont state="space" />
+				<term class="myliteral" />
+				<nont state="space" />
+				<term class="mycr" />				
+			</production>
+		</state >
+
+		<state name="let" >
+            <capture>
+                <binding id="keywords" array="true"  color = "blue" />
+				<binding id="bbcbasic"  array="false" />
+            </capture>
+			<production>
+				<term class="mytoken" value="LET" id="keywords" />
+				<nont state="space" />
+				<nont state="assign" id="statement" />
+				<nont state="bbcbasic" id="bbcbasic" />
+			</production>
+		</state>
+
+        <state name="block"> 
+            <production >
+                <nont state="command" />
+				<nont state="space" />
+            </production>
+            <production >
+				<nont state="assign" />
+				<nont state="space" />
+            </production>
+			<production>
+				<term class="mytoken" value=":" />
+				<nont state="space" />
+				<nont state="block" />
+			</production>
+			<production>
+				<term class="myEmpty" />
+			</production>
+        </state>
+
+		<state name="comparator" >
+            <capture>
+                <binding id="comp" array="false" color = "darkyellow" />
+			</capture>
+            <production >
+                <term class="mytoken" value="=" id ="comp" />
+            </production>
+            <production >
+                <term class="mytoken" value="&gt;"  id ="comp"/>
+            </production>
+            <production >
+                <term class="mytoken" value="&lt;"  id ="comp" />
+            </production>
+            <production >
+                <term class="mytoken" value="&lt;&gt;"  id ="comp" />
+            </production>
+            <production >
+                <term class="mytoken" value="&gt;="  id ="comp"/>
+            </production>
+            <production >
+                <term class="mytoken" value="&lt;=" id ="comp" />
+            </production>
+            <production >
+                <term class="mytoken" value="AND" id ="comp" />
+            </production>
+		</state>
+
+		<state name="built-in-function" >
+			<production >
+				<term class="mytoken" value="rnd" />
+			</production>
+			<production >
+				<term class="mytoken" value="sin" />
+			</production>
+			<production >
+				<term class="mytoken" value="cos" />
+			</production>
+			<production >
+				<term class="mytoken" value="CHR$" />
+			</production>
+			<production >
+				<term class="mytoken" value="STR$" />
+			</production>
+			<production >
+				<term class="mytoken" value="INT" />
+			</production>
+			<production >
+				<term class="mytoken" value="PEEK" />
+			</production>
+			<production >
+				<term class="mytoken" value="ATTR" />
+			</production>
+			<production>
+				<term class="mytoken" value="VAL" />
+			</production>
+			<production>
+				<term class="mytoken" value="TAB" />
+			</production>
+			<production>
+				<term class="mytoken" value="USR" />
+			</production>
+		</state>
+
+		<!-- calling procedures in basic requires a "proc" command, so
+             the math in a parameter must be a built in function.
+			 not quite as general as "C", probably want to revisit this.
+             built in functions REQUIRE open/close params.  -->
+		<state name="built-in-function-call" >
+            <capture>
+                <binding id="keywords" array="false" color="builtin" />
+			</capture>
+			<production lookahead="3" >
+				<nont state="built-in-function" id="keywords" />
+				<nont state="space" />
+				<term class="mytoken" value="(" />
+				<nont state="space" />
+				<nont state="param-first" />
+				<nont state="space" />
+				<term class="mytoken" value=")" />
+			</production>
+			<production lookahead="3">
+				<nont state="built-in-function" id="keywords" />
+				<nont state="space" />
+				<nont state="expression" />
+			</production>
+
+		</state>
+
+		<!-- basically we should never call vdecl directly at
+			the top of the func/method call. But expression instead...
+		-->
+		<state name="factor" >
+            <capture>
+                <binding id="paren"  array="true"  color="green" />
+				<binding id="number" array="false" color="purple" />
+				<binding id="unary"  array="true"  color="brown" />
+			</capture>
+			<production>
+				<term class="mytoken" value="NOT" id="unary" />
+				<nont state="space" />
+				<nont state="factor" />
+			</production>
+			<production>
+				<term class="mytoken" value="-"  id="unary" />
+				<nont state="space" />
+				<nont state="factor" />
+			</production>
+			<production>
+				<!-- hack in floating point no leading int ".1" -->
+				<term class="mytoken" value="." id="unary" />
+				<nont state="space" />
+				<nont state="primaryfactor" />
+			</production>
+			<production>
+				<nont state="primaryfactor" />
+			</production>
+		</state>
+		
+		<state name="primaryfactor" >
+            <production>
+				<term class="mytoken" value="(" id="paren" />
+				<nont state="expression" />
+				<nont state="space" />
+				<term class="mytoken" value=")" id="paren" />
+			</production>
+			<production>
+				<term class="mynumber" id="number"/>
+			</production>
+			<production >
+				<term class="mytoken" value="&amp;" />
+				<term class="mynumber" id="number"/>
+			</production>
+			<production>
+				<nont state="vdecl" id="number"/>
+			</production>
+			<production>
+				<nont state="built-in-function-call" id="number"/>
+			</production>
+			<production lookahead="5" > 
+				<term class="mytoken" value="FN" />
+				<nont state="space" />
+				<term class="myliteral" />
+				<nont state="space" />
+				<term class="mytoken" value="(" />
+				<nont state="space" />
+				<nont state="param-first" />
+				<nont state="space" />
+				<term class="mytoken" value=")" />
+			</production>
+			<production lookahead="4" > 
+				<term class="myliteral"  />
+				<term class="mytoken" value="$" />
+				<nont state="space" />
+				<term class="mytoken" value="(" />
+				<nont state="space" />
+				<term class="mynumber" />
+				<nont state="space" />
+				<term class="mytoken" value="TO" />
+				<nont state="space" />
+				<term class="mynumber" />
+				<nont state="space" />
+				<term class="mytoken" value=")" />
+			</production>
+			<production >
+				<term class="mytoken" value="”" id="cdelim" />
+				<nont state="string"  id="ctext" />
+				<term class="mytoken" value="”" id="cdelim" />
+			</production>
+		</state >
+
+		<state name="multing" >
+			<production>
+				<term class="myanyof" value="*/" maxmatch="1" />
+			</production>
+			<production>
+				<term class="myanyof" value="&gt;&lt;=" maxmatch="1" />
+			</production>
+			<production>
+				<term class="mytoken" value="&lt;&gt;" />
+			</production>
+			<production>
+				<term class="mytoken" value="AND" />
+			</production>
+		</state>
+
+		<state name="term" >
+			<capture>
+				<binding id="operator"  array="false"  color="blue" />
+			</capture>
+			<production lookahead="4" >
+				<nont state="space" />
+				<nont state="factor" />
+				<nont state="space" />
+				<nont state="multing" id="operator" />
+				<nont state="term" />
+			</production>
+			<production lookahead="4" >
+				<nont state="space" />
+				<nont state="factor" />
+				<nont state="space" />
+				<term class="mytoken" value="mod" id="operator" />
+				<nont state="term" />
+			</production>
+			<production lookahead="2" >
+				<nont state="space" />
+				<nont state="factor" />
+			</production>
+		</state >
+
+		<state name="adding" >
+			<production>
+				<term class="myanyof" value="+-" maxmatch="1" />
+			</production>
+			<production>
+				<term class="mytoken" value="OR" />
+			</production>
+		</state>
+
+		<state name="expression" >
+			<capture>
+				<binding id="operator" array="false" color="blue" />
+			</capture>
+			<production lookahead="4" >
+				<nont state="space" />
+				<nont state="term" />
+				<nont state="space" />
+				<nont state="adding" id="operator" />
+				<nont state="space" />
+				<nont state="expression" />
+			</production>
+			<production lookahead="2" >
+				<nont state="space" />
+				<nont state="term" />
+			</production>
+		</state >
+
+		<state name="print.params">
+			<production>
+				<term class="myanyof" value=",;" maxmatch ="1" />
+				<nont state="print.params" />
+			</production>
+	    	<production >
+				<term class="mytoken" value="&quot;" id="cdelim" />
+				<nont state="commentline.in"  id="ctext" />
+				<term class="mytoken" value="&quot;" id="cdelim" />
+			</production>
+			<production>
+				<term class="myliteral" />
+				<nont state="print.params" />
+			</production>
+			<production>
+				<term class="myspace" />
+				<nont state="print.params" />
+			</production>
+			<production>
+				<term class="mynumber" />
+				<nont state="print.params" />
+			</production>
+			<production>
+				<nont state="vdecl" />
+				<nont state="print.params" />
+			</production>
+            <production >
+				<nont state="expression" />
+				<nont state="print.params" />
+            </production>
+			<production  >
+				<nont state="built-in-function-call" />
+				<nont state="print.params" />
+            </production>
+			<production>
+				<term class="myEmpty" />
+			</production>
+		</state>
+
+		<state name="elseopt"> 
+            <production>
+                <term class="mytoken" value="else" id="keywords"/>
+                <nont state="space" />
+				<nont state="block" id="blockelse" />
+            </production>
+            <production>
+                <term class="myEmpty" />
+            </production>
+        </state>
+
+		<state name="if" >
+            <capture>
+				<binding id="keywords"  array="true" color= "blue" />
+                <binding id="ifcond"    array="false"  />
+                <binding id="blockthen" array="false" />
+                <binding id="blockelse" array="false"  />
+            </capture>
+			<production>
+				<term class="mytoken" value="IF" id="keywords" />
+				<nont state="space" />
+				<nont state="expression" id="ifcond" />
+				<nont state="space" />
+
+				<term class="mytoken" value="THEN" id="keywords" />
+				<nont state="space" />
+				<nont state="block" id="blockthen" />
+				<nont state="space" />
+
+				<nont state="elseopt" />
+				<nont state="space" />
+
+				<!-- <term class="mycr" /> -->
+			</production>
+		</state >
+		<state name="param-next" >
+			<production>
+				<term class="mytoken" value="," />
+				<nont state="space" />
+				<nont state="expression" id="params" />
+				<nont state="space" />
+				<nont state="param-next" />
+			</production>
+			<production>
+                <term class="myEmpty" />
+			</production>
+		</state >
+
+		<state name="param-first" >
+			<production lookahead="2" >
+				<nont state="space" />
+				<nont state="expression" id="params" />
+				<nont state="space" />
+				<nont state="param-next"/>
+				<!-- <term class="mycr" /> -->
+			</production>
+		</state>
+
+		<state name="print-param-next" >
+			<production>
+				<term class="myanyof" value=",;" maxmatch="1" />
+				<nont state="space" />
+				<nont state="expression" id="params" />
+				<nont state="space" />
+				<nont state="print-param-next" />
+			</production>
+			<production>
+                <term class="myEmpty" />
+			</production>
+		</state >
+
+		<state name="print-param-first" >
+			<production lookahead="2" >
+				<nont state="space" />
+				<nont state="expression" id="params" />
+				<nont state="space" />
+				<nont state="print-param-next"/>
+				<!-- <term class="mycr" /> -->
+			</production>
+		</state>
+
+		<state name="opt-expression" >
+			<production>
+				<nont state="expression" />
+			</production>
+			<production>
+				<term class="myEmpty" />
+			</production>
+		</state>
+
+		<state name="command" >
+            <capture>
+                <binding id="params"   array="true"  color = "purple" />
+				<binding id="number"   array="false" color = "gray" />
+				<binding id="keywords" array="false" color = "blue" />
+				<binding id="procname" array="false" color = "red" />
+            </capture>
+			<production>
+				<term class="mytoken" value="mode" id="keywords" />
+				<nont state="space" />
+				<term class="mynumber" id="number" />
+				<!-- <nont state="expression" /> -->
+				<nont state="space" />
+			</production>
+			<production>
+				<term class="mytoken" value="GO TO" id="keywords" />
+				<nont state="space" />
+				<term class="mynumber" id="number" />
+				<nont state="space" />
+			</production>
+			<production>
+				<term class="mytoken" value="GO SUB" id="keywords" />
+				<nont state="space" />
+				<term class="mynumber" id="number" />
+				<nont state="space" />
+			</production>
+			<production>
+				<term class="mytoken" value="vdu" id="keywords" />
+				<nont state="param-first" />
+			</production>
+			<production>
+				<term class="mytoken" value="plot" id="keywords" />
+				<nont state="param-first" />
+			</production>
+			<production lookahead="4" >
+				<!-- special case this weird case for now -->
+				<term class="mytoken" value="PRINT" id="keywords" />
+				<nont state="space" />
+				<nont state="opt-expression" />
+				<term class="mytoken" value=";" />
+				<nont state="space" />
+				<nont state="factor" />
+				<nont state="space" />
+				<term class="mytoken" value=";" />
+				<nont state="opt-expression" />
+			</production>
+			<production>
+				<term class="mytoken" value="move" id="keywords" />
+				<nont state="param-first" />
+			</production>
+			<production>
+				<term class="mytoken" value="colour" id="keywords" />
+				<nont state="param-first" />
+			</production>
+			<production>
+				<term class="mytoken" value="gcol" id="keywords" />
+				<nont state="param-first" />
+			</production>
+			<production >
+				<term class="mytoken" value="POKE" id="keywords" />
+				<nont state="param-first" />
+			</production>
+			<production>
+				<term class="mytoken" value="cls" id="keywords" />
+				<nont state="space" />
+			</production>
+			<production>
+				<term class="mytoken" value="proc" id="keywords" />
+				<nont state="space" />
+				<term class="myliteral" id="procname" />
+				<nont state="space" />
+				<term class="mytoken" value="(" />
+				<nont state="param-first" />
+				<nont state="space" />
+				<term class="mytoken" value=")" />
+			</production>
+			<production>
+				<term class="mytoken" value="RETURN" id="keywords" />
+			</production>
+			<production>
+				<term class="mytoken" value="pi" id="keywords" />
+			</production>
+			<production>
+				<term class="mytoken" value="open" id="keywords" />
+				<nont state="space" />
+				<nont state="param-first" />
+			</production>
+			<production>
+				<term class="mytoken" value="get#" id="keywords" />
+				<nont state="space" />
+				<nont state="param-first" />
+			</production>
+			<production>
+				<term class="mytoken" value="PRINT AT" id="keywords" />
+				<nont state="space" />
+				<nont state="expression" />
+				<nont state="space" />
+				<term class="mytoken" value="," />
+				<nont state="expression" />
+				<nont state="space" />
+				<term class="mytoken" value=";" />
+				<nont state="space" />
+				<nont state="print-param-first" />
+			</production>
+			<production>
+				<term class="mytoken" value="BEEP" id="keywords" />
+				<nont state="space" />
+				<term class="mytoken" value="." /> <!-- hard code for now -->
+				<term class="mynumber" />
+				<nont state="space" />
+				<term class="mytoken" value="," />
+				<nont state="space" />
+				<nont state="factor" />
+			</production>
+			<production>
+				<term class="mytoken" value="RANDOMIZE USR" id="keywords" />
+				<nont state="space" />
+				<term class="mynumber" />
+			</production>
+			<production>
+				<term class="mytoken" value="OVER" id="keywords" />
+				<nont state="space" />
+				<term class="mynumber" />
+			</production>
+			<production>
+				<term class="mytoken" value="BORDER" id="keywords" />
+				<nont state="space" />
+				<term class="mynumber" />
+			</production>
+			<production>
+				<term class="mytoken" value="RESTORE" id="keywords" />
+				<nont state="space" />
+				<nont state="opt-expression" />
+			</production>
+			<production>
+				<term class="mytoken" value="CLS" id="keywords" />
+			</production>
+			<production>
+				<term class="mytoken" value="READ" id="keywords" />
+				<nont state="space" />
+				<term class="myliteral" />
+				<term class="mytoken" value="$" />
+				<!-- maybe s/b vdecl, but let's go restrictive first -->
+			</production>
+		</state >
+
+		<state name="commentline.in">
+			<production>
+				<term class="myanyof" value="&gt;&lt;&amp;&apos;_-+=/(){}[]%^*@!?,.;:#&#32;&#09;\|$~" maxmatch ="1" />
+				<nont state="commentline.in" />
+			</production>
+			<production>
+				<term class="myanyof" value="&quot;" />
+				<nont state="commentline.in" />
+			</production>
+			<production>
+				<term class="myliteral" />
+				<nont state="commentline.in" />
+			</production>
+			<production>
+				<term class="myspace" />
+				<nont state="commentline.in" />
+			</production>
+			<production>
+				<term class="mynumber" />
+				<nont state="commentline.in" />
+			</production>
+			<production>
+				<term class="myEmpty" />
+			</production>
+		</state>
+
+		<state name="rem" >
+            <capture>
+                <binding id="keywords" array="false" color = "blue" />
+				<binding id="colon"    array="false" color = "blue" />
+                <binding id="comment"  array="false" color = "green" />
+            </capture>
+			<production>
+				<term class="mytoken" value="rem" id="keywords" />
+				<nont state="commentline.in" id="comment" />
+			</production>
+			<production>
+				<!-- Needs to look like keyword, but it's not.. :-/ -->
+				<term class="mytoken" value=":" id="colon" />
+			</production>
+		</state>
+
+		<!-- this is called for lhs of assignment so don't
+             allow unary operations. -->
+		<state name="vdecl" >
+			<production>
+				<term class="myliteral" />
+			</production>
+			<production>
+				<term class="myliteral" />
+				<term class="mytoken" value="%" />
+			</production>
+			<production>
+				<term class="myliteral" />
+				<term class="mytoken" value="$" />
+			</production>
+			<production lookahead="4" >
+				<term class="myliteral" />
+				<term class="mytoken" value="%" />
+				<nont state="space" />
+				<term class="mytoken" value="(" />
+				<nont state="space" />
+				<nont state="expression" />
+				<nont state="space" />
+				<term class="mytoken" value=")" />
+			</production>
+			<production lookahead="3" > <!-- array access -->
+				<term class="myliteral" />
+				<nont state="space" />
+				<term class="mytoken" value="(" />
+				<nont state="space" />
+				<nont state="param-first" />
+				<nont state="space" />
+				<term class="mytoken" value=")" />
+			</production>
+		</state>
+
+		<state name="vdecl-next" >
+			<production>
+				<term class="mytoken" value="," />
+				<nont state="space" />
+				<nont state="vdecl" id="params" />
+				<nont state="space" />
+				<nont state="vdecl-next" />
+			</production>
+			<production>
+				<term class="myEmpty" />
+			</production>
+		</state >
+
+		<state name="vdecl-first" >
+			<production lookahead="2" >
+				<nont state="space" />
+				<nont state="vdecl" id="params" />
+				<nont state="space" />
+				<nont state="vdecl-next"/>
+			</production>
+		</state>
+		
+		<state name="defproc" >
+			<capture>
+				<binding id="keywords" array="false" color = "blue" />
+				<binding id="params"   array="true"  color = "purple" />
+				<binding id="procname" array="false" color = "red" />
+				<binding id="bbcbasic" array="false" />
+			</capture>
+			<production>
+				<term class="mytoken" value="def" id="keywords" />
+				<nont state="space" />
+				<term class="mytoken" value="proc" id="keywords" />
+				<!-- <nont state="space" /> bbc basic doesn't allow space here -->
+				<term class="myliteral" id="procname" />
+				<nont state="space" />
+				<term class="mytoken" value="(" />
+				<nont state="vdecl-first" />
+				<nont state="space" />
+				<term class="mytoken" value=")" />
+				<nont state="bbcbasic" id="bbcbasic"/>
+				<term class="mytoken" value="endproc" id="keywords" />
+			</production>
+			<production>
+				<term class="mytoken" value="DEF" id="keywords" />
+				<nont state="space" />
+				<term class="mytoken" value="FN" id="keywords" />
+				<nont state="space" />
+				<term class="myliteral" id="procname" />
+				<term class="mytoken" value="(" />
+				<nont state="vdecl-first" />
+				<nont state="space" />
+				<term class="mytoken" value=")" />
+				<nont state="space" />
+				<term class="mytoken" value="=" />
+				<nont state="space" />
+				<nont state="expression" />
+			</production>
+		</state>
+
+		<state name="dim" >
+			<capture>
+				<binding id="keyword" array="false" color = "blue" />
+				<binding id="params"  array="true"  color = "darkred" />
+				<binding id="vname"   array="false" color = "red" />
+			</capture>			
+			<production >
+				<term class="mytoken" value="DIM" id="keyword" />
+                <nont state="space" />
+				<term class="myliteral" id="vname" />
+				<nont state="space" />
+				<term class="mytoken" value="(" />
+				<nont state="space" />
+				<term class="mynumber" id="params" />
+				<nont state="space" />
+				<term class="mytoken" value=")" />
+			</production>
+
+		</state>
+
+		<!-- this is the actual assignment. if we need a "let" do that outside... -->
+		<state name="assign" >
+			<capture>
+				<binding id="assign  " array="false" color = "blue" />
+				<binding id="left"     array="false" color = "red" />
+				<binding id="right"    array="false"  />
+			</capture>
+			<production lookahead="3">
+				<nont state="vdecl" id="left" />
+				<nont state="space" />
+				<term class="mytoken" value="=" id="assign" />
+				<nont state="space" />
+				<nont state="expression" id="right" />
+			</production>
+
+		</state>
+
+		<state name="string" >
+			<production>
+				<term class="myliteral" />
+				<nont state="string" id="string" />
+			</production>
+			<production>
+				<term class="mynumber" />
+				<nont state="string" id="string" />
+			</production>
+			<production>
+				<term class="myspace" />
+				<nont state="string" id="string" />
+			</production>
+			<production>
+				<!-- figure out what ()'s mean later -->
+				<term class="myanyof" value="*-():" />
+				<nont state="string" id="string" />
+			</production>
+			<production>
+				<term class="mytoken" value="\" />
+				<term class="myliteral" maxmatch="1" />
+				<nont state="string" id="string" />
+			</production>
+			<production>
+				<term class="myEmpty" />
+			</production>
+		</state>
+
+		<state name="bbcbasic" >
+			<capture>
+				<binding id="statement" array="false" />
+				<binding id="bbcbasic"  array="false"  />
+			</capture>
+			<production>
+				<term class="myspace" />
+				<nont state="bbcbasic" id="bbcbasic" />
+			</production>
+			<production>
+				<term class="mycr"  />
+				<nont state="bbcbasic" id="bbcbasic" />
+			</production>
+			<production>
+				<term class="mytoken" value =":"  />
+				<nont state="bbcbasic" id="bbcbasic" />
+			</production>
+			<production>
+				<nont state="for"      id="statement"/>
+				<nont state="bbcbasic" id="bbcbasic" />
+			</production>
+			<production>
+				<nont state="if"       id="statement"/>
+				<nont state="bbcbasic" id="bbcbasic"/>
+			</production>
+			<production>
+				<nont state="command" id="statement"/>
+				<nont state="bbcbasic" id="bbcbasic"/>
+			</production>
+			<production>
+				<nont state="rem"/>
+				<nont state="bbcbasic" id="bbcbasic" />
+			</production>
+			<!-- This probably belongs only at the top level, along with dim -->
+			<production>
+				<nont state="defproc"  id="statement" />
+				<nont state="bbcbasic" id="bbcbasic"/>
+			</production>
+			<production>
+				<nont state="let" id="statement" />
+				<nont state="bbcbasic" id="bbcbasic" />
+			</production>
+			<production>
+				<nont state="dim" id="statement" />
+				<nont state="bbcbasic" id="bbcbasic" />
+			</production>
+			<production>
+				<nont state="assign" id="statement" />
+				<nont state="bbcbasic" id="bbcbasic" />
+			</production>
+			<production>
+				<term class="myEmpty" />
+			</production>
+		</state>
+    </bnftable>
+</bnfstuff>
