@@ -4,9 +4,11 @@ using Play.Parse;
 using Play.Rectangles;
 using SkiaSharp;
 using System.Data;
+using System.Data.Common;
 using System.Drawing;
 using System.Reflection;
 using System.Windows.Forms;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Monitor {
     public class WindowBasic :
@@ -26,6 +28,7 @@ namespace Monitor {
         protected BasicDocument DocMain { get; }
 
         protected int _iBasicColumnTop = -1;
+        protected Stack<Row> _rgHistory = new Stack<Row>();
 
         protected class Tool {
             public string Name { get; protected set; }
@@ -74,6 +77,9 @@ namespace Monitor {
 
                 foreach( Row oRow in DocMain.BasicDoc ) {
                     if( oRow[0].Compare( strLine, false ) == 0 ) {
+                        if( _rgHistory.Count < 10 ) {
+                            _rgHistory.Push( oClickRow );
+                        }
                         _oCacheMan.SetCaretPositionAndScroll( oRow.At, iColumn, 0, 0 );
                     }
                 }
@@ -150,6 +156,11 @@ namespace Monitor {
             }
             if( sCommand == GlobalCommands.Play ) {
                 DocMain.BasicDoc.Compile();
+            }
+            if( sCommand == GlobalCommands.JumpPrev ) {
+                if( _rgHistory.TryPop( out Row oRow ) ) {
+                    _oCacheMan.SetCaretPositionAndScroll( oRow.At, 1, 0, 0 );
+                }
             }
 
             return base.Execute( sCommand );
