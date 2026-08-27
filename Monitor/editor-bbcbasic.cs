@@ -116,6 +116,7 @@ namespace Monitor {
 
         public bool InitNew() {
             InsertRow( 0, 10, string.Empty );
+
             return true;
         }
 

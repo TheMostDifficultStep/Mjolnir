@@ -76,7 +76,7 @@ namespace Play.Parse.Impl
             get { return( _oProdElem.ID ); }
         }
 
-        public virtual string StateName => string.Empty;
+        public virtual string StateName => ID;
 
         /// <summary>
         /// BUG: Looking this over, the "Start" property is not really used once parsing is over.

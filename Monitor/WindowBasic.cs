@@ -1,10 +1,12 @@
-﻿using System.Drawing;
-using System.Windows.Forms;
-
-using Play.Edit;
+﻿using Play.Edit;
 using Play.Interfaces.Embedding;
+using Play.Parse;
 using Play.Rectangles;
 using SkiaSharp;
+using System.Data;
+using System.Drawing;
+using System.Reflection;
+using System.Windows.Forms;
 
 namespace Monitor {
     public class WindowBasic :
@@ -60,9 +62,23 @@ namespace Monitor {
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  80, 1L ), BasicRow.ColumnNumber ); 
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None ),            BasicRow.ColumnText );  
 
+            HyperLinks.Add( "number",  OnGotoLine  );
+
             return true;
         }
-        /// <summary>
+
+        protected void OnGotoLine( Row oClickRow, int iColumn, IPgWordRange oRange ) {
+			if( oClickRow is not null ) {
+                int                iEnd    = oRange.Offset + oRange.Length;
+                ReadOnlySpan<char> strLine = oClickRow[iColumn].AsSpan[oRange.Offset..iEnd];
+
+                foreach( Row oRow in DocMain.BasicDoc ) {
+                    if( oRow[0].Compare( strLine, false ) == 0 ) {
+                        _oCacheMan.SetCaretPositionAndScroll( oRow.At, iColumn, 0, 0 );
+                    }
+                }
+			}
+        }        /// <summary>
         /// Override the normal row behavior so we can search for lines
         /// by address!! 
         /// </summary>
