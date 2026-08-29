@@ -278,8 +278,9 @@ namespace Play.Spectrum {
             set { Speccy.Attr = value; }
         }
 
-        const    int   iU      = 3;
-        readonly int[] rgMummy = new int[4];
+        const    int   _iU      = 3;
+                 int   _iG      = 0; // probably score.
+        readonly int[] _rgMummy = new int[4];
         protected SKPointI Explorer { get; set; }
         protected SKPointI PrevExpl { get; set; }
 
@@ -318,15 +319,89 @@ namespace Play.Spectrum {
             InitUDG  ();
 
             LoadGrid (0);
-            LoadKAndM(0);
+            LoadKandM(0);
             LoadStuff(0);
             LoadExplorer(0);
+            DrawBorder();
+
+            DrawStatus();
 
             Speccy.Refresh();
 
             return true;
         }
 
+        /// <summary>
+        /// Draw border. Line 530
+        /// </summary>
+        public void DrawBorder() {
+            Attr = new Attribute( 0x10 ); // bg:?, fg:black
+            // Top border...
+            At( _iU-1, _iU, 'M' );
+            for( int iCol=1+_iU; iCol <25+_iU; ++iCol ) {
+                At( _iU-1, iCol, 'U' );
+            }
+            At( _iU-1, _iU+25, 'Q' );
+
+            // Bottom border...
+            At( _iU+15, _iU, 'Q' );
+            for( int iCol=1+_iU; iCol <25+_iU; ++iCol ) {
+                At( _iU+15, iCol, 'U' );
+            }
+            At( _iU+15, _iU+25, 'M' );
+
+            // Verticals...
+            for( int iRow=_iU; iRow < 15+_iU; ++iRow ) {
+                At( iRow, _iU,    'U' );
+                At( iRow, 25+_iU, 'U' );
+            }
+        }
+
+        /// <summary>
+        /// Alas, I don't have the regular character site AND
+        /// my routine won't print mixed udg's AND text yet.
+        /// This is line 550
+        /// </summary>
+        public void DrawStatus() {
+            Attr = new Attribute( 71 );
+            At( _iU-3,_iU+9, "QSQ-QSQ" );   // Tut-Tut, but '-' broken >_K;;
+
+            At( _iU+17, _iU, "MLTP:" );     // keys...
+            //Attr = new Attribute( 0x0 );
+            //At( _iU+17, _iU+4, "DDDD" );    // CLear keys. Probably uneeded
+            // Set the keys.
+            for( int iZ=1; iZ < 5; ++iZ ) {
+                Attr = new Attribute( (byte)iZ );
+                At( _iU+17, _iU+4+iZ, "D" );
+            }
+
+            Attr = new Attribute( 71 );
+            At( _iU+17, _iU+14, "PKoOL:" ); // score
+            Attr = new Attribute( 69 );
+            At( _iU+17, _iU+20, "000000" );
+
+            DrawScore();
+
+            Attr = new Attribute( 71 );
+            At( _iU+18, _iU, "JiO :" );     // Air
+            Attr = new Attribute( 0x85 );
+            for( int iAir=0; iAir < 21; ++iAir ) {
+                At( _iU+18, _iU+iAir+5, "U" );
+            }
+        }
+
+        protected void DrawScore() {
+            if( _iG < 0 )
+                _iG = 0;
+
+            Attr = new Attribute( 69 );
+            string strScore = _iG.ToString();
+            At( _iU+17, _iU+26-strScore.Length, strScore );
+        }
+
+        /// <summary>
+        /// Read in all the user defined characters. Line 645;
+        /// </summary>
         public void InitUDG() {
             byte[][] rgUdg = [
                 [127,65, 91, 67, 109, 111, 127, 0], // 'A'
@@ -373,16 +448,18 @@ namespace Play.Spectrum {
             return a/b;
         }
 
+        readonly string[] _rgGrid = [
+            "44444444","67777778","45444544","45444544","45444444",
+            "67777778","44444544","44444544","44444544","67777778",
+            "45444444","45444444","45444544","67777778","44444444" ];
+
+
         protected void LoadGrid( int _ ) {
             string   strT    = "BABAAABBBAA";
-            string[] rgGrid = [
-                "44444444","67777778","45444544","45444544","45444444",
-                "67777778","44444544","44444544","44444544","67777778",
-                "45444444","45444444","45444544","67777778","44444444" ];
             // Fill in 15 rows where each row is iZ. Line 690
-            for( int iZ = 0; iZ < rgGrid.Length ; iZ++ ) {
+            for( int iZ = 0; iZ < _rgGrid.Length ; iZ++ ) {
                 string strC = string.Empty;
-                string strZ = rgGrid[iZ];
+                string strZ = _rgGrid[iZ];
 
                 // Create a 24 character long string.
                 for( int iC=0; iC < strZ.Length; ++iC ) { 
@@ -391,7 +468,7 @@ namespace Play.Spectrum {
                 }
                 // Load up that string on the screen.
                 Attr = new Attribute( 114 );
-                UdgAt( iZ+iU, iU+1, strC );
+                At( iZ+_iU, _iU+1, strC );
 
                 // Now go back and add all the tunnles.
                 Attr = new Attribute(0);
@@ -399,13 +476,13 @@ namespace Play.Spectrum {
                     if( strC[iV] == 'B' ) {
                         char cTmp = (char)( 0x91 + R(iV + iZ, 2) );
 
-                        At(iZ + iU, iU + iV + 1, cTmp);
+                        At(iZ + _iU, _iU + iV + 1, cTmp);
                     }
                 }
             }
         }
 
-        protected void LoadKAndM( int _ ) {
+        protected void LoadKandM( int _ ) {
             int[] rgKeyMum = [
                 0, 0, 0, 438, 50, 167, 300, 418
             ]; // 0-3 keys, 4-7 mummies
@@ -415,8 +492,8 @@ namespace Play.Spectrum {
                 // First 4 are keys, set if not zero.
                 if( iZ < 4 && iC > 0 ) {
                     // Oh! Col...Row calculation!! TODO: Use r/c in future. 
-                    int iV = R(iC,32) + iU + 1;
-                    int iB = M(iC,32) + iU;
+                    int iV = R(iC,32) + _iU + 1;
+                    int iB = M(iC,32) + _iU;
 
                     Attr = new Attribute( (byte)(iZ+0x40+1) ); // bright,paper:0,ink:z+1
                     At( iB, iV, 'D' );
@@ -426,8 +503,8 @@ namespace Play.Spectrum {
                     // Address 22528 marks the exact start of the attribute
                     // file (color RAM), located right at the top-left corner
                     // of the screen grid
-                    rgMummy[iZ-4] = iC+22528+iU*32+iU+1-1; // b/c basic 
-                    Poke( rgMummy[iZ-4], 71 ); // 0x47 bright bg:black, fg:white
+                    _rgMummy[iZ-4] = iC+22528+_iU*32+_iU+1-1; // b/c basic 
+                    Poke( _rgMummy[iZ-4], 71 ); // 0x47 bright bg:black, fg:white
                     
                     // SetAttr( iU, iU+iZ, 71 ); use this once we're running.
                     // Interesting that the UDG isn't set tho...
@@ -457,8 +534,8 @@ namespace Play.Spectrum {
             for( int iZ=0; iZ<5; ++iZ ) {
                 for( int iB=0; iB<4; ++iB ) {
                     int iC   = rgItems[iIndex++];
-                    int iCol = R( iC, 32 )+iU+1; // modulus, %
-                    int iRow = M( iC, 32 )+iU;
+                    int iCol = R( iC, 32 )+_iU+1; // modulus, %
+                    int iRow = M( iC, 32 )+_iU;
 
                     if( iC > 0 && iZ<4 ) { // line 790
                         Paper = 7;
@@ -483,7 +560,7 @@ namespace Play.Spectrum {
             int    iVal       = 113;
             string strMessage = @"H\tPOG\l\sM";
 
-            Explorer = new SKPointI( R(iVal,32)+iU+1, M(iVal,32)+iU );
+            Explorer = new SKPointI( R(iVal,32)+_iU+1, M(iVal,32)+_iU );
             PrevExpl = Explorer;
             //int iQ = iY;
             //int iW = iX;
@@ -506,7 +583,7 @@ namespace Play.Spectrum {
             Attr = new Attribute( 66 );
             int iHalf = rgTx.Count / 2;
             for( int i=0; i< rgTx.Count; ++i ) {
-                Speccy.PutChar( iU+16,iU+12-iHalf+i, rgTx[i] );
+                Speccy.PutChar( _iU+16,_iU+12-iHalf+i, rgTx[i] );
             }
         }
 
@@ -586,8 +663,8 @@ namespace Play.Spectrum {
             At( pntLoc.Y, pntLoc.X, cUDG );
         }
 
-        public void UdgAt( int iRow, int iCol, string strV ) {
-            foreach( char cV in strV ) {
+        public void At( int iRow, int iCol, string strUdg ) {
+            foreach( char cV in strUdg ) {
                 Speccy.PutUDGAt( iRow, iCol++, cV );
             }
         }
