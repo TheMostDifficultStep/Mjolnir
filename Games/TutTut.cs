@@ -145,7 +145,7 @@ namespace Play.Games {
             // check if explorer hit mummy.
             if( AttrAt( _pntExplorer) == ClrMummy ) {
                 //Do275(); Do255(); 
-                DrawExplorer225(); // Call 225
+                DrawExplorer225();
             }
             switch( LastKey ) {
                 case Keys.Up:
@@ -189,10 +189,13 @@ namespace Play.Games {
             }
 
             _fParity = !_fParity;
+
+            // This is counting down the air supply.
             _iS += 1;
             Poke( 23229-_iS, 16 );
             if( AttrAt( 23208 ) == 16 ) {
-                //State = GameState.Goto480;
+                // Game over...
+                State = GameState.Goto480;
             }
         }
 
@@ -271,7 +274,7 @@ namespace Play.Games {
                 throw new ArgumentOutOfRangeException();
 
             int iC = _pntExplorer.Y*32+
-                     _pntExplorer.X+22528-
+                     _pntExplorer.X+iAttrRam-
                      _rgMummy[iV].Pos;
             int iB = _rgMummy[iV].Pos;
 
@@ -480,7 +483,7 @@ namespace Play.Games {
                     // Address 22528 marks the exact start of the attribute
                     // file (color RAM), located right at the top-left corner
                     // of the screen grid
-                    _rgMummy[iZ-4].Pos = iC+22528+_iU*32+_iU+1-1; // b/c basic 
+                    _rgMummy[iZ-4].Pos = iC+iAttrRam+_iU*32+_iU+1-1; // b/c basic 
                     Poke( _rgMummy[iZ-4].Pos, 71 ); // 0x47 bright bg:black, fg:white
                     
                     // SetAttr( iU, iU+iZ, 71 ); use this once we're running.
@@ -602,7 +605,7 @@ namespace Play.Games {
         }
 
         protected void SetAttr( int iOffset, byte bAttr ) {
-            iOffset -= 22528;
+            iOffset -= iAttrRam;
             int iRow = iOffset / 32;
             int iCol = iOffset % 32;
 
@@ -610,7 +613,7 @@ namespace Play.Games {
         }
 
         protected byte AttrAt( int iOffset ) {
-            iOffset -= 22528;
+            iOffset -= iAttrRam;
             int iRow = iOffset / 32;
             int iCol = iOffset % 32;
 
@@ -623,7 +626,7 @@ namespace Play.Games {
 
         public byte AttrAt( SKPointI pntLoc ) {
             try {
-                return  Speccy.Screen[pntLoc.X, pntLoc.Y].Attr.Value;
+                return Speccy.Screen[pntLoc.X, pntLoc.Y].Attr.Value;
             } catch( IndexOutOfRangeException ) {
                 throw;
             }
@@ -631,7 +634,7 @@ namespace Play.Games {
 
         public byte AttrAt( int iRow, int iCol ) {
             try {
-                return  Speccy.Screen[iCol,iRow].Attr.Value;
+                return Speccy.Screen[iCol,iRow].Attr.Value;
             } catch( IndexOutOfRangeException ) {
                 throw;
             }
