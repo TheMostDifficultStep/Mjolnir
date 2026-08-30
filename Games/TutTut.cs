@@ -171,7 +171,9 @@ namespace Play.Games {
             {
                     MoveExplorer180( bC );
             }
-            _pntPrevExpl = _pntExplorer;
+            // if explorer moved then prev=expl
+            // if not we reset the explorer pos.
+            _pntExplorer = _pntPrevExpl;
 
             // Mummies move every other cycle.
             int iZ = _fParity ? 1 : 0; 
@@ -180,7 +182,7 @@ namespace Play.Games {
                 byte bScreen = AttrAt( iMummy );
 
                 if( bScreen != 0 && bScreen != ClrExpl ) {
-                    Do125( iV );
+                    SetMummyDirection125( iV );
                 } else {
                     // Clear old mummy pos and set new.
                     Poke( _rgMummy[iV].Pos, 0 );
@@ -220,6 +222,7 @@ namespace Play.Games {
                 return;
             }
             if( bC >64 && bC < 69 ) {
+                // grabbing keys I'll guess.
                 // k(c-64)=c
                 _iG += 10;
                 // 250
@@ -248,23 +251,28 @@ namespace Play.Games {
                 return;
             }
 
+            // This brings a bird up!
             Attr = new SpectrumAttrib( bC );
             At( iV, iB, 'E' );
             MoveExplorer225();
         }
 
+        /// <summary>
+        /// Gives us the left right motion of explorer,
+        /// and set's the previous position to the current.
+        /// </summary>
         protected void MoveExplorer225() {
             Attr = new SpectrumAttrib(0);
             int iC = R( _pntPrevExpl.X + _pntPrevExpl.Y, 2 );
 
             if( iC == 0 ) {
-                At( _pntPrevExpl.Y, _pntPrevExpl.X, 'B' );
+                At( _pntPrevExpl, 'B' );
                 Attr = new SpectrumAttrib(ClrExpl);
-                At( _pntExplorer.Y, _pntExplorer.X, 'I' );
+                At( _pntExplorer, 'I' );
             } else {
-                At( _pntPrevExpl.Y, _pntPrevExpl.X, 'C' );
+                At( _pntPrevExpl, 'C' );
                 Attr = new SpectrumAttrib(ClrExpl);
-                At( _pntExplorer.Y, _pntExplorer.X, 'H' );
+                At( _pntExplorer, 'H' );
             }
             _pntPrevExpl = _pntExplorer;
         }
@@ -273,7 +281,7 @@ namespace Play.Games {
         /// Set mummy direction.
         /// </summary>
         /// <param name="iV"></param>
-        protected void Do125( int iV ) {
+        protected void SetMummyDirection125( int iV ) {
             if( iV >= _rgMummy.Length )
                 throw new ArgumentOutOfRangeException();
 
