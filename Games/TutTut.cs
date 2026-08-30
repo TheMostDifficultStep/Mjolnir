@@ -65,12 +65,16 @@ namespace Play.Games {
                  int   _iG      = 0; // probably score.
                  bool  _fParity = false;
                  int   _iS      = 0;
+                 int   _iLevel  = 0; /* T in the prog */
         public GameState State {get; set;} = GameState.Playing; // menu1
         public Keys      LastKey { get; set;} = Keys.None;
         readonly Mummy[] _rgMummy = new Mummy[4];
         protected SKPointI _pntExplorer;
         protected SKPointI _pntPrevExpl;
 
+        const byte ClrMummy = 71;  // bg:black, fg:white
+        const byte ClrWall  = 114; // bg:red,   fg:yellow
+        const byte ClrExpl  = 69;  // bg black, fg:blue
 
         public DocumentTutTut( IPgBaseSite oBaseSite ) {
             _oBaseSite  = oBaseSite ?? throw new ArgumentNullException( nameof( oBaseSite ) );
@@ -132,7 +136,6 @@ namespace Play.Games {
                         break;
                 }
 
-                DrawExplorer225();
                 Speccy.Refresh();
                 yield return 250; // time in ms.
             }
@@ -140,7 +143,7 @@ namespace Play.Games {
 
         protected void Play() {
             // check if explorer hit mummy.
-            if( AttrAt( _pntExplorer) == (byte)71 ) {
+            if( AttrAt( _pntExplorer) == ClrMummy ) {
                 //Do275(); Do255(); 
                 DrawExplorer225(); // Call 225
             }
@@ -159,12 +162,13 @@ namespace Play.Games {
                     break;
             }
             LastKey = Keys.None;
+
             byte bC = AttrAt( _pntExplorer );
             if( _pntExplorer.Y - _pntPrevExpl.Y +
-                _pntExplorer.X - _pntPrevExpl.X > 0 &&
-                bC != (byte)114 ) 
+                _pntExplorer.X - _pntPrevExpl.X != 0 &&
+                bC != ClrWall ) 
             {
-                    Do180();
+                    MoveExplorer180( bC );
             }
             _pntPrevExpl = _pntExplorer;
 
@@ -173,7 +177,8 @@ namespace Play.Games {
             for(int iV=iZ; iV<iZ+2; iV+=2 ) {
                 int  iMummy  = _rgMummy[iV].Pos+_rgMummy[iV].Dir;
                 byte bScreen = AttrAt( iMummy );
-                if( bScreen != 0 && bScreen != 69 ) {
+
+                if( bScreen != 0 && bScreen != ClrExpl ) {
                     Do125( iV );
                 } else {
                     // Clear old mummy pos and set new.
@@ -191,7 +196,70 @@ namespace Play.Games {
             }
         }
 
-        protected void Do180() {
+        protected void MoveExplorer180( byte bC ) {
+            if( bC == 0 ) { // free space
+                MoveExplorer225();
+                return;
+            }
+            if( bC == ClrMummy ) {
+                // 275, 255
+                MoveExplorer225();
+                return;
+            }
+            if( bC == 6 ) {
+                _iG += 25;
+                // 255
+                MoveExplorer225();
+                return;
+            }
+            if( bC >64 && bC < 69 ) {
+                // k(c-64)=c
+                _iG += 10;
+                // 250
+                MoveExplorer225();
+                return;
+            }
+            if( bC == 16 ) {
+                return;
+            }
+            if( /* k(c-120) == 0 OR */ bC < 120 ) {
+                return;
+            }
+            if( bC == 124 ) {
+                _iLevel += 1;
+                _iG     += 24 * ( _iLevel + 1 ) - R( _iS * (_iLevel+1 ), 5 );
+                // 255
+                // 310
+                // goto 610
+                return;
+            }
+            // God knows what this is doing?
+            int iV = _pntExplorer.Y * 2 - _pntPrevExpl.Y;
+            int iB = _pntExplorer.X * 2 - _pntPrevExpl.X;
+
+            if( AttrAt( iV, iB ) != 0 ) {
+                return;
+            }
+
+            Attr = new SpectrumAttrib( bC );
+            At( iV, iB, 'E' );
+            MoveExplorer225();
+        }
+
+        protected void MoveExplorer225() {
+            Attr = new SpectrumAttrib(0);
+            int iC = R( _pntPrevExpl.X + _pntPrevExpl.Y, 2 );
+
+            if( iC == 0 ) {
+                At( _pntPrevExpl.Y, _pntPrevExpl.X, 'B' );
+                Attr = new SpectrumAttrib(ClrExpl);
+                At( _pntExplorer.Y, _pntExplorer.X, 'I' );
+            } else {
+                At( _pntPrevExpl.Y, _pntPrevExpl.X, 'C' );
+                Attr = new SpectrumAttrib(ClrExpl);
+                At( _pntExplorer.Y, _pntExplorer.X, 'H' );
+            }
+            _pntPrevExpl = _pntExplorer;
         }
 
         /// <summary>
@@ -286,7 +354,7 @@ namespace Play.Games {
 
             Attr = new SpectrumAttrib( 71 );
             At( _iU+17, _iU+14, "PKoOL:" ); // score
-            Attr = new SpectrumAttrib( 69 );
+            Attr = new SpectrumAttrib( ClrExpl );
             At( _iU+17, _iU+20, "000000" );
 
             DrawScore();
@@ -303,7 +371,7 @@ namespace Play.Games {
             if( _iG < 0 )
                 _iG = 0;
 
-            Attr = new SpectrumAttrib( 69 );
+            Attr = new SpectrumAttrib( ClrExpl );
             string strScore = _iG.ToString();
             At( _iU+17, _iU+26-strScore.Length, strScore );
         }
@@ -376,7 +444,7 @@ namespace Play.Games {
                     strC += strT[iOffs..(iOffs+3)]; // fill in 3 chars from T
                 }
                 // Load up that string on the screen.
-                Attr = new SpectrumAttrib( 114 );
+                Attr = new SpectrumAttrib( ClrWall );
                 At( iZ+_iU, _iU+1, strC );
 
                 // Now go back and add all the tunnles.
@@ -506,11 +574,11 @@ namespace Play.Games {
 
             if( C != 0 ) {
                 At( _pntPrevExpl, 'B' );
-                Attr.Value = 69;
+                Attr.Value = ClrExpl;
                 At( _pntExplorer, 'I' );
             } else {
                 At( _pntPrevExpl, 'C' );
-                Attr.Value = 69;
+                Attr.Value = ClrExpl;
                 At( _pntExplorer, 'H' );
             }
 
@@ -555,11 +623,20 @@ namespace Play.Games {
 
         public byte AttrAt( SKPointI pntLoc ) {
             try {
-                return  Speccy.Screen[pntLoc.Y,pntLoc.X].Attr.Value;
+                return  Speccy.Screen[pntLoc.X, pntLoc.Y].Attr.Value;
             } catch( IndexOutOfRangeException ) {
                 throw;
             }
         }
+
+        public byte AttrAt( int iRow, int iCol ) {
+            try {
+                return  Speccy.Screen[iCol,iRow].Attr.Value;
+            } catch( IndexOutOfRangeException ) {
+                throw;
+            }
+        }
+
 
         /// <summary>
         /// these can cause side effects on following attributes. Be careful!
