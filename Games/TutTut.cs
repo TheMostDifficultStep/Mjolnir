@@ -61,11 +61,12 @@ namespace Play.Games {
             set { Speccy.Attr = value; }
         }
 
-        const    int   _iU      = 3;
-                 int   _iG      = 0; // probably score.
-                 bool  _fParity = false;
-                 int   _iS      = 0;
-                 int   _iLevel  = 0; /* T in the prog */
+        const    int   _iU        = 3;
+                 int   _iG        = 0; // probably score.
+                 bool  _fParity   = false;
+                 int   _iAirCount = 0;
+                 int   _iS        = 0;
+                 int   _iLevel    = 0; /* T in the prog */
         public GameState State {get; set;} = GameState.Playing; // menu1
         public Keys      LastKey { get; set;} = Keys.None;
         readonly Mummy[] _rgMummy = new Mummy[4];
@@ -191,11 +192,14 @@ namespace Play.Games {
             _fParity = !_fParity;
 
             // This is counting down the air supply.
-            _iS += 1;
-            Poke( 23229-_iS, 16 );
-            if( AttrAt( 23208 ) == 16 ) {
-                // Game over...
-                State = GameState.Goto480;
+            if( --_iAirCount < 0 ) {
+                _iS += 1;
+                Poke( 23229-_iS, 16 );
+                if( AttrAt( 23208 ) == 16 ) {
+                    // Game over...
+                    State = GameState.Goto480;
+                }
+                _iAirCount = 50;
             }
         }
 
