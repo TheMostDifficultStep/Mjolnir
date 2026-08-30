@@ -7,6 +7,7 @@ using Play.Parse.Impl;
 
 namespace Monitor {
     public class BasicRow : Row {
+        public const int ColumnTarget = 3; // if line is target to a gosub
         public const int ColumnNumber = 0;
         public const int ColumnText   = 1;
         public BasicRow( int iBasicLine, ReadOnlySpan<char> rgText ) { 
@@ -16,6 +17,7 @@ namespace Monitor {
 
             _rgColumns[0] = new TextLine( iBasicLine, strLineNum );
             _rgColumns[1] = new TextLine( 1,          rgText.ToString() );
+            _rgColumns[2] = new TextLine( 0,          string.Empty );
         }
 
         public Line Text   => _rgColumns[ColumnText];

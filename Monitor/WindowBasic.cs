@@ -2,13 +2,11 @@
 using Play.Interfaces.Embedding;
 using Play.Parse;
 using Play.Rectangles;
+
 using SkiaSharp;
-using System.Data;
-using System.Data.Common;
+
 using System.Drawing;
-using System.Reflection;
 using System.Windows.Forms;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Monitor {
     public class WindowBasic :

@@ -3,7 +3,9 @@ using Play.ImageViewer;
 using Play.Interfaces.Embedding;
 
 using SkiaSharp;
+
 using System.Reflection;
+using System.Windows.Forms;
 using System.Xml;
 
 namespace Play.Spectrum {
@@ -23,6 +25,22 @@ namespace Play.Spectrum {
                 _fBright = ( value & 0x40 ) > 0;
                 _bPaper  = (byte)(( value & 0x38 ) >> 3 );
                 _bInk    = (byte)(value & 0x7 );
+            }
+
+            // might be best to store the byte and break
+            // it out when we set the value... :-/
+            get {
+                int iReturn = 0;
+
+                if( _fFlash )
+                    iReturn |= 0x80;
+                if( _fBright )
+                    iReturn |= 0x40;
+
+                iReturn |= _bPaper << 3;
+                iReturn |= _bInk;
+
+                return (byte)iReturn;
             }
         }
     }
@@ -228,6 +246,7 @@ namespace Play.Spectrum {
                         DrawImage( oCanvas, oPaint, skRect, oUdg );
                     }
                 }
+                Raise_ImageUpdated();
             } catch( Exception oEx ) {
                 Type[] rgErrors = [ 
                     typeof( NullReferenceException ),
@@ -239,6 +258,19 @@ namespace Play.Spectrum {
                 LogError( "Couldn't Refresh Screen." );
             }
         }
+    }
+
+    public enum GameState {
+        Menu1,
+        Menu200,
+        Menu400,
+        Playing,
+        Goto480
+    }
+
+    public class Mummy {
+        public int Pos { get; set; }
+        public int Dir { get; set; }
     }
 
     public class DocumentTutTut :
@@ -280,15 +312,23 @@ namespace Play.Spectrum {
 
         const    int   _iU      = 3;
                  int   _iG      = 0; // probably score.
-        readonly int[] _rgMummy = new int[4];
-        protected SKPointI Explorer { get; set; }
-        protected SKPointI PrevExpl { get; set; }
+                 bool  _fParity = false;
+                 int   _iS      = 0;
+        public GameState State {get; set;} = GameState.Playing; // menu1
+        public Keys      LastKey { get; set;} = Keys.None;
+        readonly Mummy[] _rgMummy = new Mummy[4];
+        protected SKPointI _pntExplorer;
+        protected SKPointI _pntPrevExpl;
 
 
         public DocumentTutTut( IPgBaseSite oBaseSite ) {
             _oBaseSite  = oBaseSite ?? throw new ArgumentNullException( nameof( oBaseSite ) );
             _oWorkPlace = ((IPgScheduler)Services).CreateWorkPlace() ?? throw new InvalidProgramException();
             Speccy      = new SpectrumGraphics( new DocSlot( this ), "std" );
+
+            for( int i = 0;i<_rgMummy.Length; ++i ) {
+                _rgMummy[i] = new Mummy();
+            }
         }
 
         public void Dispose() {
@@ -328,7 +368,125 @@ namespace Play.Spectrum {
 
             Speccy.Refresh();
 
+            _oWorkPlace.Queue( GameLoop(), 0 );
+
             return true;
+        }
+
+        public IEnumerator<int> GameLoop() {
+            while( true ) {
+                switch( State ) {
+                    case GameState.Playing:
+                        Play();
+                        break;
+                }
+
+                DrawExplorer225();
+                Speccy.Refresh();
+                yield return 250; // time in ms.
+            }
+        }
+
+        protected void Play() {
+            // check if explorer hit mummy.
+            if( AttrAt( _pntExplorer) == (byte)71 ) {
+                //Do275(); Do255(); 
+                DrawExplorer225(); // Call 225
+            }
+            switch( LastKey ) {
+                case Keys.Up:
+                    _pntExplorer.Y -= 1;
+                    break;
+                case Keys.Down:
+                    _pntExplorer.Y += 1;
+                    break;
+                case Keys.Left:
+                    _pntExplorer.X -= 1;
+                    break;
+                case Keys.Right:
+                    _pntExplorer.X += 1;
+                    break;
+            }
+            LastKey = Keys.None;
+            byte bC = AttrAt( _pntExplorer );
+            if( _pntExplorer.Y - _pntPrevExpl.Y +
+                _pntExplorer.X - _pntPrevExpl.X > 0 &&
+                bC != (byte)114 ) 
+            {
+                    Do180();
+            }
+            _pntPrevExpl = _pntExplorer;
+
+            // Mummies move every other cycle.
+            int iZ = _fParity ? 1 : 0; 
+            for(int iV=iZ; iV<iZ+2; iV+=2 ) {
+                int  iMummy  = _rgMummy[iV].Pos+_rgMummy[iV].Dir;
+                byte bScreen = AttrAt( iMummy );
+                if( bScreen != 0 && bScreen != 69 ) {
+                    Do125( iV );
+                } else {
+                    // Clear old mummy pos and set new.
+                    Poke( _rgMummy[iV].Pos, 0 );
+                    _rgMummy[iV].Pos = iMummy;
+                    Poke( iMummy, 71 );
+                }
+            }
+
+            _fParity = !_fParity;
+            _iS += 1;
+            Poke( 23229-_iS, 16 );
+            if( AttrAt( 23208 ) == 16 ) {
+                //State = GameState.Goto480;
+            }
+        }
+
+        protected void Do180() {
+        }
+
+        /// <summary>
+        /// Set mummy direction.
+        /// </summary>
+        /// <param name="iV"></param>
+        protected void Do125( int iV ) {
+            if( iV >= _rgMummy.Length )
+                throw new ArgumentOutOfRangeException();
+
+            int iC = _pntExplorer.Y*32+
+                     _pntExplorer.X+22528-
+                     _rgMummy[iV].Pos;
+            int iB = _rgMummy[iV].Pos;
+
+            if( iC > 16 && AttrAt( iB+32) == 0) {
+                _rgMummy[iV].Dir = 32;
+                return;
+            }
+            if( iC > 0 && AttrAt( iB+1 ) == 0 ) {
+                _rgMummy[iV].Dir = 1;
+                return;
+            }
+            if( iC < -16 && AttrAt( iB-32 ) == 0 ) {
+                _rgMummy[iV].Dir = -32;
+                return;
+            }
+            if( iC < 0 && AttrAt( iB - 1 ) == 0 ) {
+                _rgMummy[iV].Dir = -1;
+                return;
+            }
+
+            iB = _rgMummy[iV].Dir;
+            if( iB == 1 ) {
+                _rgMummy[iV].Dir = -1;
+                return;
+            }
+            if( iB == -1 ) {
+                _rgMummy[iV].Dir = -32;
+                return;
+            }
+            if( iB == -32 ) {
+                _rgMummy[iV].Dir = 32;
+                return;
+            }
+            _rgMummy[iV].Dir = 1;
         }
 
         /// <summary>
@@ -503,8 +661,8 @@ namespace Play.Spectrum {
                     // Address 22528 marks the exact start of the attribute
                     // file (color RAM), located right at the top-left corner
                     // of the screen grid
-                    _rgMummy[iZ-4] = iC+22528+_iU*32+_iU+1-1; // b/c basic 
-                    Poke( _rgMummy[iZ-4], 71 ); // 0x47 bright bg:black, fg:white
+                    _rgMummy[iZ-4].Pos = iC+22528+_iU*32+_iU+1-1; // b/c basic 
+                    Poke( _rgMummy[iZ-4].Pos, 71 ); // 0x47 bright bg:black, fg:white
                     
                     // SetAttr( iU, iU+iZ, 71 ); use this once we're running.
                     // Interesting that the UDG isn't set tho...
@@ -560,12 +718,12 @@ namespace Play.Spectrum {
             int    iVal       = 113;
             string strMessage = @"H\tPOG\l\sM";
 
-            Explorer = new SKPointI( R(iVal,32)+_iU+1, M(iVal,32)+_iU );
-            PrevExpl = Explorer;
+            _pntExplorer = new SKPointI( R(iVal,32)+_iU+1, M(iVal,32)+_iU );
+            _pntPrevExpl = _pntExplorer;
             //int iQ = iY;
             //int iW = iX;
 
-            DrawExplorer(); // Call 225
+            DrawExplorer225(); // Call 225
 
             // This is the first place we have a mixed string of UDG's
             // and standard ASCII... I think!
@@ -587,25 +745,25 @@ namespace Play.Spectrum {
             }
         }
 
-        protected void DrawExplorer( ) {
+        protected void DrawExplorer225( ) {
             Attr = new Attribute(0);
 
             // I don't think I need to keep this persistant, it's
             // just being used to determine the direction the char
             // is going.
-            int C = R( PrevExpl.X + PrevExpl.Y, 2 );
+            int C = R( _pntPrevExpl.X + _pntPrevExpl.Y, 2 );
 
             if( C != 0 ) {
-                At( PrevExpl, 'B' );
+                At( _pntPrevExpl, 'B' );
                 Attr.Value = 69;
-                At( Explorer, 'I' );
+                At( _pntExplorer, 'I' );
             } else {
-                At( PrevExpl, 'C' );
+                At( _pntPrevExpl, 'C' );
                 Attr.Value = 69;
-                At( Explorer, 'H' );
+                At( _pntExplorer, 'H' );
             }
 
-            PrevExpl = Explorer;
+            _pntPrevExpl = _pntExplorer;
         }
 
         const int iAttrRam = 22528; // on the speccy.
@@ -630,6 +788,26 @@ namespace Play.Spectrum {
             int iCol = iOffset % 32;
 
             SetAttr( iRow, iCol, bAttr );
+        }
+
+        protected byte AttrAt( int iOffset ) {
+            iOffset -= 22528;
+            int iRow = iOffset / 32;
+            int iCol = iOffset % 32;
+
+            try {
+                return Speccy.Screen[iCol,iRow].Attr.Value;
+            } catch( IndexOutOfRangeException ) {
+                throw;
+            }
+        }
+
+        public byte AttrAt( SKPointI pntLoc ) {
+            try {
+                return  Speccy.Screen[pntLoc.Y,pntLoc.X].Attr.Value;
+            } catch( IndexOutOfRangeException ) {
+                throw;
+            }
         }
 
         /// <summary>
@@ -683,7 +861,7 @@ namespace Play.Spectrum {
         }
     } // End doc
 
-    public class ViewSpeccy :
+    public class ViewTut :
         ViewSurface,
         IPgCommandView,
         IPgSave<XmlDocumentFragment>,
@@ -693,7 +871,7 @@ namespace Play.Spectrum {
 
         DocumentTutTut Tut { get; }
 
-        public string Banner => "Speccy ZX";
+        public string Banner => "Tut Tut";
 
         public SKImage? Icon { get; protected set; }
 
@@ -701,7 +879,7 @@ namespace Play.Spectrum {
 
         public bool IsDirty => false;
 
-        public ViewSpeccy(IPgViewSite oBaseSite, DocumentTutTut oTut ) : 
+        public ViewTut(IPgViewSite oBaseSite, DocumentTutTut oTut ) : 
             base(oBaseSite, oTut.Speccy ) 
         {
             FilterMode = SKFilterMode.Nearest;
@@ -728,6 +906,20 @@ namespace Play.Spectrum {
 
         public bool Load(XmlElement oStream) {
             return true;
+        }
+
+        protected override void OnKeyDown(KeyEventArgs e) {
+            switch( e.KeyCode ) {
+                case Keys.Left:
+                case Keys.Right:
+                case Keys.Up:
+                case Keys.Down:
+                    Tut.LastKey = e.KeyCode;
+                    break;
+                case Keys.R:
+                    Tut.State = GameState.Goto480;
+                    break;
+            }
         }
     }
 }

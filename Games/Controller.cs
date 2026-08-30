@@ -30,7 +30,7 @@ namespace Play.Games {
             if( oDocument is DocumentTutTut oTutDoc ) {
 			    try {
                     // Service the GUID.Empty case too.
-                    return new ViewSpeccy( oViewSite, oTutDoc );
+                    return new ViewTut( oViewSite, oTutDoc );
                 } catch( Exception oEx ) {
                     Type[] rgErrors = { typeof( NullReferenceException ),
                                         typeof( InvalidCastException ),
@@ -45,7 +45,7 @@ namespace Play.Games {
         }
 
         public override IEnumerator<IPgViewType> GetEnumerator() {
-            yield return new ViewType( "Game Display", ViewSpeccy.GUID );
+            yield return new ViewType( "Game Display", ViewTut.GUID );
         }
     }
 }
