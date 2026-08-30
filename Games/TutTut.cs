@@ -120,7 +120,7 @@ namespace Play.Games {
             LoadExplorer(0);
             DrawBorder();
 
-            DrawStatus();
+            DrawStatus550();
 
             Speccy.Refresh();
 
@@ -354,25 +354,25 @@ namespace Play.Games {
         /// my routine won't print mixed udg's AND text yet.
         /// This is line 550
         /// </summary>
-        public void DrawStatus() {
+        public void DrawStatus550() {
             Attr = new SpectrumAttrib( 71 );
             At( _iU-3,_iU+9, "QSQ-QSQ" );   // Tut-Tut, but '-' broken >_K;;
 
             At( _iU+17, _iU, "MLTP:" );     // keys...
-            //Attr = new Attribute( 0x0 );
+            //Attr = new SpectrumAttrib( 0x0 );
             //At( _iU+17, _iU+4, "DDDD" );    // CLear keys. Probably uneeded
             // Set the keys.
-            for( int iZ=1; iZ < 5; ++iZ ) {
-                Attr = new SpectrumAttrib( (byte)iZ );
-                At( _iU+17, _iU+4+iZ, "D" );
-            }
 
             Attr = new SpectrumAttrib( 71 );
             At( _iU+17, _iU+14, "PKoOL:" ); // score
             Attr = new SpectrumAttrib( ClrExpl );
             At( _iU+17, _iU+20, "000000" );
+            for( int iZ=1; iZ < 5; ++iZ ) {
+                Attr = new SpectrumAttrib( (byte)iZ );
+                At( _iU+17, _iU+4+iZ, "D" );
+            }
 
-            DrawScore();
+            DrawScore255();
 
             Attr = new SpectrumAttrib( 71 );
             At( _iU+18, _iU, "JiO :" );     // Air
@@ -382,7 +382,7 @@ namespace Play.Games {
             }
         }
 
-        protected void DrawScore() {
+        protected void DrawScore255() {
             if( _iG < 0 )
                 _iG = 0;
 
