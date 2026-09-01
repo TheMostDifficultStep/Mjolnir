@@ -1,4 +1,5 @@
 ﻿using Play.Drawing;
+using Play.Edit;
 using Play.ImageViewer;
 using Play.Interfaces.Embedding;
 using Play.Spectrum;
@@ -32,10 +33,14 @@ namespace Play.Games {
     {
         protected readonly IPgBaseSite       _oBaseSite;
         protected readonly IPgRoundRobinWork _oWorkPlace; 
+        protected readonly IPgStandardUI2    _oStdUI;
+
         public SpectrumGraphics Speccy { get; }
         public IPgParent Parentage => _oBaseSite.Host;
         public IPgParent Services  => Parentage.Services;
         public bool      IsDirty   => false;
+        protected IPgFontRender Font { get; }
+
 
         public class DocSlot :
             IPgBaseSite
@@ -77,14 +82,35 @@ namespace Play.Games {
         const byte ClrWall  = 114; // bg:red,   fg:yellow
         const byte ClrExpl  = 69;  // bg black, fg:blue
 
+        readonly uint _uiFont = 0;
+
+        /// <summary>
+        /// Calculate the remainder (modulus)
+        /// </summary>
+        public static int R( int a, int b ) {
+            return a - (a/b)*b;
+        }
+
+        /// <summary>
+        /// Calculate the row...
+        /// </summary>
+        public static int M( int a, int b ) {
+            return a/b;
+        }
+
         public DocumentTutTut( IPgBaseSite oBaseSite ) {
             _oBaseSite  = oBaseSite ?? throw new ArgumentNullException( nameof( oBaseSite ) );
             _oWorkPlace = ((IPgScheduler)Services).CreateWorkPlace() ?? throw new InvalidProgramException();
             Speccy      = new SpectrumGraphics( new DocSlot( this ), "std" );
+ 			_oStdUI     = _oBaseSite.Host.Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
 
             for( int i = 0;i<_rgMummy.Length; ++i ) {
                 _rgMummy[i] = new Mummy();
             }
+
+            // Sort of overkill, using to generate the numbers at present.
+            _uiFont = _oStdUI.FontCacheNew  ( _oStdUI.StdFaceAt( StdUIFaces.Retro ), 6, new SKPoint( 96, 96 ) );
+            Font    = _oStdUI.FontRendererAt( _uiFont );
         }
 
         public void Dispose() {
@@ -112,7 +138,8 @@ namespace Play.Games {
         }
 
         protected virtual bool Initialize() {
-            InitUDG  ();
+            LoadFont ();
+            LoadUDG  ();  // We override some of the font.
 
             LoadGrid (0);
             LoadKandM(0);
@@ -129,6 +156,355 @@ namespace Play.Games {
             return true;
         }
 
+        /// <summary>
+        /// Load up the numbers. The lower case characters are not ansii,
+        /// in the PressStart2P-Regular font, or might even be completely 
+        /// missing. Haven't checked.
+        /// </summary>
+        /// <remarks>
+        /// Need to blit opaque bg and then image will set that to 0XFF
+        /// for the bit to be seen.
+        /// </remarks>
+        protected bool LoadFont() {
+            using SKSurface oSurface = SKSurface.Create( new SKImageInfo( 8, 8, SKColorType.Bgra8888 ) );
+            using SKPaint   oPaint   = new SKPaint() { Color = new SKColor( 0, 0, 0, 0X0 ) };
+
+            SKCanvas oCanvas = oSurface.Canvas;
+
+            for( uint uI = 0x30; uI < 0x40; ++uI ) {
+                IPgGlyph oGlyph = Font.GetGlyph( uI );
+
+                oCanvas.DrawRect ( new SKRect( 0, 0, 8, 8 ), oPaint );
+                oCanvas.DrawImage( oGlyph.Image, 0, 7 - oGlyph.Image.Height + 1 );
+
+                Speccy.Images[uI] = oSurface.Snapshot();
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Read in all the user defined characters. Line 645;
+        /// </summary>
+        public void LoadUDG() {
+            byte[][] rgUdg = [
+                [127,65, 91, 67, 109, 111, 127, 0], // 'A'
+                [24, 216, 76, 62, 7, 12, 20, 50],   // 'B'...
+                [24, 24, 18, 126, 176, 24, 52, 38],
+                [60, 36, 44, 60, 24, 16, 28, 28],
+                [127, 103, 71, 107, 109, 115, 127, 0],
+                [127, 99, 93, 93, 99, 65, 127, 0],
+                [0, 0, 24, 36, 86, 60, 24, 0],
+                [24, 60, 24, 72, 126, 24, 44, 32],
+                [24, 60, 24, 19, 126, 24, 52, 4],
+                [0, 8, 20, 20, 36, 34, 66, 78],
+                [0, 126, 68, 64, 64, 64, 70, 126],
+                [0, 126, 68, 32, 28, 32, 70, 126],
+                [0, 78, 36, 40, 48, 40, 36, 66],
+                [64, 48, 16, 16, 16, 16, 48, 62],
+                [0, 126, 66, 66, 94, 80, 76, 66],
+                [0, 126, 68, 32, 16, 8, 100, 126],
+                [0, 126, 20, 16, 16, 16, 48, 56],
+                [4, 66, 68, 36, 36, 40, 40, 16],
+                [4, 66, 68, 68, 68, 68, 68, 124],
+                [4, 66, 36, 24, 16, 16, 48, 56],
+                [204, 102, 51, 153, 204, 102, 51, 153]
+            ];
+
+            Speccy.InitNew();
+
+            for( int i=0; i<rgUdg.GetLength(0); ++i ) {
+                Speccy.SetGraphic2( i+0x90, rgUdg[i] );
+            }
+
+            // These are missing characters from the retro
+            // font I'm using. If I add numbers I can even
+            // skip the LoadFont() call.
+            byte[] rgColon = [0, 0, 24, 24, 0, 24, 24, 0];
+            Speccy.SetGraphic2( ':', rgColon );
+            byte[] rgDash  = [0, 0, 0, 0, 60, 0, 0, 0];
+            Speccy.SetGraphic2( '-', rgDash );
+            byte[] rgLwrO  = [0, 124, 134, 130, 130, 130, 194, 124];
+            Speccy.SetGraphic2( 'o', rgLwrO );
+            byte[] rgLwrH  = [0, 70, 70, 66, 126, 66, 98, 98];
+            Speccy.SetGraphic2( 'h', rgLwrH );
+            byte[] rgLwrF  = [0, 60, 68, 64, 120, 64, 64, 96];
+            Speccy.SetGraphic2( 'f', rgLwrF );
+            byte[] rgLwrI  = [0, 124, 20, 16, 16, 16, 16, 124];
+            Speccy.SetGraphic2( 'i', rgLwrI );
+        }
+
+        readonly string[] _rgGrid = [
+            "44444444","67777778","45444544","45444544","45444444",
+            "67777778","44444544","44444544","44444544","67777778",
+            "45444444","45444444","45444544","67777778","44444444" ];
+
+
+        protected void LoadGrid( int _ ) {
+            string   strT    = "BABAAABBBAA";
+            // Fill in 15 rows where each row is iZ. Line 690
+            for( int iZ = 0; iZ < _rgGrid.Length ; iZ++ ) {
+                string strC = string.Empty;
+                string strZ = _rgGrid[iZ];
+
+                // Create a 24 character long string.
+                for( int iC=0; iC < strZ.Length; ++iC ) { 
+                    int iOffs = strZ[iC] - '0' - 1; // b/c because basic...
+                    strC += strT[iOffs..(iOffs+3)]; // fill in 3 chars from T
+                }
+                // Load up that string on the screen.
+                Attr = new SpectrumAttrib( ClrWall );
+                UdgAt( iZ+_iU, _iU+1, strC );
+
+                // Now go back and add all the tunnles.
+                Attr = new SpectrumAttrib(0);
+                for( int iV = 0; iV < strC.Length; ++iV ) {
+                    if( strC[iV] == 'B' ) {
+                        char cTmp = (char)( 0x91 + R(iV + iZ, 2) );
+
+                        UdgAt(iZ + _iU, _iU + iV + 1, cTmp);
+                    }
+                }
+            }
+        }
+
+        protected void LoadKandM( int _ ) {
+            int[] rgKeyMum = [
+                0, 0, 0, 438, 50, 167, 300, 418
+            ]; // 0-3 keys, 4-7 mummies
+            Attr = new SpectrumAttrib(0); // line 750
+            for( int iZ =0; iZ < 8; ++iZ ) {
+                int iC = rgKeyMum[iZ];
+                // First 4 are keys, set if not zero.
+                if( iZ < 4 && iC > 0 ) {
+                    // Oh! Col...Row calculation!! TODO: Use r/c in future. 
+                    int iV = R(iC,32) + _iU + 1;
+                    int iB = M(iC,32) + _iU;
+
+                    Attr = new SpectrumAttrib( (byte)(iZ+0x40+1) ); // bright,paper:0,ink:z+1
+                    UdgAt( iB, iV, 'D' );
+                }
+                // Next 4 are mummies. 2d pos encoded in one number!!
+                if( iZ > 3 ) {
+                    // Address 22528 marks the exact start of the attribute
+                    // file (color RAM), located right at the top-left corner
+                    // of the screen grid
+                    _rgMummy[iZ-4].Pos = iC+iAttrRam+_iU*32+_iU+1-1; // b/c basic 
+                    Poke( _rgMummy[iZ-4].Pos, 71 ); // 0x47 bright bg:black, fg:white
+                    
+                    // SetAttr( iU, iU+iZ, 71 ); use this once we're running.
+                    // Interesting that the UDG isn't set tho...
+                }
+            }
+
+        }
+
+        /// <summary>
+        /// Adds the Exits, Gems, and other goodies..
+        /// </summary>
+        /// <param name="_"></param>
+        protected void LoadStuff( int _ ) {
+            int[] rgItems = [
+                0,  0,   0,   0,
+                0,  0,   0,   0,
+                0,  0,   0,   0,
+               33,  0,   0,   0,  // z=3, exits 
+               54, 161, 310, 417  // z=4, gems
+            ];
+
+            Attr   = new SpectrumAttrib(0);
+            Bright = true;
+
+            int iIndex = 0;
+
+            for( int iZ=0; iZ<5; ++iZ ) {
+                for( int iB=0; iB<4; ++iB ) {
+                    int iC   = rgItems[iIndex++];
+                    int iCol = R( iC, 32 )+_iU+1; // modulus, %
+                    int iRow = M( iC, 32 )+_iU;
+
+                    if( iC > 0 && iZ<4 ) { // line 790
+                        Paper = 7;
+                        Ink   = (byte)(iZ+1); //+1 b/c basic.
+
+                        UdgAt( iRow, iCol, 'E' );
+
+                        if( iZ == 3 ) {
+                            UdgAt( iRow, iCol, 'F' ); // Green tv/white bg
+                        }
+                    }
+                    if( iC > 0 && iZ > 3 ) {
+                        Attr = new SpectrumAttrib( 6 );
+
+                        UdgAt( iRow, iCol, 'G' );
+                    }
+                }
+            }
+        }
+
+        protected void LoadExplorer( int _ ) {
+            int    iVal       = 113;
+            string strMessage = @"LTL of PSQLMh";
+
+            _pntExplorer = new SKPointI( R(iVal,32)+_iU+1, M(iVal,32)+_iU );
+            _pntPrevExpl = _pntExplorer;
+            //int iQ = iY;
+            //int iW = iX;
+
+            DrawExplorer225(); // Call 225
+
+            // This is the first place we have a mixed string of UDG's
+            // and standard ASCII... I think!
+            List<char> rgTx = new List<char>();
+            for( int i=0; i< strMessage.Length; ++i ) {
+                if( char.IsUpper( strMessage[i] ) ) {
+                    rgTx.Add( (char)( 0x90 + strMessage[i] - 'A' ) );
+                } else {
+                    rgTx.Add( strMessage[i] );
+                }
+            }
+
+            // Put something in the middle of the screen.
+            Attr = new SpectrumAttrib( 66 );
+            int iHalf = rgTx.Count / 2;
+            for( int i=0; i< rgTx.Count; ++i ) {
+                Speccy.PutChrAt( _iU+16,_iU+12-iHalf+i, rgTx[i] );
+            }
+        }
+
+        protected void DrawExplorer225( ) {
+            Attr = new SpectrumAttrib(0);
+
+            // I don't think I need to keep this persistant, it's
+            // just being used to determine the direction the char
+            // is going.
+            int C = R( _pntPrevExpl.X + _pntPrevExpl.Y, 2 );
+
+            if( C != 0 ) {
+                UdgAt( _pntPrevExpl, 'B' );
+                Attr.Value = ClrExpl;
+                UdgAt( _pntExplorer, 'I' );
+            } else {
+                UdgAt( _pntPrevExpl, 'C' );
+                Attr.Value = ClrExpl;
+                UdgAt( _pntExplorer, 'H' );
+            }
+
+            _pntPrevExpl = _pntExplorer;
+        }
+
+        const int iAttrRam = 22528; // on the speccy.
+
+        protected void Poke( int iAddr, byte bValue ) {
+            if( iAddr >= iAttrRam && iAddr < iAttrRam + 32*24 ) {
+                SetAttr( iAddr, bValue );
+            } else {
+                throw new ArgumentOutOfRangeException();
+            }
+        }
+
+        protected void SetAttr( int iRow, int iCol, byte iAttr ) {
+            ScreenBlock oBlock = Speccy.Screen[iCol,iRow];
+
+            oBlock.Attr = new SpectrumAttrib( iAttr );
+        }
+
+        protected void SetAttr( int iOffset, byte bAttr ) {
+            iOffset -= iAttrRam;
+            int iRow = iOffset / 32;
+            int iCol = iOffset % 32;
+
+            SetAttr( iRow, iCol, bAttr );
+        }
+
+        protected byte AttrAt( int iOffset ) {
+            iOffset -= iAttrRam;
+            int iRow = iOffset / 32;
+            int iCol = iOffset % 32;
+
+            try {
+                return Speccy.Screen[iCol,iRow].Attr.Value;
+            } catch( IndexOutOfRangeException ) {
+                throw;
+            }
+        }
+
+        public byte AttrAt( SKPointI pntLoc ) {
+            try {
+                return Speccy.Screen[pntLoc.X, pntLoc.Y].Attr.Value;
+            } catch( IndexOutOfRangeException ) {
+                throw;
+            }
+        }
+
+        public byte AttrAt( int iRow, int iCol ) {
+            try {
+                return Speccy.Screen[iCol,iRow].Attr.Value;
+            } catch( IndexOutOfRangeException ) {
+                throw;
+            }
+        }
+
+
+        /// <summary>
+        /// these can cause side effects on following attributes. Be careful!
+        /// Make sure you assign a new attribute if you don't want following
+        /// assignments to affect the current attribute.
+        /// </summary>
+        protected bool Bright {
+            set { 
+                Speccy.Attr._fBright = value;
+            }
+        }
+
+        protected byte Paper {
+            set { 
+                Speccy.Attr._bPaper = value;
+            }
+        }
+
+        protected byte Ink {
+            set { 
+                Speccy.Attr._bInk = value;
+            }
+        }
+
+        public void UdgAt( int iRow, int iCol, char cUDG ) {
+            Speccy.PutUDGAt( iRow, iCol, cUDG );
+        }
+
+        protected void UdgAt( SKPointI pntLoc, char cUDG ) {
+            UdgAt( pntLoc.Y, pntLoc.X, cUDG );
+        }
+
+        public void UdgAt( int iRow, int iCol, string strUdg ) {
+            foreach( char cV in strUdg ) {
+                if( cV >= 0x41 && cV <= 0x5a ) {
+                    Speccy.PutUDGAt( iRow, iCol++, cV );
+                } else {
+                    Speccy.PutChrAt( iRow, iCol++, cV );
+                }
+            }
+        }
+
+        public void ChrAt( int iRow, int iCol, string strChar ) {
+            foreach( char cV in strChar ) {
+                Speccy.PutChrAt( iRow, iCol++, cV );
+            }
+        }
+
+        /// <summary>
+        /// Let's take a look at all the UDG's.
+        /// </summary>
+        public void TestGrid() {
+            for( int iRow=0; iRow<24; ++iRow ) {
+                for( int iCol=0; iCol<32; ++iCol ) {
+                    UdgAt( iRow, iCol, (char)( iCol%21 + 'A' ) );
+                }
+            }
+
+            Speccy.Refresh();
+        }
         public IEnumerator<int> GameLoop() {
             while( true ) {
                 switch( State ) {
@@ -253,7 +629,7 @@ namespace Play.Games {
 
             // This brings a bird up!
             Attr = new SpectrumAttrib( bC );
-            At( iV, iB, 'E' );
+            UdgAt( iV, iB, 'E' );
             MoveExplorer225();
         }
 
@@ -266,13 +642,13 @@ namespace Play.Games {
             int iC = R( _pntPrevExpl.X + _pntPrevExpl.Y, 2 );
 
             if( iC == 0 ) {
-                At( _pntPrevExpl, 'B' );
+                UdgAt( _pntPrevExpl, 'B' );
                 Attr = new SpectrumAttrib(ClrExpl);
-                At( _pntExplorer, 'I' );
+                UdgAt( _pntExplorer, 'I' );
             } else {
-                At( _pntPrevExpl, 'C' );
+                UdgAt( _pntPrevExpl, 'C' );
                 Attr = new SpectrumAttrib(ClrExpl);
-                At( _pntExplorer, 'H' );
+                UdgAt( _pntExplorer, 'H' );
             }
             _pntPrevExpl = _pntExplorer;
         }
@@ -329,23 +705,23 @@ namespace Play.Games {
         public void DrawBorder() {
             Attr = new SpectrumAttrib( 0x10 ); // bg:?, fg:black
             // Top border...
-            At( _iU-1, _iU, 'M' );
+            UdgAt( _iU-1, _iU, 'M' );
             for( int iCol=1+_iU; iCol <25+_iU; ++iCol ) {
-                At( _iU-1, iCol, 'U' );
+                UdgAt( _iU-1, iCol, 'U' );
             }
-            At( _iU-1, _iU+25, 'Q' );
+            UdgAt( _iU-1, _iU+25, 'Q' );
 
             // Bottom border...
-            At( _iU+15, _iU, 'Q' );
+            UdgAt( _iU+15, _iU, 'Q' );
             for( int iCol=1+_iU; iCol <25+_iU; ++iCol ) {
-                At( _iU+15, iCol, 'U' );
+                UdgAt( _iU+15, iCol, 'U' );
             }
-            At( _iU+15, _iU+25, 'M' );
+            UdgAt( _iU+15, _iU+25, 'M' );
 
             // Verticals...
             for( int iRow=_iU; iRow < 15+_iU; ++iRow ) {
-                At( iRow, _iU,    'U' );
-                At( iRow, 25+_iU, 'U' );
+                UdgAt( iRow, _iU,    'U' );
+                UdgAt( iRow, 25+_iU, 'U' );
             }
         }
 
@@ -356,29 +732,29 @@ namespace Play.Games {
         /// </summary>
         public void DrawStatus550() {
             Attr = new SpectrumAttrib( 71 );
-            At( _iU-3,_iU+9, "QSQ-QSQ" );   // Tut-Tut, but '-' broken >_K;;
+            UdgAt( _iU-3,_iU+9, "QSQ-QSQ" );   // Tut-Tut, but '-' broken >_K;;
 
-            At( _iU+17, _iU, "MLTP:" );     // keys...
+            UdgAt( _iU+17, _iU, "MLTP:" );     // keys...
             //Attr = new SpectrumAttrib( 0x0 );
             //At( _iU+17, _iU+4, "DDDD" );    // CLear keys. Probably uneeded
             // Set the keys.
 
             Attr = new SpectrumAttrib( 71 );
-            At( _iU+17, _iU+14, "PKoOL:" ); // score
+            UdgAt( _iU+17, _iU+14, "PKoOL:" ); // score
             Attr = new SpectrumAttrib( ClrExpl );
-            At( _iU+17, _iU+20, "000000" );
+            ChrAt( _iU+17, _iU+20, "000000" );
             for( int iZ=1; iZ < 5; ++iZ ) {
                 Attr = new SpectrumAttrib( (byte)iZ );
-                At( _iU+17, _iU+4+iZ, "D" );
+                UdgAt( _iU+17, _iU+4+iZ, "D" );
             }
 
             DrawScore255();
 
             Attr = new SpectrumAttrib( 71 );
-            At( _iU+18, _iU, "JiO :" );     // Air
+            UdgAt( _iU+18, _iU, "JiO :" );     // Air
             Attr = new SpectrumAttrib( 0x85 );
             for( int iAir=0; iAir < 21; ++iAir ) {
-                At( _iU+18, _iU+iAir+5, "U" );
+                UdgAt( _iU+18, _iU+iAir+5, "U" );
             }
         }
 
@@ -388,320 +764,9 @@ namespace Play.Games {
 
             Attr = new SpectrumAttrib( ClrExpl );
             string strScore = _iG.ToString();
-            At( _iU+17, _iU+26-strScore.Length, strScore );
+            UdgAt( _iU+17, _iU+26-strScore.Length, strScore );
         }
 
-        /// <summary>
-        /// Read in all the user defined characters. Line 645;
-        /// </summary>
-        public void InitUDG() {
-            byte[][] rgUdg = [
-                [127,65, 91, 67, 109, 111, 127, 0], // 'A'
-                [24, 216, 76, 62, 7, 12, 20, 50],   // 'B'...
-                [24, 24, 18, 126, 176, 24, 52, 38],
-                [60, 36, 44, 60, 24, 16, 28, 28],
-                [127, 103, 71, 107, 109, 115, 127, 0],
-                [127, 99, 93, 93, 99, 65, 127, 0],
-                [0, 0, 24, 36, 86, 60, 24, 0],
-                [24, 60, 24, 72, 126, 24, 44, 32],
-                [24, 60, 24, 19, 126, 24, 52, 4],
-                [0, 8, 20, 20, 36, 34, 66, 78],
-                [0, 126, 68, 64, 64, 64, 70, 126],
-                [0, 126, 68, 32, 28, 32, 70, 126],
-                [0, 78, 36, 40, 48, 40, 36, 66],
-                [64, 48, 16, 16, 16, 16, 48, 62],
-                [0, 126, 66, 66, 94, 80, 76, 66],
-                [0, 126, 68, 32, 16, 8, 100, 126],
-                [0, 126, 20, 16, 16, 16, 48, 56],
-                [4, 66, 68, 36, 36, 40, 40, 16],
-                [4, 66, 68, 68, 68, 68, 68, 124],
-                [4, 66, 36, 24, 16, 16, 48, 56],
-                [204, 102, 51, 153, 204, 102, 51, 153]
-            ];
-
-            Speccy.InitNew();
-
-            for( int i=0; i<rgUdg.GetLength(0); ++i ) {
-                Speccy.SetGraphic2( i+0x90, rgUdg[i] );
-            }
-        }
-
-        /// <summary>
-        /// Calculate the remainder (modulus)
-        /// </summary>
-        public static int R( int a, int b ) {
-            return a - (a/b)*b;
-        }
-
-        /// <summary>
-        /// Calculate the row...
-        /// </summary>
-        public static int M( int a, int b ) {
-            return a/b;
-        }
-
-        readonly string[] _rgGrid = [
-            "44444444","67777778","45444544","45444544","45444444",
-            "67777778","44444544","44444544","44444544","67777778",
-            "45444444","45444444","45444544","67777778","44444444" ];
-
-
-        protected void LoadGrid( int _ ) {
-            string   strT    = "BABAAABBBAA";
-            // Fill in 15 rows where each row is iZ. Line 690
-            for( int iZ = 0; iZ < _rgGrid.Length ; iZ++ ) {
-                string strC = string.Empty;
-                string strZ = _rgGrid[iZ];
-
-                // Create a 24 character long string.
-                for( int iC=0; iC < strZ.Length; ++iC ) { 
-                    int iOffs = strZ[iC] - '0' - 1; // b/c because basic...
-                    strC += strT[iOffs..(iOffs+3)]; // fill in 3 chars from T
-                }
-                // Load up that string on the screen.
-                Attr = new SpectrumAttrib( ClrWall );
-                At( iZ+_iU, _iU+1, strC );
-
-                // Now go back and add all the tunnles.
-                Attr = new SpectrumAttrib(0);
-                for( int iV = 0; iV < strC.Length; ++iV ) {
-                    if( strC[iV] == 'B' ) {
-                        char cTmp = (char)( 0x91 + R(iV + iZ, 2) );
-
-                        At(iZ + _iU, _iU + iV + 1, cTmp);
-                    }
-                }
-            }
-        }
-
-        protected void LoadKandM( int _ ) {
-            int[] rgKeyMum = [
-                0, 0, 0, 438, 50, 167, 300, 418
-            ]; // 0-3 keys, 4-7 mummies
-            Attr = new SpectrumAttrib(0); // line 750
-            for( int iZ =0; iZ < 8; ++iZ ) {
-                int iC = rgKeyMum[iZ];
-                // First 4 are keys, set if not zero.
-                if( iZ < 4 && iC > 0 ) {
-                    // Oh! Col...Row calculation!! TODO: Use r/c in future. 
-                    int iV = R(iC,32) + _iU + 1;
-                    int iB = M(iC,32) + _iU;
-
-                    Attr = new SpectrumAttrib( (byte)(iZ+0x40+1) ); // bright,paper:0,ink:z+1
-                    At( iB, iV, 'D' );
-                }
-                // Next 4 are mummies. 2d pos encoded in one number!!
-                if( iZ > 3 ) {
-                    // Address 22528 marks the exact start of the attribute
-                    // file (color RAM), located right at the top-left corner
-                    // of the screen grid
-                    _rgMummy[iZ-4].Pos = iC+iAttrRam+_iU*32+_iU+1-1; // b/c basic 
-                    Poke( _rgMummy[iZ-4].Pos, 71 ); // 0x47 bright bg:black, fg:white
-                    
-                    // SetAttr( iU, iU+iZ, 71 ); use this once we're running.
-                    // Interesting that the UDG isn't set tho...
-                }
-            }
-
-        }
-
-        /// <summary>
-        /// Adds the Exits, Gems, and other goodies..
-        /// </summary>
-        /// <param name="_"></param>
-        protected void LoadStuff( int _ ) {
-            int[] rgItems = [
-                0,  0,   0,   0,
-                0,  0,   0,   0,
-                0,  0,   0,   0,
-               33,  0,   0,   0,  // z=3, exits 
-               54, 161, 310, 417  // z=4, gems
-            ];
-
-            Attr   = new SpectrumAttrib(0);
-            Bright = true;
-
-            int iIndex = 0;
-
-            for( int iZ=0; iZ<5; ++iZ ) {
-                for( int iB=0; iB<4; ++iB ) {
-                    int iC   = rgItems[iIndex++];
-                    int iCol = R( iC, 32 )+_iU+1; // modulus, %
-                    int iRow = M( iC, 32 )+_iU;
-
-                    if( iC > 0 && iZ<4 ) { // line 790
-                        Paper = 7;
-                        Ink   = (byte)(iZ+1); //+1 b/c basic.
-
-                        At( iRow, iCol, 'E' );
-
-                        if( iZ == 3 ) {
-                            At( iRow, iCol, 'F' ); // Green tv/white bg
-                        }
-                    }
-                    if( iC > 0 && iZ > 3 ) {
-                        Attr = new SpectrumAttrib( 6 );
-
-                        At( iRow, iCol, 'G' );
-                    }
-                }
-            }
-        }
-
-        protected void LoadExplorer( int _ ) {
-            int    iVal       = 113;
-            string strMessage = @"H\tPOG\l\sM";
-
-            _pntExplorer = new SKPointI( R(iVal,32)+_iU+1, M(iVal,32)+_iU );
-            _pntPrevExpl = _pntExplorer;
-            //int iQ = iY;
-            //int iW = iX;
-
-            DrawExplorer225(); // Call 225
-
-            // This is the first place we have a mixed string of UDG's
-            // and standard ASCII... I think!
-            List<char> rgTx = new List<char>();
-            for( int i=0; i< strMessage.Length; ++i ) {
-                if( strMessage[i] == '\\' ) {
-                    ++i;
-                    rgTx.Add( (char)(0x90 + char.ToUpper( strMessage[i] ) ) );
-                } else {
-                    rgTx.Add( strMessage[i] );
-                }
-            }
-
-            // Put something in the middle of the screen.
-            Attr = new SpectrumAttrib( 66 );
-            int iHalf = rgTx.Count / 2;
-            for( int i=0; i< rgTx.Count; ++i ) {
-                Speccy.PutChar( _iU+16,_iU+12-iHalf+i, rgTx[i] );
-            }
-        }
-
-        protected void DrawExplorer225( ) {
-            Attr = new SpectrumAttrib(0);
-
-            // I don't think I need to keep this persistant, it's
-            // just being used to determine the direction the char
-            // is going.
-            int C = R( _pntPrevExpl.X + _pntPrevExpl.Y, 2 );
-
-            if( C != 0 ) {
-                At( _pntPrevExpl, 'B' );
-                Attr.Value = ClrExpl;
-                At( _pntExplorer, 'I' );
-            } else {
-                At( _pntPrevExpl, 'C' );
-                Attr.Value = ClrExpl;
-                At( _pntExplorer, 'H' );
-            }
-
-            _pntPrevExpl = _pntExplorer;
-        }
-
-        const int iAttrRam = 22528; // on the speccy.
-
-        protected void Poke( int iAddr, byte bValue ) {
-            if( iAddr >= iAttrRam && iAddr < iAttrRam + 32*24 ) {
-                SetAttr( iAddr, bValue );
-            } else {
-                throw new ArgumentOutOfRangeException();
-            }
-        }
-
-        protected void SetAttr( int iRow, int iCol, byte iAttr ) {
-            ScreenBlock oBlock = Speccy.Screen[iCol,iRow];
-
-            oBlock.Attr = new SpectrumAttrib( iAttr );
-        }
-
-        protected void SetAttr( int iOffset, byte bAttr ) {
-            iOffset -= iAttrRam;
-            int iRow = iOffset / 32;
-            int iCol = iOffset % 32;
-
-            SetAttr( iRow, iCol, bAttr );
-        }
-
-        protected byte AttrAt( int iOffset ) {
-            iOffset -= iAttrRam;
-            int iRow = iOffset / 32;
-            int iCol = iOffset % 32;
-
-            try {
-                return Speccy.Screen[iCol,iRow].Attr.Value;
-            } catch( IndexOutOfRangeException ) {
-                throw;
-            }
-        }
-
-        public byte AttrAt( SKPointI pntLoc ) {
-            try {
-                return Speccy.Screen[pntLoc.X, pntLoc.Y].Attr.Value;
-            } catch( IndexOutOfRangeException ) {
-                throw;
-            }
-        }
-
-        public byte AttrAt( int iRow, int iCol ) {
-            try {
-                return Speccy.Screen[iCol,iRow].Attr.Value;
-            } catch( IndexOutOfRangeException ) {
-                throw;
-            }
-        }
-
-
-        /// <summary>
-        /// these can cause side effects on following attributes. Be careful!
-        /// Make sure you assign a new attribute if you don't want following
-        /// assignments to affect the current attribute.
-        /// </summary>
-        protected bool Bright {
-            set { 
-                Speccy.Attr._fBright = value;
-            }
-        }
-
-        protected byte Paper {
-            set { 
-                Speccy.Attr._bPaper = value;
-            }
-        }
-
-        protected byte Ink {
-            set { 
-                Speccy.Attr._bInk = value;
-            }
-        }
-
-        public void At( int iRow, int iCol, char cUDG ) {
-            Speccy.PutUDGAt( iRow, iCol, cUDG );
-        }
-
-        protected void At( SKPointI pntLoc, char cUDG ) {
-            At( pntLoc.Y, pntLoc.X, cUDG );
-        }
-
-        public void At( int iRow, int iCol, string strUdg ) {
-            foreach( char cV in strUdg ) {
-                Speccy.PutUDGAt( iRow, iCol++, cV );
-            }
-        }
-
-        /// <summary>
-        /// Let's take a look at all the UDG's.
-        /// </summary>
-        public void TestGrid() {
-            for( int iRow=0; iRow<24; ++iRow ) {
-                for( int iCol=0; iCol<32; ++iCol ) {
-                    At( iRow, iCol, (char)( iCol%21 + 'A' ) );
-                }
-            }
-
-            Speccy.Refresh();
-        }
     } // End doc
 
     public class ViewTut :

@@ -504,6 +504,7 @@ namespace Play.Interfaces.Embedding {
         public static Guid Symbols  = new Guid( "{C1130616-36EE-4250-AAA4-110420F6FF05}" );
         public static Guid Segment  = new Guid( "{4C597B60-1B03-4101-9E0E-E1AEB43C42A9}" );
         public static Guid Japanese = new Guid( "{97DEF726-5611-46F7-A58D-A454471A063D}" );
+        public static Guid Retro    = new Guid( "{85C3A184-6ABF-4680-8121-BC2274585A23}" );
     }
 
     // A copy of popular keys from windows forms.

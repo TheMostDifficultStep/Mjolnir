@@ -21,8 +21,7 @@ namespace Monitor {
         public SKImage? Icon => null;
 
 
-        protected override uint StdFont => StdUI.FontCacheNew( StdUI.FaceCacheNew( @"C:\Users\Frodo\AppData\Local\Microsoft\Windows\Fonts\PressStart2P-Regular.ttf"), 
-                                                               12, DPI);
+        protected override uint StdFont => StdUI.FontCacheNew( StdUI.StdFaceAt( StdUIFaces.Retro ), 12, DPI);
         protected BasicDocument DocMain { get; }
 
         protected int _iBasicColumnTop = -1;

@@ -112,6 +112,11 @@ namespace Play.Spectrum {
             Images[i] = oSurface.Snapshot();
         }
 
+        /// <summary>
+        /// This set's our 1 bit pixel image to a color display.
+        /// </summary>
+        /// <param name="i"></param>
+        /// <param name="rgUdg"></param>
         public void SetGraphic2( int i, byte[] rgUdg ) {
             using SKBitmap skBitmap = new SKBitmap( 8, 8, SKColorType.Alpha8, SKAlphaType.Opaque );
 
@@ -136,10 +141,10 @@ namespace Play.Spectrum {
         public void PutUDGAt( int iRow, int iCol, char cUdg ) {
             int iUdg = (byte)( (Int16)cUdg - 'A' + 0x90);
 
-            PutChar( iRow, iCol, (char)iUdg );
+            PutChrAt( iRow, iCol, (char)iUdg );
         }
 
-        public void PutChar( int iRow, int iCol, char cChar ) {
+        public void PutChrAt( int iRow, int iCol, char cChar ) {
             try {
                 ScreenBlock oBlock = Screen[iCol, iRow];
 

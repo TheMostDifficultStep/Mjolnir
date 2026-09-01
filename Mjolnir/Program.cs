@@ -1755,6 +1755,7 @@ namespace Mjolnir {
                 new ( StdUIFaces.Symbols,  Path.Combine( strSystemFonts, @"seguisym.ttf" ) ),
                 new ( StdUIFaces.Japanese, Path.Combine( strSystemFonts, @"UDDigiKyokashoN-R.ttc" ) ), // Fallback
                 new ( StdUIFaces.Segment,  Path.Combine( strLocalFonts,  @"seven segment.ttf" ) ),
+                new ( StdUIFaces.Retro,    Path.Combine( strLocalFonts,  @"PressStart2P-Regular.ttf" )),
             ];
 
             foreach( Tuple<Guid,string> sFont in rgFonts ) {
