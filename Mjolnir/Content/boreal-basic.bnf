@@ -213,6 +213,9 @@
 			<production>
 				<term class="mytoken" value="USR" />
 			</production>
+			<production>
+				<term class="mytoken" value="LEN" />
+			</production>
 		</state>
 
 		<!-- calling procedures in basic requires a "proc" command, so
@@ -307,18 +310,26 @@
 				<nont state="space" />
 				<term class="mytoken" value="(" />
 				<nont state="space" />
-				<term class="mynumber" />
+				<nont state="expression" />
+				<nont state="space" />
+				<term class="mytoken" value=")" />
+			</production>
+			<production lookahead="6" > 
+				<term class="myliteral"  />
+				<term class="mytoken" value="$" />
+				<nont state="space" />
+				<term class="mytoken" value="(" />
+				<nont state="space" />
+				<nont state="expression" />
 				<nont state="space" />
 				<term class="mytoken" value="TO" />
 				<nont state="space" />
-				<term class="mynumber" />
+				<nont state="expression" />
 				<nont state="space" />
 				<term class="mytoken" value=")" />
 			</production>
 			<production >
-				<term class="mytoken" value="”" id="cdelim" />
-				<nont state="string"  id="ctext" />
-				<term class="mytoken" value="”" id="cdelim" />
+				<nont state="string" />
 			</production>
 		</state >
 
@@ -485,38 +496,6 @@
 			</production>
 		</state>
 
-		<state name="print-param-next" >
-			<production>
-				<term class="myanyof" value=",;" maxmatch="1" />
-				<nont state="space" />
-				<nont state="expression" id="params" />
-				<nont state="space" />
-				<nont state="print-param-next" />
-			</production>
-			<production>
-                <term class="myEmpty" />
-			</production>
-		</state >
-
-		<state name="print-param-first" >
-			<production lookahead="2" >
-				<nont state="space" />
-				<nont state="expression" id="params" />
-				<nont state="space" />
-				<nont state="print-param-next"/>
-				<!-- <term class="mycr" /> -->
-			</production>
-		</state>
-
-		<state name="opt-expression" >
-			<production>
-				<nont state="expression" />
-			</production>
-			<production>
-				<term class="myEmpty" />
-			</production>
-		</state>
-
 		<state name="command" >
             <capture>
                 <binding id="params"   array="true"  color = "purple" />
@@ -551,18 +530,7 @@
 				<term class="mytoken" value="plot" id="keywords" />
 				<nont state="param-first" />
 			</production>
-			<production lookahead="4" >
-				<!-- special case this weird case for now -->
-				<term class="mytoken" value="PRINT" id="keywords" />
-				<nont state="space" />
-				<nont state="opt-expression" />
-				<term class="mytoken" value=";" />
-				<nont state="space" />
-				<nont state="factor" />
-				<nont state="space" />
-				<term class="mytoken" value=";" />
-				<nont state="opt-expression" />
-			</production>
+
 			<production>
 				<term class="mytoken" value="move" id="keywords" />
 				<nont state="param-first" />
@@ -610,18 +578,6 @@
 				<nont state="param-first" />
 			</production>
 			<production>
-				<term class="mytoken" value="PRINT AT" id="keywords" />
-				<nont state="space" />
-				<nont state="expression" />
-				<nont state="space" />
-				<term class="mytoken" value="," />
-				<nont state="expression" />
-				<nont state="space" />
-				<term class="mytoken" value=";" />
-				<nont state="space" />
-				<nont state="print-param-first" />
-			</production>
-			<production>
 				<term class="mytoken" value="BEEP" id="keywords" />
 				<nont state="space" />
 				<term class="mytoken" value="." /> <!-- hard code for now -->
@@ -647,9 +603,28 @@
 				<term class="mynumber" />
 			</production>
 			<production>
+				<term class="mytoken" value="BRIGHT" id="keywords" />
+				<nont state="space" />
+				<term class="mynumber" />
+			</production>
+			<production>
+				<term class="mytoken" value="PAPER" id="keywords" />
+				<nont state="space" />
+				<nont state="expression" />
+			</production>
+			<production>
+				<term class="mytoken" value="INK" id="keywords" />
+				<nont state="space" />
+				<nont state="expression" />
+			</production>
+			<production>
 				<term class="mytoken" value="RESTORE" id="keywords" />
 				<nont state="space" />
 				<nont state="opt-expression" />
+			</production>
+			<production>
+				<term class="mytoken" value="CLEAR" id="keywords" />
+				<nont state="space" />
 			</production>
 			<production>
 				<term class="mytoken" value="CLS" id="keywords" />
@@ -661,7 +636,99 @@
 				<term class="mytoken" value="$" />
 				<!-- maybe s/b vdecl, but let's go restrictive first -->
 			</production>
+			<production>
+				<term class="mytoken" value="PRINT" id="keywords" />
+				<nont state="space" />
+				<nont state="print-param-first" />
+			</production>
+			<production lookahead="4" >
+				<!-- special case this weird case for now -->
+				<term class="mytoken" value="PRINT" id="keywords" />
+				<nont state="space" />
+				<nont state="opt-expression" />
+				<term class="mytoken" value=";" />
+				<nont state="space" />
+				<nont state="factor" />
+				<nont state="space" />
+				<term class="mytoken" value=";" />
+				<nont state="opt-expression" />
+			</production>
+			<production>
+				<term class="mytoken" value="DATA" id="keywords" />
+				<nont state="space" />
+				<nont state="string" id="params" />
+				<nont state="space" />
+				<nont state="data-param" />
+			</production>
+			<production>
+				<term class="mytoken" value="SAVE" id="keywords" />
+				<nont state="space" />
+				<nont state="string" id="params" />
+				<nont state="space" />
+				<term class="mytoken" value="LINE" id="params" />
+				<nont state="space" />
+				<term class="mynumber" id="params" /> <!-- expression maybeh? -->
+			</production>
 		</state >
+
+		<state name="data-param" >
+			<production>
+				<term class="mytoken" value="," />
+				<nont state="space" />
+				<nont state="string" id="params" />
+				<nont state="space" />
+				<nont state="data-param" />
+			</production>
+			<production>
+				<term class="myEmpty" />
+			</production>
+		</state>
+
+		<state name="print-param-first" >
+			<production lookahead="2" >
+				<nont state="space" />
+				<nont state="print-param" id="params" />
+				<nont state="space" />
+				<nont state="print-param-next"/>
+				<!-- <term class="mycr" /> -->
+			</production>
+		</state>
+		<state name="print-param-next" >
+			<production>
+				<term class="myanyof" value=",;" maxmatch="1" />
+				<nont state="space" />
+				<nont state="print-param" id="params" />
+				<nont state="space" />
+				<nont state="print-param-next" />
+			</production>
+			<production>
+                <term class="myEmpty" />
+			</production>
+		</state >
+
+		<state name="print-param" >
+			<production>
+				<term class="mytoken" value="AT" />
+				<nont state="space" />
+				<nont state="expression" />
+				<nont state="space" />
+				<term class="mytoken" value="," />
+				<nont state="expression" />
+				<nont state="space" />
+			</production>
+			<production>
+				<nont state="opt-expression" />
+				<nont state="space" />
+			</production>
+		</state>
+		<state name="opt-expression" >
+			<production>
+				<nont state="expression" />
+			</production>
+			<production>
+				<term class="myEmpty" />
+			</production>
+		</state>
 
 		<state name="commentline.in">
 			<production>
@@ -721,7 +788,7 @@
 			</production>
 			<production lookahead="4" >
 				<term class="myliteral" />
-				<term class="mytoken" value="%" />
+				<term class="myanyof" value="$%" maxmatch="1" />
 				<nont state="space" />
 				<term class="mytoken" value="(" />
 				<nont state="space" />
@@ -838,27 +905,35 @@
 		</state>
 
 		<state name="string" >
+			<production >
+				<term class="myanyof" value="“”" id="cdelim" maxmatch="1" />
+				<nont state="string-inner"  id="ctext" />
+				<term class="mytoken" value="”" id="cdelim" />
+			</production>
+		</state>
+
+		<state name="string-inner" >
 			<production>
 				<term class="myliteral" />
-				<nont state="string" id="string" />
+				<nont state="string-inner" id="string" />
 			</production>
 			<production>
 				<term class="mynumber" />
-				<nont state="string" id="string" />
+				<nont state="string-inner" id="string" />
 			</production>
 			<production>
 				<term class="myspace" />
-				<nont state="string" id="string" />
+				<nont state="string-inner" id="string" />
 			</production>
 			<production>
 				<!-- figure out what ()'s mean later -->
-				<term class="myanyof" value="*-():" />
-				<nont state="string" id="string" />
+				<term class="myanyof" value="*-():!" />
+				<nont state="string-inner" id="string" />
 			</production>
 			<production>
 				<term class="mytoken" value="\" />
 				<term class="myliteral" maxmatch="1" />
-				<nont state="string" id="string" />
+				<nont state="string-inner" id="string" />
 			</production>
 			<production>
 				<term class="myEmpty" />
@@ -870,6 +945,7 @@
 				<binding id="statement" array="false" />
 				<binding id="bbcbasic"  array="false"  />
 			</capture>
+
 			<production>
 				<term class="myspace" />
 				<nont state="bbcbasic" id="bbcbasic" />
@@ -891,7 +967,7 @@
 				<nont state="bbcbasic" id="bbcbasic"/>
 			</production>
 			<production>
-				<nont state="command" id="statement"/>
+				<nont state="command"  id="statement"/>
 				<nont state="bbcbasic" id="bbcbasic"/>
 			</production>
 			<production>
