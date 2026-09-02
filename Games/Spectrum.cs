@@ -238,13 +238,10 @@ namespace Play.Spectrum {
                                                      pntLoc.X + oUdg.Width, 
                                                      pntLoc.Y + oUdg.Height );
                         
-                        // Not sure if Over is really doing anything... :-/
-                        if( !Over ) {
-                            // This sets our background image.
-                            oPaint .BlendMode = SKBlendMode.Src;
-                            oPaint .Color     = DecodeColor( oBlock.Attr._fBright, oBlock.Attr._bPaper );
-                            oCanvas.DrawRect( skRect, oPaint );
-                        }
+                        // This sets our background image.
+                        oPaint .BlendMode = SKBlendMode.Src;
+                        oPaint .Color     = DecodeColor( oBlock.Attr._fBright, oBlock.Attr._bPaper );
+                        oCanvas.DrawRect( skRect, oPaint );
 
                         // This does the XOR blit to display.
                         oPaint.Color = DecodeColor( oBlock.Attr._fBright, oBlock.Attr._bInk );
