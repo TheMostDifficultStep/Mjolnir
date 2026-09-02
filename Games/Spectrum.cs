@@ -55,8 +55,8 @@ namespace Play.Spectrum {
     {
         public ScreenBlock[,] Screen  { get; } // Speccy 32,24 ascii display.
         public SKImage     [] Images  { get; } // Our constructed UDG's
-
         public SpectrumAttrib Attr    { get;set; } = new SpectrumAttrib(0);
+        public bool           Over    { get; set; } = false;
 
         public SpectrumGraphics( IPgBaseSite oSite, string strMode ) : base( oSite ) {
             if( string.Compare( strMode, "std" ) != 0 ) {
@@ -202,7 +202,6 @@ namespace Play.Spectrum {
             SKRect   oRect, 
             SKImage  oImage
         ) {
-            //Not sure how to use this yet.
             SKSamplingOptions oOptions = new SKSamplingOptions( SKFilterMode.Linear );
 
             // So XOR only works with alpha, which explains why my
@@ -238,11 +237,14 @@ namespace Play.Spectrum {
                         SKRect skRect  = new SKRect( pntLoc.X, pntLoc.Y, 
                                                      pntLoc.X + oUdg.Width, 
                                                      pntLoc.Y + oUdg.Height );
-
-                        // This sets our background image.
-                        oPaint .BlendMode = SKBlendMode.Src;
-                        oPaint .Color     = DecodeColor( oBlock.Attr._fBright, oBlock.Attr._bPaper );
-                        oCanvas.DrawRect( skRect, oPaint );
+                        
+                        // Not sure if Over is really doing anything... :-/
+                        if( !Over ) {
+                            // This sets our background image.
+                            oPaint .BlendMode = SKBlendMode.Src;
+                            oPaint .Color     = DecodeColor( oBlock.Attr._fBright, oBlock.Attr._bPaper );
+                            oCanvas.DrawRect( skRect, oPaint );
+                        }
 
                         // This does the XOR blit to display.
                         oPaint.Color = DecodeColor( oBlock.Attr._fBright, oBlock.Attr._bInk );

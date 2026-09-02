@@ -5,7 +5,6 @@ using Play.Interfaces.Embedding;
 using Play.Spectrum;
 
 using SkiaSharp;
-
 using System.Reflection;
 using System.Windows.Forms;
 using System.Xml;
@@ -88,6 +87,10 @@ namespace Play.Games {
         const byte ClrExpl  = 69;  // bg black, fg:blue
 
         readonly uint _uiFont = 0;
+                /// <summary>
+        /// This is where the 32x24 grid of attributes start.
+        /// </summary>
+        const int _iAttrRam = 22528; // on the speccy.
 
         /// <summary>
         /// Calculate the remainder (modulus)
@@ -294,7 +297,7 @@ namespace Play.Games {
                     // Address 22528 marks the exact start of the attribute
                     // file (color RAM), located right at the top-left corner
                     // of the screen grid
-                    _rgMummy[iZ-4].Pos = iC+iAttrRam+_iU*32+_iU+1-1; // b/c basic 
+                    _rgMummy[iZ-4].Pos = iC+_iAttrRam+_iU*32+_iU+1-1; // b/c basic 
                     Poke( _rgMummy[iZ-4].Pos, ClrMummy ); // 0x47 bright bg:black, fg:white
                     
                     // SetAttr( iU, iU+iZ, ClrMummy ); use this once we're running.
@@ -398,13 +401,8 @@ namespace Play.Games {
             _pntPrevExpl = _pntExplorer;
         }
 
-        /// <summary>
-        /// This is where the 32x24 grid of attributes start.
-        /// </summary>
-        const int iAttrRam = 22528; // on the speccy.
-
         protected void Poke( int iAddr, byte bValue ) {
-            if( iAddr >= iAttrRam && iAddr < iAttrRam + 32*24 ) {
+            if( iAddr >= _iAttrRam && iAddr < _iAttrRam + 32*24 ) {
                 SetAttr( iAddr, bValue );
             } else {
                 throw new ArgumentOutOfRangeException();
@@ -418,7 +416,7 @@ namespace Play.Games {
         }
 
         protected void SetAttr( int iOffset, byte bAttr ) {
-            iOffset -= iAttrRam;
+            iOffset -= _iAttrRam;
             int iRow = iOffset / 32;
             int iCol = iOffset % 32;
 
@@ -426,7 +424,7 @@ namespace Play.Games {
         }
 
         protected byte AttrAt( int iOffset ) {
-            iOffset -= iAttrRam;
+            iOffset -= _iAttrRam;
             int iRow = iOffset / 32;
             int iCol = iOffset % 32;
 
@@ -474,6 +472,11 @@ namespace Play.Games {
         protected byte Ink {
             set { 
                 Speccy.Attr._bInk = value;
+            }
+        }
+
+        protected int Over {
+            set {
             }
         }
 
@@ -599,13 +602,14 @@ namespace Play.Games {
                 return;
             }
             if( bC == ClrMummy ) {
-                // 275, 255
+                HitMummy275    ();
+                HitMummy255    ();
                 MoveExplorer225();
                 return;
             }
             if( bC == 6 ) {
                 _iG += 25;
-                // 255
+                HitMummy255    ();
                 MoveExplorer225();
                 return;
             }
@@ -613,7 +617,7 @@ namespace Play.Games {
                 // grabbing keys I'll guess.
                 // k(c-64)=c
                 _iG += 10;
-                // 250
+                GrabKeys250    ( bC );
                 MoveExplorer225();
                 return;
             }
@@ -665,6 +669,58 @@ namespace Play.Games {
             _pntPrevExpl = _pntExplorer;
         }
 
+        protected void HitMummy275() {
+            _iG -= 25;
+            MoveExplorer225();
+            Over = 1;
+            for( int iC=2; iC<=5; ++iC ) {
+                UdgAt( _pntExplorer, 'B' );
+                for( int iB=66; iB<=70; ++iB ) {
+                    Attr = new SpectrumAttrib((byte)(iC+iB));
+                    UdgAt( _pntExplorer, 'H' );
+                }
+            }
+            Over = 0;
+            UdgAt( _pntExplorer, 'H' );
+            MoveExplorer225();
+            HitMummyBeep315();
+        }
+
+        protected void Beep( double flFreq, int iTime ) {
+        }
+        protected void HitMummyBeep315() {
+            Beep( .25,-2 );
+            Beep( .125,3 );
+            Beep( .125,3 );
+            Beep( .25,8 );
+            Beep( .125,-2 );
+            Beep( .125,-2 );
+        }
+
+        protected void HitMummy255() {
+            if( _iG< 0 )
+                _iG = 0;
+
+            string strZ = '0' + _iG.ToString();
+            Attr = new SpectrumAttrib( ClrExpl );
+            ChrAt( _iU+17, _iU+26- strZ.Length, strZ );
+            Beep( .005, 14 );
+        }
+
+        /// <see cref="DrawStatus550" />
+        protected void GrabKeys250( byte bC ) {
+            bC -= 64;
+            //Attr = new SpectrumAttrib( _rgK[bC] + 56 );
+            UdgAt( _iU+17, _iU+5+bC, 'E' ); // not sure if should be 4 or 5?
+
+            if( bC == 4 ) {
+                UdgAt( _iU+17, _iU+5+bC, 'F' );
+            }
+            
+            HitMummy255();
+        }
+
+
         /// <summary>
         /// Set mummy direction.
         /// </summary>
@@ -674,7 +730,7 @@ namespace Play.Games {
                 throw new ArgumentOutOfRangeException();
 
             int iC = _pntExplorer.Y*32+
-                     _pntExplorer.X+iAttrRam-
+                     _pntExplorer.X+_iAttrRam-
                      _rgMummy[iV].Pos;
             int iB = _rgMummy[iV].Pos;
 
@@ -747,8 +803,8 @@ namespace Play.Games {
             UdgAt( _iU-3,_iU+9, "QSQ-QSQ" );   // Tut-Tut, but '-' broken >_K;;
 
             UdgAt( _iU+17, _iU, "MLTP:" );     // keys...
-            //Attr = new SpectrumAttrib( 0x0 );
-            //At( _iU+17, _iU+4, "DDDD" );    // CLear keys. Probably uneeded
+            Attr = new SpectrumAttrib( 0x0 );
+            UdgAt( _iU+17, _iU+5, "DDDD" );    // CLear keys.
             // Set the keys.
 
             Attr = new SpectrumAttrib( 71 );
