@@ -61,19 +61,24 @@ namespace Play.Games {
             }
         }
 
+        /// <summary>
+        /// A current attribute to share, but be careful, since
+        /// if you change any of the attr value it affects all blocks
+        /// pointing to this attr.
+        /// </summary>
         SpectrumAttrib Attr {
             get { return Speccy.Attr; }
             set { Speccy.Attr = value; }
         }
 
-        const    int   _iU        = 3;
+        const    int   _iU        = 3; // Screen offset.
                  int   _iG        = 0; // probably score.
-                 bool  _fParity   = false;
+                 bool  _fParity   = false; // A toggle for gameplay.
                  int   _iAirCount = 0;
                  int   _iS        = 0;
                  int   _iLevel    = 0; /* T in the prog */
         public GameState State {get; set;} = GameState.Playing; // menu1
-        public Keys      LastKey { get; set;} = Keys.None;
+        public Keys      LastKeystroke { get; set;} = Keys.None;
         readonly Mummy[] _rgMummy = new Mummy[4];
         protected SKPointI _pntExplorer;
         protected SKPointI _pntPrevExpl;
@@ -101,8 +106,8 @@ namespace Play.Games {
         public DocumentTutTut( IPgBaseSite oBaseSite ) {
             _oBaseSite  = oBaseSite ?? throw new ArgumentNullException( nameof( oBaseSite ) );
             _oWorkPlace = ((IPgScheduler)Services).CreateWorkPlace() ?? throw new InvalidProgramException();
-            Speccy      = new SpectrumGraphics( new DocSlot( this ), "std" );
  			_oStdUI     = _oBaseSite.Host.Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
+            Speccy      = new SpectrumGraphics( new DocSlot( this ), "std" );
 
             for( int i = 0;i<_rgMummy.Length; ++i ) {
                 _rgMummy[i] = new Mummy();
@@ -139,13 +144,13 @@ namespace Play.Games {
 
         protected virtual bool Initialize() {
             LoadFont ();
-            LoadUDG  ();  // We override some of the font.
+            LoadUDG  ();  // We override some of the font chars.
 
-            LoadGrid (0);
-            LoadKandM(0);
-            LoadStuff(0);
+            LoadGrid    (0);
+            LoadKandM   (0);
+            LoadStuff   (0);
             LoadExplorer(0);
-            DrawBorder();
+            DrawBorder  ();
 
             DrawStatus550();
 
@@ -290,9 +295,9 @@ namespace Play.Games {
                     // file (color RAM), located right at the top-left corner
                     // of the screen grid
                     _rgMummy[iZ-4].Pos = iC+iAttrRam+_iU*32+_iU+1-1; // b/c basic 
-                    Poke( _rgMummy[iZ-4].Pos, 71 ); // 0x47 bright bg:black, fg:white
+                    Poke( _rgMummy[iZ-4].Pos, ClrMummy ); // 0x47 bright bg:black, fg:white
                     
-                    // SetAttr( iU, iU+iZ, 71 ); use this once we're running.
+                    // SetAttr( iU, iU+iZ, ClrMummy ); use this once we're running.
                     // Interesting that the UDG isn't set tho...
                 }
             }
@@ -393,6 +398,9 @@ namespace Play.Games {
             _pntPrevExpl = _pntExplorer;
         }
 
+        /// <summary>
+        /// This is where the 32x24 grid of attributes start.
+        /// </summary>
         const int iAttrRam = 22528; // on the speccy.
 
         protected void Poke( int iAddr, byte bValue ) {
@@ -514,7 +522,7 @@ namespace Play.Games {
                 }
 
                 Speccy.Refresh();
-                yield return 250; // time in ms.
+                yield return 200; // time in ms.
             }
         }
 
@@ -524,7 +532,7 @@ namespace Play.Games {
                 //Do275(); Do255(); 
                 DrawExplorer225();
             }
-            switch( LastKey ) {
+            switch( LastKeystroke ) {
                 case Keys.Up:
                     _pntExplorer.Y -= 1;
                     break;
@@ -538,7 +546,7 @@ namespace Play.Games {
                     _pntExplorer.X += 1;
                     break;
             }
-            LastKey = Keys.None;
+            LastKeystroke = Keys.None;
 
             byte bC = AttrAt( _pntExplorer );
             if( _pntExplorer.Y - _pntPrevExpl.Y +
@@ -581,6 +589,10 @@ namespace Play.Games {
             }
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="bC">The attribute at the explorer position.</param>
         protected void MoveExplorer180( byte bC ) {
             if( bC == 0 ) { // free space
                 MoveExplorer225();
@@ -822,7 +834,7 @@ namespace Play.Games {
                 case Keys.Right:
                 case Keys.Up:
                 case Keys.Down:
-                    Tut.LastKey = e.KeyCode;
+                    Tut.LastKeystroke = e.KeyCode;
                     break;
                 case Keys.R:
                     Tut.State = GameState.Goto480;

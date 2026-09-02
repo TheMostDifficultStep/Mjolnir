@@ -88,8 +88,10 @@ namespace Play.Spectrum {
         }
 
         /// <summary>Create the Image that backs the Graphics 
-        /// block. I'll set them in flat and you as the programmer
-        /// will set the UDG's starting at 0x90</summary>
+        /// block. I'll set them in right at the index 
+        /// and you as the programmer will set the UDG's 
+        /// starting at 0x90 (UDG 'A')
+        /// </summary>
         /// <remarks>
         /// In the future, I'll make a bulk loader so I can just
         /// create the Scratch surface during the load.
@@ -97,6 +99,7 @@ namespace Play.Spectrum {
         /// new rendering code by set the color as 
         /// SKColor( FF, FF, FF, bByteValue );
         /// </remarks>
+        /// <param name="i">Index to the image. Basically an ASCII offset.</param>
         public void SetBWGraphic( SKSurface oSurface, int i, byte[] rgUdg ) {
             ArgumentNullException.ThrowIfNull( rgUdg ); 
 

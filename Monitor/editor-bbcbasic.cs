@@ -7,11 +7,11 @@ using Play.Parse.Impl;
 
 namespace Monitor {
     public class BasicRow : Row {
-        public const int ColumnTarget = 3; // if line is target to a gosub
+        public const int ColumnTarget = 2; // if line is target to a gosub
         public const int ColumnNumber = 0;
         public const int ColumnText   = 1;
         public BasicRow( int iBasicLine, ReadOnlySpan<char> rgText ) { 
-            _rgColumns = new Line[2];
+            _rgColumns = new Line[3];
 
             string strLineNum = iBasicLine >= 0 ? iBasicLine.ToString() : "?";
 
