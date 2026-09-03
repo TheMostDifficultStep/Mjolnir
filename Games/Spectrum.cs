@@ -73,14 +73,23 @@ namespace Play.Spectrum {
         public virtual bool InitNew() {
             SetGraphic2( 0, [0,0,0,0,0,0,0,0] ); // Gives us a solid block.
 
+            Clr();
+
+            return true;
+        }
+
+        /// <summary>
+        /// Assume that Image[0] is our standard solid black block.
+        /// Give each screen element it's own attrib so changing one
+        /// doesn't affect them all! ^_^;
+        /// </summary>
+        public void Clr() {
             for( int iY = 0; iY< Screen.GetLength(1); ++iY ) {
                 for( int iX = 0; iX < Screen.GetLength(0); ++iX ) {
                     // Attribute 0 is black foreground and background.
                     Screen[iX, iY] = new ScreenBlock(0, new SpectrumAttrib( 0 ) );
                 }
             }
-
-            return true;
         }
 
         public void LogError( string strMessage ) {
@@ -248,6 +257,8 @@ namespace Play.Spectrum {
                         DrawImage( oCanvas, oPaint, skRect, oUdg );
                     }
                 }
+                // this is a heave duty call when just the bits change but
+                // not the size or any other attribute.
                 Raise_ImageUpdated();
             } catch( Exception oEx ) {
                 Type[] rgErrors = [ 

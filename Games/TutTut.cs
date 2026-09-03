@@ -16,7 +16,8 @@ namespace Play.Games {
         Menu200,
         Menu400,
         Playing,
-        Goto480
+        Goto480,
+        Init
     }
 
     public class Mummy {
@@ -71,7 +72,7 @@ namespace Play.Games {
         }
 
         const    int   _iU        = 3; // Screen offset.
-                 int   _iG        = 0; // probably score.
+                 int   _iGScore        = 0; // probably score.
                  bool  _fParity   = false; // A toggle for gameplay.
                  int   _iAirCount = 0;
                  int   _iS        = 0;
@@ -79,12 +80,21 @@ namespace Play.Games {
         public GameState State {get; set;} = GameState.Playing; // menu1
         public Keys      LastKeystroke { get; set;} = Keys.None;
         readonly Mummy[] _rgMummy = new Mummy[4];
+        readonly int  [] _rgKeys  = new int[4];
         protected SKPointI _pntExplorer;
         protected SKPointI _pntPrevExpl;
 
         const byte ClrMummy = 71;  // bg:black, fg:white
         const byte ClrWall  = 114; // bg:red,   fg:yellow
         const byte ClrExpl  = 69;  // bg black, fg:blue
+        const byte ClrKey1  = 65;
+        const byte ClrKey2  = 66;
+        const byte ClrKey3  = 67;
+        const byte ClrKey4  = 68;
+        const byte ClrBird1 = 121; // 01111001
+        const byte ClrBird2 = 122; // 01111010
+        const byte ClrBird3 = 123; // 01111011
+        const byte ClrExit  = 124; // 0x7c -> 01 111 100, bg-white, fg-green
 
         readonly uint _uiFont = 0;
                 /// <summary>
@@ -147,13 +157,13 @@ namespace Play.Games {
 
         protected virtual bool Initialize() {
             LoadFont ();
-            LoadUDG  ();  // We override some of the font chars.
+            LoadUDG645  ();  // We override some of the font chars.
 
             LoadGrid    (0);
             LoadKandM   (0);
             LoadStuff   (0);
             LoadExplorer(0);
-            DrawBorder  ();
+            DrawBorder530  ();
 
             DrawStatus550();
 
@@ -194,7 +204,7 @@ namespace Play.Games {
         /// <summary>
         /// Read in all the user defined characters. Line 645;
         /// </summary>
-        public void LoadUDG() {
+        public void LoadUDG645() {
             byte[][] rgUdg = [
                 [127,65, 91, 67, 109, 111, 127, 0], // 'A'
                 [24, 216, 76, 62, 7, 12, 20, 50],   // 'B'...
@@ -321,30 +331,30 @@ namespace Play.Games {
             ];
 
             Attr   = new SpectrumAttrib(0);
-            Bright = true;
+            Bright = true; // Line 770
 
             int iIndex = 0;
 
-            for( int iZ=0; iZ<5; ++iZ ) {
-                for( int iB=0; iB<4; ++iB ) {
+            for( int iZRow=0; iZRow<5; ++iZRow ) {
+                for( int iBCol=0; iBCol<4; ++iBCol ) {
                     int iC   = rgItems[iIndex++];
                     int iCol = R( iC, 32 )+_iU+1; // modulus, %
                     int iRow = M( iC, 32 )+_iU;
 
-                    if( iC > 0 && iZ<4 ) { // line 790
+                    if( iC > 0 && iZRow<4 ) {     // line 790
                         Paper = 7;
-                        Ink   = (byte)(iZ+1); //+1 b/c basic.
+                        Ink   = (byte)(iZRow+1);  //+1 b/c basic.
 
-                        UdgAt( iRow, iCol, 'E' );
+                        UdgAt( iRow, iCol, 'E' ); // bird. (disabled)
 
-                        if( iZ == 3 ) {
+                        if( iZRow == 3 ) {
                             UdgAt( iRow, iCol, 'F' ); // Green tv/white bg
                         }
                     }
-                    if( iC > 0 && iZ > 3 ) {
+                    if( iC > 0 && iZRow > 3 ) {
                         Attr = new SpectrumAttrib( 6 );
 
-                        UdgAt( iRow, iCol, 'G' );
+                        UdgAt( iRow, iCol, 'G' ); // gem.
                     }
                 }
             }
@@ -480,6 +490,14 @@ namespace Play.Games {
             }
         }
 
+        protected int Border {
+            set{}
+        }
+
+        protected void Cls() {
+            Speccy.Clr();
+        }
+
         public void UdgAt( int iRow, int iCol, char cUDG ) {
             Speccy.PutUDGAt( iRow, iCol, cUDG );
         }
@@ -519,8 +537,16 @@ namespace Play.Games {
         public IEnumerator<int> GameLoop() {
             while( true ) {
                 switch( State ) {
+                    case GameState.Init:
+                        Init640();
+                        Menu325();
+                        State = GameState.Menu1;
+                        break;
+                    case GameState.Menu1:
+                        State = GameState.Playing;
+                        break;
                     case GameState.Playing:
-                        Play();
+                        Play35();
                         break;
                 }
 
@@ -529,10 +555,25 @@ namespace Play.Games {
             }
         }
 
-        protected void Play() {
+        /// <seealso cref="LoadUDG645" />
+        protected void Init640() {
+            Border = 0;
+            Attr   = new SpectrumAttrib( 0 );
+            Cls();
+            // Restore... we don't need this.
+            // Load UDG's... See LoadUDG645() in program init.
+        }
+
+        protected void Menu325() {
+            DrawBorder530();
+            // TODO...
+        }
+
+        protected void Play35() {
             // check if explorer hit mummy.
             if( AttrAt( _pntExplorer) == ClrMummy ) {
-                //Do275(); Do255(); 
+                HitMummy275    ();
+                SetScore255    ();
                 DrawExplorer225();
             }
             switch( LastKeystroke ) {
@@ -597,26 +638,26 @@ namespace Play.Games {
         /// </summary>
         /// <param name="bC">The attribute at the explorer position.</param>
         protected void MoveExplorer180( byte bC ) {
-            if( bC == 0 ) { // free space
+            if( bC == 0 ) { // tunnel space
                 MoveExplorer225();
                 return;
             }
             if( bC == ClrMummy ) {
                 HitMummy275    ();
-                HitMummy255    ();
+                SetScore255    ();
                 MoveExplorer225();
                 return;
             }
             if( bC == 6 ) {
-                _iG += 25;
-                HitMummy255    ();
+                _iGScore += 25;
+                SetScore255    ();
                 MoveExplorer225();
                 return;
             }
-            if( bC >64 && bC < 69 ) {
-                // grabbing keys I'll guess.
-                // k(c-64)=c
-                _iG += 10;
+            if( bC >= ClrKey1 && bC <= ClrKey4 ) {
+                // save collected key's color
+                _rgKeys[bC-ClrKey1] = bC; 
+                _iGScore += 10;
                 GrabKeys250    ( bC );
                 MoveExplorer225();
                 return;
@@ -624,15 +665,18 @@ namespace Play.Games {
             if( bC == 16 ) {
                 return;
             }
-            if( /* k(c-120) == 0 OR */ bC < 120 ) {
+            // line 205, 120 is 0x78 -> 01 111 000...
+            // paper=white, ink=black
+            if( bC < 120 || _rgKeys[bC-120-1] == 0 ) {
+                // If you don't have the key, can't exit!
                 return;
             }
-            if( bC == 124 ) {
-                _iLevel += 1;
-                _iG     += 24 * ( _iLevel + 1 ) - R( _iS * (_iLevel+1 ), 5 );
-                // 255
-                // 310
-                // goto 610
+            if( bC == ClrExit ) { 
+                _iLevel  += 1;
+                _iGScore += 24 * ( _iLevel + 1 ) - R( _iS * (_iLevel+1 ), 5 );
+                SetScore255();
+                ExitBeep310();
+                SetLevel610();
                 return;
             }
             // God knows what this is doing?
@@ -643,10 +687,18 @@ namespace Play.Games {
                 return;
             }
 
+            // bC -> ClrBird1 .. ClrBird3
             // This brings a bird up!
             Attr = new SpectrumAttrib( bC );
             UdgAt( iV, iB, 'E' );
             MoveExplorer225();
+        }
+
+        protected void SetLevel610() {
+            for( int i=0; i<_rgKeys.Length; ++i ) {
+                _rgKeys[i] = 0;
+            }
+            _iS = 0;
         }
 
         /// <summary>
@@ -669,15 +721,24 @@ namespace Play.Games {
             _pntPrevExpl = _pntExplorer;
         }
 
+        /// <summary>Cycle from 0x44 -> 0x4b the attribute
+        /// colors on the block. Alternatively printing
+        /// the mummy and the explorer.</summary>
+        /// <remarks>
+        /// This isn't going to work for us since we don't
+        /// even refresh the screen during this action.
+        /// We're going to have to make this a state of
+        /// the game and cycle through the game loop.
+        /// </remarks>
         protected void HitMummy275() {
-            _iG -= 25;
+            _iGScore -= 25;
             MoveExplorer225();
             Over = 1;
             for( int iC=2; iC<=5; ++iC ) {
-                UdgAt( _pntExplorer, 'B' );
-                for( int iB=66; iB<=70; ++iB ) {
+                UdgAt( _pntExplorer, 'B' );     // Mummy
+                for( int iB=0x42; iB<=0x46; ++iB ) {
                     Attr = new SpectrumAttrib((byte)(iC+iB));
-                    UdgAt( _pntExplorer, 'H' );
+                    UdgAt( _pntExplorer, 'H' ); // Explorer
                 }
             }
             Over = 0;
@@ -697,11 +758,22 @@ namespace Play.Games {
             Beep( .125,-2 );
         }
 
-        protected void HitMummy255() {
-            if( _iG< 0 )
-                _iG = 0;
+        protected void ExitBeep310() {
+            Beep( .25,-2 );
+            Beep( .125,8 );
+            Beep( .125,5 );
+            Beep( .25, 5 );
+            Beep( .25,-2 );
+            Beep( .25, 5 );
 
-            string strZ = '0' + _iG.ToString();
+            HitMummyBeep315();
+        }
+
+        protected void SetScore255() {
+            if( _iGScore< 0 )
+                _iGScore = 0;
+
+            string strZ = '0' + _iGScore.ToString();
             Attr = new SpectrumAttrib( ClrExpl );
             ChrAt( _iU+17, _iU+26- strZ.Length, strZ );
             Beep( .005, 14 );
@@ -717,7 +789,7 @@ namespace Play.Games {
                 UdgAt( _iU+17, _iU+5+bC, 'F' );
             }
             
-            HitMummy255();
+            SetScore255();
         }
 
 
@@ -770,7 +842,7 @@ namespace Play.Games {
         /// <summary>
         /// Draw border. Line 530
         /// </summary>
-        public void DrawBorder() {
+        public void DrawBorder530() {
             Attr = new SpectrumAttrib( 0x10 ); // bg:?, fg:black
             // Top border...
             UdgAt( _iU-1, _iU, 'M' );
@@ -804,7 +876,7 @@ namespace Play.Games {
 
             UdgAt( _iU+17, _iU, "MLTP:" );     // keys...
             Attr = new SpectrumAttrib( 0x0 );
-            UdgAt( _iU+17, _iU+5, "DDDD" );    // CLear keys.
+            UdgAt( _iU+17, _iU+5, "DDDD" );    // Clear doors!
             // Set the keys.
 
             Attr = new SpectrumAttrib( 71 );
@@ -827,11 +899,11 @@ namespace Play.Games {
         }
 
         protected void DrawScore255() {
-            if( _iG < 0 )
-                _iG = 0;
+            if( _iGScore < 0 )
+                _iGScore = 0;
 
             Attr = new SpectrumAttrib( ClrExpl );
-            string strScore = _iG.ToString();
+            string strScore = _iGScore.ToString();
             UdgAt( _iU+17, _iU+26-strScore.Length, strScore );
         }
 
