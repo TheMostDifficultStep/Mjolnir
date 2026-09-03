@@ -108,7 +108,8 @@ namespace Mjolnir {
                     (int)WindowStyles.WS_MINIMIZEBOX |
                     (int)WindowStyles.WS_THICKFRAME |
                     (int)WindowStyles.WS_OVERLAPPED |
-                    (int)WindowStyles.WS_CLIPCHILDREN ;
+                    (int)WindowStyles.WS_CLIPCHILDREN |
+                    (int)WindowStyles.WS_VISIBLE; // Oh! This needed to get focus at start!
 
                 return oFoo; } 
         }
