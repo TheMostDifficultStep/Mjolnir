@@ -1229,7 +1229,7 @@ namespace Monitor {
 
         protected void StatusUpdate() {
             try {
-              //Doc_Asm    .Mirror( Z80Memory );
+              //Doc_Asm    .Mirror( Memory );
                 Doc_Asm    .UpdateHighlightLine( Cpu.Pc );
                 Doc_Props  .Update( this );
                 Doc_Display.Load( Memory.RawMemory );
@@ -1350,12 +1350,9 @@ namespace Monitor {
                 switch( _oWorkPlace.Status ) {
                     case WorkerStatus.FREE:
                     case WorkerStatus.PAUSED:
-                        Cpu    .Parse();
+                        Cpu.Parse();
 
-                      //Doc_Asm    .Mirror( Z80Memory );
-                        Doc_Asm    .UpdateHighlightLine( Cpu.Pc );
-                        Doc_Props  .Update( this );
-                        Doc_Display.Load( Memory.RawMemory );
+                        StatusUpdate();
                         break;
                     case WorkerStatus.BUSY:
                         LogError( "CPU", "Pause to single step" );

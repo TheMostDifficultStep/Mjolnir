@@ -79,6 +79,22 @@ namespace Monitor {
         public AsmEditor( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
         }
 
+		public override StdUIColors PlayHighlightColor {
+			get {
+				switch( PlayStatus ) {
+					case WorkerStatus.BUSY:
+						return StdUIColors.MusicLine;
+					case WorkerStatus.PAUSED:
+                    case WorkerStatus.FREE:
+						return StdUIColors.MusicLinePaused ;
+
+					default:
+						return StdUIColors.BGReadOnly;
+				}
+			}
+		}
+  
+
         /// <summary>
         /// Move this to the EditMultiColumn later...
         /// </summary>
@@ -175,6 +191,8 @@ namespace Monitor {
             FindRowAtAddress( iAddress, out AsmRow? oRow );
             if( oRow is not null ) {
                 HighLight = oRow;
+            } else {
+                LogError( "Highlight miss in dissassembler" );
             }
         }
         public override WorkerStatus PlayStatus {

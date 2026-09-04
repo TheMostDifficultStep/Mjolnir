@@ -374,7 +374,7 @@ namespace Play.Edit {
 			get { return( WorkerStatus.NOTIMPLEMENTED ); }
 		}
 
-		public StdUIColors PlayHighlightColor {
+		public virtual StdUIColors PlayHighlightColor {
 			get {
 				switch( PlayStatus ) {
 					case WorkerStatus.BUSY:
