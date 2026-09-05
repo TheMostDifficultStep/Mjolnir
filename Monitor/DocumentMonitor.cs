@@ -11,6 +11,8 @@ using System.Security;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
+using System.Globalization;
+
 using z80;
 
 using static Monitor.Z80Dissambler;
@@ -1078,7 +1080,11 @@ namespace Monitor {
                     if( _fCpm ) {
                         _usStartAddr = 0x100;
                     } else {
-                        _usStartAddr = ushort.Parse( xmlBinary.GetAttribute( "address" ), System.Globalization.NumberStyles.HexNumber);
+                        string strAddr = xmlBinary.GetAttribute( "address" );
+                        if( strAddr.StartsWith("0x", StringComparison.OrdinalIgnoreCase)) {
+                            strAddr = strAddr.Substring(2);
+                        }
+                        _usStartAddr = ushort.Parse( strAddr, NumberStyles.HexNumber);
                     }
                     Cpu.Pc = _usStartAddr;
                 }
