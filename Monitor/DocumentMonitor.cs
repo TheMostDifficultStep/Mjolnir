@@ -1070,7 +1070,7 @@ namespace Monitor {
                 }
                 if( xmlRoot.SelectSingleNode( "binary" ) is XmlElement xmlBinary ) {
                     _fCpm = string.Compare( xmlBinary.GetAttribute( "cpm" ), "true" ) == 0;
-                    if( !LoadBinaryFile( xmlBinary.InnerText, _fCpm ) ) {
+                    if( !LoadBinaryFile( _strBinaryFileName, _fCpm ) ) {
                         return false;
                     }
                     Dissassemble();
