@@ -256,7 +256,9 @@ namespace Monitor {
         private void OnRefreshScreen_MonDoc(int obj) {
             //_oCacheMan.SetCaretPositionAndScroll( oTry.At, 1, 0, 0 ) )
 
-            SelectionSet( _oMonDoc.Doc_Asm.HighLight.At, 4, 0, 0 );
+            if( _oMonDoc.Doc_Asm.HighLight is not null ) {
+                SelectionSet( _oMonDoc.Doc_Asm.HighLight.At, 4, 0, 0 );
+            }
             Invalidate();
         }
 

@@ -574,6 +574,7 @@ namespace Monitor {
             byte bLowAddr = (byte)( 0x00ff & usAddress );
 
             switch( bLowAddr ) {
+                case 0x01:
                 case 0x02:
                     // This has been getting tiny basic term output!!
                     Mon.Doc_Terminal.AppendChar( Convert.ToChar( bValue ) );
@@ -689,6 +690,8 @@ namespace Monitor {
         public    Z80Memory      Memory { get; }
         protected Z80Definitions _rgZ80Def;
         public    Z80            Cpu { get; protected set; }
+        protected bool           _fCpm = false;
+        protected ushort         _usStartAddr = 0;
 
         public event Action<int>? RefreshScreen;
 
@@ -808,9 +811,7 @@ namespace Monitor {
             Memory    = new Z80Memory( (int)Math.Pow( 2, 16 ) );
 
             // Default ports might get updated at load phase
-            Cpu   = new Z80( Memory, new PortsTinyBasic( this ) ) {
-                Pc = 0x100 // CPM 2.2 start address.
-            };
+            Cpu   = new Z80( Memory, new PortsTinyBasic( this ) );
 
             Doc_Asm     = new ( new DocSlot( this ) );
             Doc_Outl    = new ( new DocSlot( this ) );
@@ -840,7 +841,9 @@ namespace Monitor {
         /// <summary>
         /// This is needed by the embedded Doc_Asm to determine
         /// what's going on with the CPU.
+        /// BUG: not sure I need this now the asmeditor handles.
         /// </summary>
+        /// <seealso cref="AsmEditor.PlayStatus"/>
         public WorkerStatus PlayStatus {
             get{
                 if( _oWorkPlace.Status != WorkerStatus.FREE ) 
@@ -1019,20 +1022,14 @@ namespace Monitor {
             return true;
         }
 
-        protected bool LoadBinaryFile( string strFileName ) {
+        protected bool LoadBinaryFile( string strFileName, bool fComFile ) {
             if( string.IsNullOrEmpty( strFileName ) )
                 return false;
 
                   FileInfo   oFile     = new FileInfo(strFileName);
             using FileStream oStream   = oFile.OpenRead();
-                  string     strExtn   = oFile.Extension;
-
-            bool fComFile = string.Compare( strExtn, ".Com", ignoreCase: true ) == 0; 
 
             try {
-				_strBinaryFileName = oFile.FullName; 
-                FileName           = oFile.Name;
-
                 if( !LoadMemory( oStream, fComFile ) ) {
                     return false;
                 }
@@ -1046,8 +1043,14 @@ namespace Monitor {
             }
             return false;
         }
+
+        /// <summary>We need to load the asmprg file first to determin
+        /// if the file is a cpm program or not. Then load memory and
+        /// dissassemble so we are ready to load the symbols</summary>
+        /// <remarks>TODO: would be nice to have a default in case
+        /// we don't have an outboard asmprg file.</remarks>
         /// <seealso cref="SaveSymbols" />
-        protected void LoadSymbols( Stream oReader ) {
+        protected bool LoadSymbols( Stream oReader ) {
             XmlDocument xmlDoc = new XmlDocument();
             xmlDoc.Load( oReader );
 
@@ -1064,6 +1067,20 @@ namespace Monitor {
                             LogError( "Loading", "Using default Tiny Basic Ports" );
                             break;
                     }
+                }
+                if( xmlRoot.SelectSingleNode( "binary" ) is XmlElement xmlBinary ) {
+                    _fCpm = string.Compare( xmlBinary.GetAttribute( "cpm" ), "true" ) == 0;
+                    if( !LoadBinaryFile( xmlBinary.InnerText, _fCpm ) ) {
+                        return false;
+                    }
+                    Dissassemble();
+
+                    if( _fCpm ) {
+                        _usStartAddr = 0x100;
+                    } else {
+                        _usStartAddr = ushort.Parse( xmlBinary.GetAttribute( "address" ), System.Globalization.NumberStyles.HexNumber);
+                    }
+                    Cpu.Pc = _usStartAddr;
                 }
 
                 // This is only valid if disassembled the binary first ... :-)
@@ -1087,6 +1104,8 @@ namespace Monitor {
                     }
                 }
             }
+
+            return true;
         } // End LoadXml
 
         protected string FileNameForSymbols {
@@ -1135,10 +1154,16 @@ namespace Monitor {
             Doc_Props.SubmitEvent += OnSubmitEvent_CpuProperties;
 
             try {
-                if( !LoadBinaryFile( strUrl ) ) {
+                if( string.IsNullOrEmpty( strUrl ) )
                     return false;
-                }
-                Dissassemble ();
+
+                      FileInfo   oFile     = new FileInfo(strUrl);
+                using FileStream oStream   = oFile.OpenRead();
+                      string     strExtn   = oFile.Extension;
+
+				_strBinaryFileName = oFile.FullName; 
+                FileName           = oFile.Name;
+
                 LoadSymbols  ();
                 PatchUpLabels( _rgLabels );
                 StatusUpdate ();
@@ -1375,9 +1400,9 @@ namespace Monitor {
         public void CpuRecycle() {
             try {
                 Cpu.Reset();
-                Cpu.Pc = 0x100;
+                Cpu.Pc            = _usStartAddr;
                 Doc_Asm.HighLight = null;
-                Doc_Display.Clear();
+                Doc_Display .Clear();
                 Doc_Terminal.Clear();
 
                 PatchUpLabels( _rgLabels );
