@@ -130,15 +130,12 @@ namespace Monitor {
         /// <summary>
         /// This shows the 4bit color display.
         /// </summary>
-        /// <param name="rgMemory"></param>
-        /// <param name="iStart"></param>
+        /// <param name="rgMemory">Raw memory starting at zero.</param>
         public void Load( byte[] rgMemory ) {
             if( Surface == null )
                 return;
 
             try {
-                int iBmpHalfWidth = ImageSize.Width / 2;
-
                 int a = Address;
                 for( int y = 0; y < ImageSize.Height; y+=1 ) {
                     for( int x = 0; x < ImageSize.Width; x += 2 ) {

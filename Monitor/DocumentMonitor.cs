@@ -946,6 +946,12 @@ namespace Monitor {
                 xmlRoot.AppendChild( xmlComments );
 
                 xmlBinary.InnerText = FileName;
+                xmlBinary.SetAttribute( "cpm", _fCpm.ToString() );
+                if( !_fCpm ) {
+                    string strAddr = "0x" +  _usStartAddr.ToString( "X4" );
+                    xmlBinary.SetAttribute( "address", strAddr );
+                }
+
                 xmlPort  .InnerText = Cpu.Ports.Name;
 
                 foreach( Row oNote in Doc_Asm ) {
