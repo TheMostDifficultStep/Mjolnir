@@ -544,10 +544,8 @@ namespace Monitor {
             switch( bLowAddr ) {
                 case 0x00:
                     return 0;
-                case 0x01: // Looking for F for 'freeze' and 0x18, Ctrl-X for 'cancel' 
+              //case 0x01: // Looking for F for 'freeze' and 0x18, Ctrl-X for 'cancel' 
                 case 0x02:
-                    // When the dazzle checks for a key. Update display.
-                    //Mon.Doc_Display.Load( Mon.Z80Memory.RawMemory );
                     Mon.Doc_Terminal.Buffer.TryDequeue( out bValue );
                     break;
             }
@@ -560,6 +558,7 @@ namespace Monitor {
         /// It's some weird implementation deal. Might be a deal
         /// breaker for instructions that send a 16 bit addr AND
         /// the Acc? Like OUT (BC)
+        /// E & F represent output ports here.
         /// </summary>
         /// <remarks>
         /// Dazzler Modes Overview:
@@ -589,8 +588,8 @@ namespace Monitor {
                     Mon.Doc_Display.Address = iDazzleAddr;
                     break;
                 case 0x0f:
-                    // Check size from bValue. BUG s/b 32x32 for k-scope.
-                    if( ( bValue & (1 << 5) ) > 0 )
+                    // Check size from bValue. 
+                    if( ( bValue & 0x20 ) > 0 ) // bit 5 (but what about bit4)
                         Mon.Doc_Display.SetSize( DazzleDisplay.ImageSizes.SixtyFour );
                     else
                         Mon.Doc_Display.SetSize( DazzleDisplay.ImageSizes.ThirtyTwo );
@@ -696,6 +695,7 @@ namespace Monitor {
         protected ushort         _usStartAddr = 0;
 
         public event Action<int>? RefreshScreen;
+        public void Raise_RefreshScreen() { RefreshScreen?.Invoke(0 ); }
 
         public AsmEditor         Doc_Asm     { get; }
         public Editor            Doc_Outl    { get; } // Call address list.
@@ -828,6 +828,8 @@ namespace Monitor {
 
         public void Dispose() {
             Doc_Props.SubmitEvent -= OnSubmitEvent_CpuProperties;
+            Memory   .WriteTrap   -= WriteTrap_Memory;
+
             _oWorkPlace.Stop();
         }
 
@@ -896,10 +898,16 @@ namespace Monitor {
                 return false;
 
             Doc_Props.SubmitEvent += OnSubmitEvent_CpuProperties;
+            Memory   .WriteTrap   += WriteTrap_Memory;
 
             StatusUpdate ();
 
             return true;
+        }
+
+        private void WriteTrap_Memory(int iAddr ) {
+            Doc_Display.Load(Memory.RawMemory);
+            //RefreshScreen?.Invoke(0);
         }
 
         public bool Save() {
@@ -1158,6 +1166,8 @@ namespace Monitor {
                 return false;
 
             Doc_Props.SubmitEvent += OnSubmitEvent_CpuProperties;
+            Memory   .WriteTrap   += WriteTrap_Memory;
+
 
             try {
                 if( string.IsNullOrEmpty( strUrl ) )
@@ -1263,9 +1273,10 @@ namespace Monitor {
               //Doc_Asm    .Mirror( Memory );
                 Doc_Asm    .UpdateHighlightLine( Cpu.Pc );
                 Doc_Props  .Update( this );
-                Doc_Display.Load( Memory.RawMemory );
 
-                RefreshScreen?.Invoke( 0 );
+                RefreshScreen?.Invoke( 0 ); // Hilight and props.
+
+                Doc_Display.Load( Memory.RawMemory );
             } catch( Exception oEx ) {
                 if( _rgStdErrors.IsUnhandled( oEx ) )
                     throw;
@@ -1336,8 +1347,9 @@ namespace Monitor {
                         yield break;
                     }
                 }
+                //Doc_Display.Load( Memory.RawMemory );
+                //RefreshScreen?.Invoke( 0 );
 
-                Doc_Display.Load( Memory.RawMemory );
                 yield return 0;
             }
         }
