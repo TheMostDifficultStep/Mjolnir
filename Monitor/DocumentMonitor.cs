@@ -1095,10 +1095,14 @@ namespace Monitor {
                         _usStartAddr = 0x100;
                     } else {
                         string strAddr = xmlBinary.GetAttribute( "address" );
-                        if( strAddr.StartsWith("0x", StringComparison.OrdinalIgnoreCase)) {
-                            strAddr = strAddr.Substring(2);
+                        if( !string.IsNullOrEmpty( strAddr ) ) {
+                            if( strAddr.StartsWith("0x", StringComparison.OrdinalIgnoreCase)) {
+                                strAddr = strAddr.Substring(2);
+                            }
+                            _usStartAddr = ushort.Parse( strAddr, NumberStyles.HexNumber);
+                        } else {
+                            LogError( "Symbols", "Couldn't find start address! Defaulting to 0." );
                         }
-                        _usStartAddr = ushort.Parse( strAddr, NumberStyles.HexNumber);
                     }
                     Cpu.Pc = _usStartAddr;
                 }
