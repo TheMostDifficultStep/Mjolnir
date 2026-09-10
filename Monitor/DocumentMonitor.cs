@@ -906,7 +906,7 @@ namespace Monitor {
         }
 
         private void WriteTrap_Memory(int iAddr ) {
-            Doc_Display.Load(Memory.RawMemory);
+            //Doc_Display.Load(Memory.RawMemory);
             //RefreshScreen?.Invoke(0);
         }
 
@@ -1353,7 +1353,7 @@ namespace Monitor {
                         yield break;
                     }
                 }
-                //Doc_Display.Load( Memory.RawMemory );
+                Doc_Display.Load( Memory.RawMemory );
                 //RefreshScreen?.Invoke( 0 );
 
                 yield return 0;

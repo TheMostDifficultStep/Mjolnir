@@ -131,7 +131,7 @@ namespace Monitor {
         /// This shows the 4bit color display.
         /// </summary>
         /// <param name="rgMemory">Raw memory starting at zero.</param>
-        public void Load( byte[] rgMemory ) {
+        public void LoadOld( byte[] rgMemory ) {
             if( Surface == null )
                 return;
 
@@ -157,6 +157,63 @@ namespace Monitor {
                     throw;
 
                 _oSiteBase.LogError( "Dazzle", "problem reading memory stream" );
+            }
+        }
+
+        public void Load( byte[] rgMemory ) {
+            if( Surface == null )
+                return;
+
+            try {
+                for( int iQuad = 0; iQuad < 4; iQuad+=1 ) {
+                    LoadQuad( rgMemory, iQuad );
+                }
+                Raise_ImageUpdated();
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( IndexOutOfRangeException ),
+                                    typeof( ArgumentOutOfRangeException ),
+                                    typeof( NullReferenceException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                _oSiteBase.LogError( "Dazzle", "problem reading memory stream" );
+            }
+        }
+
+        SKPointI[] _rgStarts = [ new SKPointI(  0,  0 ),
+                                 new SKPointI( 32,  0 ),
+                                 new SKPointI(  0, 32 ),
+                                 new SKPointI( 32, 32 ) ];
+
+        /// <summary>
+        /// Dazzler has a strange memory map. 
+        /// </summary>
+        /// <param name="rgMemory">Our flat memory space.</param>
+        /// <param name="iQuad">Which quad to paint.</param>
+        protected void LoadQuad( byte[] rgMemory, int iQuad ) {
+            try {
+                int a = Address + iQuad * 0x200; // hard code it for now.
+                int y = _rgStarts[iQuad].Y;
+                for( int j = 0; j < ImageSize.Height / 2; ++j ) {
+                    int x = _rgStarts[iQuad].X;
+                    for( int i = 0; i < ImageSize.Width / 2; i += 2 ) {
+                        byte iLow  = (byte)(  rgMemory[a] & 0x0f );       // low  nibble.
+                        byte iHigh = (byte)(( rgMemory[a] & 0xf0 ) >> 4); // high nibble.
+
+                        Surface.Canvas.DrawPoint( x+i,   y+j, DecodeDazzlerColor( iLow  ) );
+                        Surface.Canvas.DrawPoint( x+i+1, y+j, DecodeDazzlerColor( iHigh ) );
+
+                        a++;
+                    }
+                }
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( IndexOutOfRangeException ),
+                                    typeof( ArgumentOutOfRangeException ),
+                                    typeof( NullReferenceException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                _oSiteBase.LogError( "Dazzle", "problem reading quad" );
             }
         }
 
