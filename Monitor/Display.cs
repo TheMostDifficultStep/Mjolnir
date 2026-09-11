@@ -38,39 +38,9 @@ namespace Monitor {
             Surface = SKSurface.Create( oInfo );
         }
 
-        static SKColor[] _rgTest = { 
-                SKColors.Red,
-                SKColors.Blue,
-                SKColors.Green,
-                SKColors.Gray,
-                SKColors.LightPink,
-                SKColors.LightBlue,
-                SKColors.LightGreen,
-                SKColors.LightGray,
-                SKColors.DarkRed,
-                SKColors.DarkBlue,
-                SKColors.DarkGreen,
-                SKColors.DarkGray,
-                SKColors.Yellow,
-                SKColors.Orange,
-                SKColors.Purple,
-                SKColors.AliceBlue
-        };
-
-
         protected SKColor GetColor( int iR, int iG, int iB ) {
             return new SKColor( (byte)iR, (byte)iG, (byte)iB );
         }
-
-        protected SKColor GetColor( int iIndex ) {
-            if( iIndex >= 16 )
-                return SKColors.White;
-            if( iIndex < 0 )
-                return SKColors.Black;
-
-            return( _rgTest[iIndex] );
-        }
-
 
         public void GenerateTestPattern( byte[] rgMemory ) {
             if( !IsImageValid ) {
@@ -93,20 +63,12 @@ namespace Monitor {
                     rgMemory[iAddr] = (byte)(highNibble | lowNibble);
                 }
             }
-
-            //for (int i = Address; i < iTop; i++) {
-            //    // Each byte holds two 4-bit pixels (High Nibble & Low Nibble)
-            //    // Bit 3: Intensity, Bits 0-2: RGB
-            //    byte lowNibble  = (byte)(i % 16);          
-            //    byte highNibble = (byte)((i / 2) % 16);    
-
-            //    rgMemory[i] = (byte)((highNibble << 4) | lowNibble);
-            //}
         }
 
-        // Decodes the original Cromemco Dazzler hardware color mapping
-
-        private SKColor DecodeDazzlerColor(byte code)
+        /// <summary>
+        /// Decodes the original Cromemco Dazzler hardware color mapping
+        /// </summary>
+        protected virtual SKColor DecodeDazzlerColor(byte code)
         {
             // Bit 3 = Intensity (High/Low)
             // Bit 2 = Red, Bit 1 = Green, Bit 0 = Blue
@@ -127,40 +89,7 @@ namespace Monitor {
         }
 
 
-        /// <summary>
-        /// This shows the 4bit color display.
-        /// </summary>
-        /// <param name="rgMemory">Raw memory starting at zero.</param>
-        public void LoadOld( byte[] rgMemory ) {
-            if( Surface == null )
-                return;
-
-            try {
-                int a = Address;
-                for( int y = 0; y < ImageSize.Height; y+=1 ) {
-                    for( int x = 0; x < ImageSize.Width; x += 2 ) {
-                        byte iLow  = (byte)(  rgMemory[a] & 0x0f );       // low  nibble.
-                        byte iHigh = (byte)(( rgMemory[a] & 0xf0 ) >> 4); // high nibble.
-
-                        Surface.Canvas.DrawPoint( x,   y, DecodeDazzlerColor( iLow  ) );
-                        Surface.Canvas.DrawPoint( x+1, y, DecodeDazzlerColor( iHigh ) );
-
-                        a++;
-                    }
-                }
-                Raise_ImageUpdated();
-            } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( IndexOutOfRangeException ),
-                                    typeof( ArgumentOutOfRangeException ),
-                                    typeof( NullReferenceException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
-                    throw;
-
-                _oSiteBase.LogError( "Dazzle", "problem reading memory stream" );
-            }
-        }
-
-        public void Load( byte[] rgMemory ) {
+        public virtual void Load( byte[] rgMemory ) {
             if( Surface == null )
                 return;
 
@@ -180,10 +109,11 @@ namespace Monitor {
             }
         }
 
-        SKPointI[] _rgStarts = [ new SKPointI(  0,  0 ),
-                                 new SKPointI( 32,  0 ),
-                                 new SKPointI(  0, 32 ),
-                                 new SKPointI( 32, 32 ) ];
+        readonly SKPointI[] _rgStarts = 
+            [ new SKPointI(  0,  0 ),
+              new SKPointI( 32,  0 ),
+              new SKPointI(  0, 32 ),
+              new SKPointI( 32, 32 ) ];
 
         /// <summary>
         /// Dazzler has a strange memory map. 
@@ -192,7 +122,9 @@ namespace Monitor {
         /// <param name="iQuad">Which quad to paint.</param>
         protected void LoadQuad( byte[] rgMemory, int iQuad ) {
             try {
-                int a = Address + iQuad * 0x200; // hard code it for now.
+                // q would be 0x80 or 128 for 32x32
+                int q = 0x200; // quad size. 512, hard coded for 64x64.
+                int a = Address + iQuad * q; 
                 int y = _rgStarts[iQuad].Y;
                 for( int j = 0; j < ImageSize.Height / 2; ++j ) {
                     int x = _rgStarts[iQuad].X;
@@ -223,11 +155,52 @@ namespace Monitor {
         /// </summary>
         public void Clear() {
             if( Surface != null ) {
-                SKPaint skPaint = new SKPaint();
-                Surface.Canvas.DrawColor( SKColors.White );
+                Surface.Canvas.DrawColor( SKColors.Black );
 
                 Raise_ImageUpdated();
             }
         }
+    } // End method
+
+    public class FlatDazzler : DazzleDisplay {
+        public FlatDazzler(IPgBaseSite oSite) : base(oSite) {
+        }
+        protected override SKColor DecodeDazzlerColor(byte code)
+        {
+            if ( code == 0 ) 
+                return SKColors.Black;
+
+            return GetColor(255, 255, 255);
+        }
+
+        /// <summary>
+        /// I'm going to pretend we have an 8 bit per pixel display.
+        /// </summary>
+        /// <param name="rgMemory">Raw memory starting at zero.</param>
+        public override void Load( byte[] rgMemory ) {
+            if( Surface == null )
+                return;
+
+            try {
+                int a = Address;
+                for( int y = 0; y < ImageSize.Height; ++y ) {
+                    for( int x = 0; x < ImageSize.Width; ++x ) {
+                        Surface.Canvas.DrawPoint( x, y, DecodeDazzlerColor( rgMemory[a]  ) );
+
+                        a++;
+                    }
+                }
+                Raise_ImageUpdated();
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( IndexOutOfRangeException ),
+                                    typeof( ArgumentOutOfRangeException ),
+                                    typeof( NullReferenceException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                _oSiteBase.LogError( "Dazzle", "problem reading memory stream" );
+            }
+        }
+
     }
 }

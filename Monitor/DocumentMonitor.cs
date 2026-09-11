@@ -594,6 +594,9 @@ namespace Monitor {
                     else
                         Mon.Doc_Display.SetSize( DazzleDisplay.ImageSizes.ThirtyTwo );
                     break;
+                case 0x10:
+                    Mon.RefreshDisplay();
+                    break;
             }
         }
     }
@@ -946,7 +949,7 @@ namespace Monitor {
                 xmlRoot.AppendChild( xmlComments );
 
                 xmlBinary.InnerText = FileName;
-                xmlBinary.SetAttribute( "cpm", _fCpm.ToString() );
+                xmlBinary.SetAttribute( "cpm", _fCpm.ToString().ToLower() );
                 if( !_fCpm ) {
                     string strAddr = "0x" +  _usStartAddr.ToString( "X4" );
                     xmlBinary.SetAttribute( "address", strAddr );
@@ -1293,6 +1296,13 @@ namespace Monitor {
 
                 LogError( "Cpu", "Status Update Error" );
             }
+        }
+
+        /// <summary>
+        /// Just update the Dazzle (graphics) display. 
+        /// </summary>
+        public void RefreshDisplay() {
+            Doc_Display.Load( Memory.RawMemory );
         }
 
         public void DazzleTestPattern() {

@@ -40,6 +40,13 @@ namespace Play.Spectrum {
         }
     }
 
+    /// <summary>
+    /// this isn't technically correct since the 1 bit portion of the screen
+    /// isn't constrained to the blocks. What I should probably to is have
+    /// the one bit layer on top of the attributes so I can faithfully reproduce
+    /// color clash by allowing blits to the one bit layer and then blit blockwise
+    /// to generate the final color results.
+    /// </summary>
     public class ScreenBlock {
         public ScreenBlock( int iImg, SpectrumAttrib oAttr ) {
             Img  = iImg;
