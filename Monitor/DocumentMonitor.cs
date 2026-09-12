@@ -566,6 +566,9 @@ namespace Monitor {
         /// * 64 x 64 / 128 x 128 
         ///   Monochrome Modes: Higher-resolution black-and-white 
         ///   configurations.
+        /// 
+        /// I don't implement the packed bpp modes (yet) but I'm
+        /// adding 8 bit mono mode. And in the future 8 bit color.
         /// </remarks>
         public void WritePort(ushort usAddress, byte bValue) {
             byte          bLowAddr = (byte)( 0x00ff & usAddress );
