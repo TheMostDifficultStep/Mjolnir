@@ -1,4 +1,10 @@
-﻿using System;
+﻿using Play.Controls;
+using Play.Interfaces.Embedding;
+using Play.Parse;
+using Play.Rectangles;
+using SkiaSharp;
+using SkiaSharp.Views.Desktop;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -7,14 +13,7 @@ using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
 using System.Xml;
-
-using SkiaSharp;
-using SkiaSharp.Views.Desktop;
-
-using Play.Controls;
-using Play.Interfaces.Embedding;
-using Play.Parse;
-using Play.Rectangles;
+using static System.ComponentModel.Design.ObjectSelectorEditor;
 
 
 namespace Play.Edit {
@@ -556,7 +555,20 @@ namespace Play.Edit {
                         break;
                     case Keys.Back:
                         if(  !_oHost.IsReadOnly && _oCacheMan.CopyCaret() is CaretInfo oCaret ) {
+                            Selection          oSelector = _oCacheMan.Selector;
+
+                            if( oSelector.IsValid ) {
+                                _oHost.SelectionDelete(); 
+                            } 
                             _oHost._oDocOps.TryDeleteAt( oCaret.Row, oCaret.Column, oCaret.Offset - 1, 1 );
+                            // So ShiftMarker does not work for the negative shift. need to fix that
+                            // before this will work...
+                            //ReadOnlySpan<char> rgInsert  = [];
+                            //_oDocOps.TryReplaceAt( oCaret.Row,
+                            //                       _oCacheMan.CaretColumn,
+                            //                       _oCacheMan.CaretOffset-1,
+                            //                       1,
+                            //                       rgInsert );
                         }
                         break;
                     case Keys.ControlKey:
