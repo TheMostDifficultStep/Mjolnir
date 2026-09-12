@@ -3,18 +3,14 @@ using Play.Edit;
 using Play.Forms;
 using Play.Interfaces.Embedding;
 using Play.Parse;
-
 using SkiaSharp;
-
+using System.Globalization;
 using System.Reflection;
 using System.Security;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
-using System.Globalization;
-
 using z80;
-
 using static Monitor.Z80Dissambler;
 
 namespace Monitor {
@@ -572,7 +568,8 @@ namespace Monitor {
         ///   configurations.
         /// </remarks>
         public void WritePort(ushort usAddress, byte bValue) {
-            byte bLowAddr = (byte)( 0x00ff & usAddress );
+            byte          bLowAddr = (byte)( 0x00ff & usAddress );
+            DazzleDisplay oDaz     = Mon.Doc_Display;
 
             switch( bLowAddr ) {
                 case 0x01:
@@ -585,14 +582,41 @@ namespace Monitor {
                     bool bDazzleOn   =       ( bValue & 0x80 ) > 0;
                     int  iDazzleAddr = bDazzleOffs * 0x200;
 
-                    Mon.Doc_Display.Address = iDazzleAddr;
+                    oDaz.Address = iDazzleAddr;
                     break;
                 case 0x0f:
-                    // Check size from bValue. 
-                    if( ( bValue & 0x20 ) > 0 ) // bit 5 (but what about bit4)
-                        Mon.Doc_Display.SetSize( DazzleDisplay.ImageSizes.SixtyFour );
-                    else
-                        Mon.Doc_Display.SetSize( DazzleDisplay.ImageSizes.ThirtyTwo );
+                    // Color Modes (D4 = 0, D0 = lsb)
+                    //      0x00 : 32 x 32 Color Mode (Uses a 512-byte buffer)
+                    //      0x20 : 64 x 64 Color Mode (Uses a 2 kB buffer) 
+                    // 2. Monochrome "X4" Modes (D4 = 1)
+                    //      0x1X :  64 x  64 Monochrome Mode (Uses a 512-byte buffer)
+                    //      0x3X : 128 x 128 Monochrome Mode (Uses a 2 kB buffer)
+                    oDaz.Mono         = ( bValue  & 0x10 ) > 0;
+                    oDaz.BitsPerPixel = ( bValue <= 0x30 ) ? 4 : 8;
+
+                    switch( bValue ) {
+                        case 0x20:
+                        case 0x30:
+                            oDaz.SetSize( DazzleDisplay.ImageSizes.S64x64 );
+                            break;
+                        case 0x00:
+                        case 0x10:
+                            oDaz.SetSize( DazzleDisplay.ImageSizes.S32x32 );
+                            break;
+
+                        case 0x40:
+                        case 0x50:
+                            oDaz.SetSize( DazzleDisplay.ImageSizes.S32x32 );
+                            break;
+                        case 0x80:
+                        case 0x90:
+                            oDaz.SetSize( DazzleDisplay.ImageSizes.S64x64 );
+                            break;
+                        case 0xC0:
+                        case 0xD0:
+                            oDaz.SetSize( DazzleDisplay.ImageSizes.S128x128 );
+                            break;
+                    }
                     break;
                 case 0x10:
                     Mon.RefreshDisplay();
