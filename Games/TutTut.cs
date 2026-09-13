@@ -5,6 +5,7 @@ using Play.Interfaces.Embedding;
 using Play.Spectrum;
 
 using SkiaSharp;
+
 using System.Reflection;
 using System.Windows.Forms;
 using System.Xml;
@@ -66,13 +67,13 @@ namespace Play.Games {
         /// if you change any of the attr value it affects all blocks
         /// pointing to this attr.
         /// </summary>
-        SpectrumAttrib Attr {
+        Attribs Attr {
             get { return Speccy.Attr; }
             set { Speccy.Attr = value; }
         }
 
         const    int   _iU        = 3; // Screen offset.
-                 int   _iGScore        = 0; // probably score.
+                 int   _iGScore   = 0; // probably score.
                  bool  _fParity   = false; // A toggle for gameplay.
                  int   _iAirCount = 0;
                  int   _iS        = 0;
@@ -127,7 +128,7 @@ namespace Play.Games {
             }
 
             // Sort of overkill, using to generate the numbers at present.
-            _uiFont = _oStdUI.FontCacheNew  ( _oStdUI.StdFaceAt( StdUIFaces.Retro ), 6, new SKPoint( 96, 96 ) );
+            _uiFont = _oStdUI.FontCacheNew  ( _oStdUI.StdFaceAt( StdUIFaces.Text ), 6, new SKPoint( 96, 96 ) );
             Font    = _oStdUI.FontRendererAt( _uiFont );
         }
 
@@ -156,20 +157,24 @@ namespace Play.Games {
         }
 
         protected virtual bool Initialize() {
-            LoadFont ();
-            LoadUDG645  ();  // We override some of the font chars.
+            Speccy.InitNew();
 
-            LoadGrid    (0);
-            LoadKandM   (0);
-            LoadStuff   (0);
+            LoadFont  ();
+            LoadUDG645();  // We override some of the font chars.
+
+            LoadGrid (0);
+            LoadKandM(0);
+            LoadStuff(0);
             LoadExplorer(0);
-            DrawBorder530  ();
+            DrawBorder530();
 
             DrawStatus550();
 
             Speccy.Refresh();
 
-            _oWorkPlace.Queue( GameLoop(), 0 );
+            _oWorkPlace.Queue(GameLoop(), 0);
+
+            //TestGrid();
 
             return true;
         }
@@ -180,20 +185,22 @@ namespace Play.Games {
         /// missing. Haven't checked.
         /// </summary>
         /// <remarks>
-        /// Need to blit opaque bg and then image will set that to 0XFF
-        /// for the bit to be seen.
+        /// This doesn't seem to work with my new spectrum screen emulation.
         /// </remarks>
         protected bool LoadFont() {
             using SKSurface oSurface = SKSurface.Create( new SKImageInfo( 8, 8, SKColorType.Bgra8888 ) );
-            using SKPaint   oPaint   = new SKPaint() { Color = new SKColor( 0, 0, 0, 0X0 ) };
+            using SKPaint   oPaint   = new SKPaint() { Color = new SKColor( 0, 0, 0, 0 ) };
 
             SKCanvas oCanvas = oSurface.Canvas;
 
-            for( uint uI = 0x30; uI < 0x40; ++uI ) {
+            for( uint uI = 0x30; uI < 0x3a; ++uI ) {
                 IPgGlyph oGlyph = Font.GetGlyph( uI );
 
-                oCanvas.DrawRect ( new SKRect( 0, 0, 8, 8 ), oPaint );
-                oCanvas.DrawImage( oGlyph.Image, 0, 7 - oGlyph.Image.Height + 1 );
+                oPaint.BlendMode = SKBlendMode.Src;
+                oCanvas.DrawRect ( new SKRect( 0, 0, 8, 8 ), oPaint ); // clear spot.
+
+                oPaint.BlendMode = SKBlendMode.Src;
+                oCanvas.DrawImage( oGlyph.Image, 0, 7 - oGlyph.Image.Height + 1, oPaint );
 
                 Speccy.Images[uI] = oSurface.Snapshot();
             }
@@ -271,11 +278,11 @@ namespace Play.Games {
                     strC += strT[iOffs..(iOffs+3)]; // fill in 3 chars from T
                 }
                 // Load up that string on the screen.
-                Attr = new SpectrumAttrib( ClrWall );
+                Attr = new Attribs( ClrWall );
                 UdgAt( iZ+_iU, _iU+1, strC );
 
                 // Now go back and add all the tunnles.
-                Attr = new SpectrumAttrib(0);
+                Attr = new Attribs(0);
                 for( int iV = 0; iV < strC.Length; ++iV ) {
                     if( strC[iV] == 'B' ) {
                         char cTmp = (char)( 0x91 + R(iV + iZ, 2) );
@@ -290,7 +297,7 @@ namespace Play.Games {
             int[] rgKeyMum = [
                 0, 0, 0, 438, 50, 167, 300, 418
             ]; // 0-3 keys, 4-7 mummies
-            Attr = new SpectrumAttrib(0); // line 750
+            Attr = new Attribs(0); // line 750
             for( int iZ =0; iZ < 8; ++iZ ) {
                 int iC = rgKeyMum[iZ];
                 // First 4 are keys, set if not zero.
@@ -299,7 +306,7 @@ namespace Play.Games {
                     int iV = R(iC,32) + _iU + 1;
                     int iB = M(iC,32) + _iU;
 
-                    Attr = new SpectrumAttrib( (byte)(iZ+0x40+1) ); // bright,paper:0,ink:z+1
+                    Attr = new Attribs( (byte)(iZ+0x40+1) ); // bright,paper:0,ink:z+1
                     UdgAt( iB, iV, 'D' );
                 }
                 // Next 4 are mummies. 2d pos encoded in one number!!
@@ -330,7 +337,7 @@ namespace Play.Games {
                54, 161, 310, 417  // z=4, gems
             ];
 
-            Attr   = new SpectrumAttrib(0);
+            Attr   = new Attribs(0);
             Bright = true; // Line 770
 
             int iIndex = 0;
@@ -352,7 +359,7 @@ namespace Play.Games {
                         }
                     }
                     if( iC > 0 && iZRow > 3 ) {
-                        Attr = new SpectrumAttrib( 6 );
+                        Attr = new Attribs( 6 );
 
                         UdgAt( iRow, iCol, 'G' ); // gem.
                     }
@@ -383,15 +390,15 @@ namespace Play.Games {
             }
 
             // Put something in the middle of the screen.
-            Attr = new SpectrumAttrib( 66 );
+            Attr = new Attribs( 66 );
             int iHalf = rgTx.Count / 2;
             for( int i=0; i< rgTx.Count; ++i ) {
-                Speccy.PutChrAt( _iU+16,_iU+12-iHalf+i, rgTx[i] );
+                Speccy.PutChrOn( _iU+16,_iU+12-iHalf+i, rgTx[i] );
             }
         }
 
         protected void DrawExplorer225( ) {
-            Attr = new SpectrumAttrib(0);
+            Attr = new Attribs(0);
 
             // I don't think I need to keep this persistant, it's
             // just being used to determine the direction the char
@@ -420,9 +427,7 @@ namespace Play.Games {
         }
 
         protected void SetAttr( int iRow, int iCol, byte iAttr ) {
-            ScreenBlock oBlock = Speccy.Screen[iCol,iRow];
-
-            oBlock.Attr = new SpectrumAttrib( iAttr );
+            Speccy.Attribs[iCol,iRow] = new Attribs( iAttr );
         }
 
         protected void SetAttr( int iOffset, byte bAttr ) {
@@ -439,7 +444,7 @@ namespace Play.Games {
             int iCol = iOffset % 32;
 
             try {
-                return Speccy.Screen[iCol,iRow].Attr.Value;
+                return Speccy.Attribs[iCol,iRow].Value;
             } catch( IndexOutOfRangeException ) {
                 throw;
             }
@@ -447,7 +452,7 @@ namespace Play.Games {
 
         public byte AttrAt( SKPointI pntLoc ) {
             try {
-                return Speccy.Screen[pntLoc.X, pntLoc.Y].Attr.Value;
+                return Speccy.Attribs[pntLoc.X, pntLoc.Y].Value;
             } catch( IndexOutOfRangeException ) {
                 throw;
             }
@@ -455,7 +460,7 @@ namespace Play.Games {
 
         public byte AttrAt( int iRow, int iCol ) {
             try {
-                return Speccy.Screen[iCol,iRow].Attr.Value;
+                return Speccy.Attribs[iCol,iRow].Value;
             } catch( IndexOutOfRangeException ) {
                 throw;
             }
@@ -511,14 +516,14 @@ namespace Play.Games {
                 if( cV >= 0x41 && cV <= 0x5a ) {
                     Speccy.PutUDGAt( iRow, iCol++, cV );
                 } else {
-                    Speccy.PutChrAt( iRow, iCol++, cV );
+                    Speccy.PutChrOn( iRow, iCol++, cV );
                 }
             }
         }
 
         public void ChrAt( int iRow, int iCol, string strChar ) {
             foreach( char cV in strChar ) {
-                Speccy.PutChrAt( iRow, iCol++, cV );
+                Speccy.PutChrOn( iRow, iCol++, cV );
             }
         }
 
@@ -526,9 +531,16 @@ namespace Play.Games {
         /// Let's take a look at all the UDG's.
         /// </summary>
         public void TestGrid() {
+            Attr = new Attribs( 0x71 );
+
+            //for( int iRow=0; iRow<24; ++iRow ) {
+            //    for( int iCol=0; iCol<32; ++iCol ) {
+            //        UdgAt( iRow, iCol, (char)( iCol%21 + 'A' ) );
+            //    }
+            //}
             for( int iRow=0; iRow<24; ++iRow ) {
                 for( int iCol=0; iCol<32; ++iCol ) {
-                    UdgAt( iRow, iCol, (char)( iCol%21 + 'A' ) );
+                    Speccy.PutChrOn( iRow, iCol, (char)( 0x30+iCol ) );
                 }
             }
 
@@ -558,7 +570,7 @@ namespace Play.Games {
         /// <seealso cref="LoadUDG645" />
         protected void Init640() {
             Border = 0;
-            Attr   = new SpectrumAttrib( 0 );
+            Attr   = new Attribs( 0 );
             Cls();
             // Restore... we don't need this.
             // Load UDG's... See LoadUDG645() in program init.
@@ -689,7 +701,7 @@ namespace Play.Games {
 
             // bC -> ClrBird1 .. ClrBird3
             // This brings a bird up!
-            Attr = new SpectrumAttrib( bC );
+            Attr = new Attribs( bC );
             UdgAt( iV, iB, 'E' );
             MoveExplorer225();
         }
@@ -706,16 +718,16 @@ namespace Play.Games {
         /// and set's the previous position to the current.
         /// </summary>
         protected void MoveExplorer225() {
-            Attr = new SpectrumAttrib(0);
+            Attr = new Attribs(0);
             int iC = R( _pntPrevExpl.X + _pntPrevExpl.Y, 2 );
 
             if( iC == 0 ) {
                 UdgAt( _pntPrevExpl, 'B' );
-                Attr = new SpectrumAttrib(ClrExpl);
+                Attr = new Attribs(ClrExpl);
                 UdgAt( _pntExplorer, 'I' );
             } else {
                 UdgAt( _pntPrevExpl, 'C' );
-                Attr = new SpectrumAttrib(ClrExpl);
+                Attr = new Attribs(ClrExpl);
                 UdgAt( _pntExplorer, 'H' );
             }
             _pntPrevExpl = _pntExplorer;
@@ -737,7 +749,7 @@ namespace Play.Games {
             for( int iC=2; iC<=5; ++iC ) {
                 UdgAt( _pntExplorer, 'B' );     // Mummy
                 for( int iB=0x42; iB<=0x46; ++iB ) {
-                    Attr = new SpectrumAttrib((byte)(iC+iB));
+                    Attr = new Attribs((byte)(iC+iB));
                     UdgAt( _pntExplorer, 'H' ); // Explorer
                 }
             }
@@ -774,7 +786,7 @@ namespace Play.Games {
                 _iGScore = 0;
 
             string strZ = '0' + _iGScore.ToString();
-            Attr = new SpectrumAttrib( ClrExpl );
+            Attr = new Attribs( ClrExpl );
             ChrAt( _iU+17, _iU+26- strZ.Length, strZ );
             Beep( .005, 14 );
         }
@@ -843,7 +855,7 @@ namespace Play.Games {
         /// Draw border. Line 530
         /// </summary>
         public void DrawBorder530() {
-            Attr = new SpectrumAttrib( 0x10 ); // bg:?, fg:black
+            Attr = new Attribs( 0x10 ); // bg:?, fg:black
             // Top border...
             UdgAt( _iU-1, _iU, 'M' );
             for( int iCol=1+_iU; iCol <25+_iU; ++iCol ) {
@@ -871,28 +883,28 @@ namespace Play.Games {
         /// This is line 550
         /// </summary>
         public void DrawStatus550() {
-            Attr = new SpectrumAttrib( 71 );
+            Attr = new Attribs( 71 );
             UdgAt( _iU-3,_iU+9, "QSQ-QSQ" );   // Tut-Tut, but '-' broken >_K;;
 
             UdgAt( _iU+17, _iU, "MLTP:" );     // keys...
-            Attr = new SpectrumAttrib( 0x0 );
+            Attr = new Attribs( 0x0 );
             UdgAt( _iU+17, _iU+5, "DDDD" );    // Clear doors!
             // Set the keys.
 
-            Attr = new SpectrumAttrib( 71 );
+            Attr = new Attribs( 71 );
             UdgAt( _iU+17, _iU+14, "PKoOL:" ); // score
-            Attr = new SpectrumAttrib( ClrExpl );
+            Attr = new Attribs( ClrExpl );
             ChrAt( _iU+17, _iU+20, "000000" );
             for( int iZ=1; iZ < 5; ++iZ ) {
-                Attr = new SpectrumAttrib( (byte)iZ );
+                Attr = new Attribs( (byte)iZ );
                 UdgAt( _iU+17, _iU+4+iZ, "D" );
             }
 
             DrawScore255();
 
-            Attr = new SpectrumAttrib( 71 );
+            Attr = new Attribs( 71 );
             UdgAt( _iU+18, _iU, "JiO :" );     // Air
-            Attr = new SpectrumAttrib( 0x85 );
+            Attr = new Attribs( 0x85 );
             for( int iAir=0; iAir < 21; ++iAir ) {
                 UdgAt( _iU+18, _iU+iAir+5, "U" );
             }
@@ -902,7 +914,7 @@ namespace Play.Games {
             if( _iGScore < 0 )
                 _iGScore = 0;
 
-            Attr = new SpectrumAttrib( ClrExpl );
+            Attr = new Attribs( ClrExpl );
             string strScore = _iGScore.ToString();
             UdgAt( _iU+17, _iU+26-strScore.Length, strScore );
         }

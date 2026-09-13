@@ -4,13 +4,13 @@ using Play.Interfaces.Embedding;
 using SkiaSharp;
 
 namespace Play.Spectrum {
-    public class SpectrumAttrib {
+    public class Attribs {
         public bool _fFlash;
         public bool _fBright;
         public byte _bInk;
         public byte _bPaper;
 
-        public SpectrumAttrib( byte iAttr ) {
+        public Attribs( byte iAttr ) {
             Value = iAttr;
         }
 
@@ -40,38 +40,28 @@ namespace Play.Spectrum {
         }
     }
 
-    /// <summary>
-    /// this isn't technically correct since the 1 bit portion of the screen
-    /// isn't constrained to the blocks. What I should probably to is have
-    /// the one bit layer on top of the attributes so I can faithfully reproduce
-    /// color clash by allowing blits to the one bit layer and then blit blockwise
-    /// to generate the final color results.
-    /// </summary>
-    public class ScreenBlock {
-        public ScreenBlock( int iImg, SpectrumAttrib oAttr ) {
-            Img  = iImg;
-            Attr = oAttr;
-        }
-
-        public SpectrumAttrib Attr { get; set; }
-        public int       Img  { get; set; }
-    }
     public class SpectrumGraphics :
         DocSurfaceBase,
         IPgLoad
     {
-        public ScreenBlock[,] Screen  { get; } // Speccy 32,24 ascii display.
+        public Attribs[,] Attribs  { get; } // Speccy 32,24 ascii display.
         public SKImage     [] Images  { get; } // Our constructed UDG's
-        public SpectrumAttrib Attr    { get;set; } = new SpectrumAttrib(0);
+        public Attribs        Attr    { get;set; } = new Attribs(0);
         public bool           Over    { get; set; } = false;
+        public SKSurface      Mask    { get; protected set; }
 
         public SpectrumGraphics( IPgBaseSite oSite, string strMode ) : base( oSite ) {
             if( string.Compare( strMode, "std" ) != 0 ) {
                 throw new ArgumentOutOfRangeException();
             }
-            Screen  = new ScreenBlock  [32,24];
+            Attribs = new Attribs[32,24];
             Images  = new SKImage[256];
             Surface = SKSurface.Create( new SKImageInfo( 256, 192, SKColorType.Bgra8888 ) );
+            Mask    = SKSurface.Create( new SKImageInfo( 256, 192, SKColorType.Bgra8888 ) );
+        }
+
+        public void LogError( string strMessage ) {
+            _oSiteBase.LogError( "Spectrum", strMessage );
         }
 
         /// <summary>
@@ -91,16 +81,14 @@ namespace Play.Spectrum {
         /// doesn't affect them all! ^_^;
         /// </summary>
         public void Clr() {
-            for( int iY = 0; iY< Screen.GetLength(1); ++iY ) {
-                for( int iX = 0; iX < Screen.GetLength(0); ++iX ) {
+            for( int iY = 0; iY< Attribs.GetLength(1); ++iY ) {
+                for( int iX = 0; iX < Attribs.GetLength(0); ++iX ) {
                     // Attribute 0 is black foreground and background.
-                    Screen[iX, iY] = new ScreenBlock(0, new SpectrumAttrib( 0 ) );
+                    Attribs[iX, iY] = new Attribs( 0 );
                 }
             }
-        }
-
-        public void LogError( string strMessage ) {
-            _oSiteBase.LogError( "Spectrum", strMessage );
+            SKPaint oPaint = new() { Color = SKColors.Black };
+            Mask.Canvas.DrawRect( 0, 0, 256, 192, oPaint );
         }
 
         /// <summary>Create the Image that backs the Graphics 
@@ -143,9 +131,9 @@ namespace Play.Spectrum {
                 byte bRow = rgUdg[iY];
                 for( int iX = 0; iX < 8; ++iX ) {
                     // Highest bit is the lowest X value...
-                    byte bByteValue = ( bRow & 1<<(7-iX) ) == 0 ? (byte)0 : (byte)255; 
+                    byte bAlpha = ( bRow & 1<<(7-iX) ) == 0 ? (byte)0 : (byte)255; 
 
-                    skBitmap.SetPixel( iX, iY, new SKColor( 0, 0, 0, bByteValue ));
+                    skBitmap.SetPixel( iX, iY, new SKColor( 0, 0, 0, bAlpha ));
                 }
             }
             Images[i] = SKImage.FromBitmap( skBitmap );
@@ -160,15 +148,21 @@ namespace Play.Spectrum {
         public void PutUDGAt( int iRow, int iCol, char cUdg ) {
             int iUdg = (byte)( (Int16)cUdg - 'A' + 0x90);
 
-            PutChrAt( iRow, iCol, (char)iUdg );
+            PutChrOn( iRow, iCol, (char)iUdg );
         }
 
-        public void PutChrAt( int iRow, int iCol, char cChar ) {
+        public void PutChrOn( int iRow, int iCol, char cChar ) {
             try {
-                ScreenBlock oBlock = Screen[iCol, iRow];
+                SKRectI           sLoc     = new ( iCol*8, iRow*8, iCol*8+8, iRow*8+8);
+                SKSamplingOptions oOptions = new SKSamplingOptions( SKFilterMode.Nearest );
+                SKImage           oUdg     = Images[cChar];
 
-                oBlock.Img  = cChar;
-                oBlock.Attr = Attr;
+                if( oUdg is null ) {
+                    oUdg = Images[0];
+                }
+                Mask.Canvas.DrawImage( oUdg, sLoc, oOptions );
+
+                Attribs[iCol, iRow] = Attr;
             } catch( Exception oEx ) {
                 Type[] rgErrors = [ 
                     typeof( NullReferenceException ),
@@ -232,39 +226,44 @@ namespace Play.Spectrum {
         }
 
         /// <summary>
-        /// After you have loaded your UDG's, you may attempt
-        /// to refresh and draw the screen.
+        /// So now we have a true "1 bit" display with backing 32x24 attribs.
+        /// We blit in 8x8 chunks so we'll get proper color clash! ^_^;;
         /// </summary>
         public void Refresh() {
-            SKPaint  oPaint  = new SKPaint();
-            SKCanvas oCanvas = Surface.Canvas;
-            try {
-                for( int iY = 0; iY<Screen.GetLength(1); ++iY ) {
-                    for( int iX = 0; iX <Screen.GetLength(0); ++iX ) {
-                        SKPoint pntLoc = new( iX*8, iY*8 );
-                        ScreenBlock   oBlock = Screen[iX, iY];
-                        SKImage oUdg   = Images[oBlock.Img];
+            SKPaint           oPaint   = new SKPaint();
+            SKCanvas          oCanvas  = Surface.Canvas;
+            SKImage           oMask    = Mask.Snapshot();
+            SKSamplingOptions oOptions = new SKSamplingOptions( SKFilterMode.Nearest );
 
-                        if( oUdg is null ) {
-                            oUdg = Images[0];
-                        }
-                        //Surface.Canvas.DrawImage( oUdg, pntLoc );
+            try {
+                for( int iY = 0; iY<Attribs.GetLength(1); ++iY ) {
+                    for( int iX = 0; iX <Attribs.GetLength(0); ++iX ) {
+                        SKPoint        pntLoc = new( iX*8, iY*8 );
+                        Attribs oAttr  = Attribs[iX, iY];
 
                         SKRect skRect  = new SKRect( pntLoc.X, pntLoc.Y, 
-                                                     pntLoc.X + oUdg.Width, 
-                                                     pntLoc.Y + oUdg.Height );
+                                                     pntLoc.X + 8,
+                                                     pntLoc.Y + 8 );
                         
                         // This sets our background image.
                         oPaint .BlendMode = SKBlendMode.Src;
-                        oPaint .Color     = DecodeColor( oBlock.Attr._fBright, oBlock.Attr._bPaper );
+                        oPaint .Color     = DecodeColor( oAttr._fBright, oAttr._bPaper );
                         oCanvas.DrawRect( skRect, oPaint );
 
-                        // This does the XOR blit to display.
-                        oPaint.Color = DecodeColor( oBlock.Attr._fBright, oBlock.Attr._bInk );
-                        DrawImage( oCanvas, oPaint, skRect, oUdg );
+                        oPaint .Color = DecodeColor( oAttr._fBright, oAttr._bInk );
+
+                        // So XOR only works with alpha, which explains why my
+                        // Alpha8 bitmap works with this.
+                        oPaint .BlendMode = SKBlendMode.Xor;  // xor
+                        oCanvas.DrawImage( oMask, skRect, skRect, oOptions, oPaint );
+
+                        // So the BG is already the color we wanted, it get's XOR'd and
+                        // has a transparency set, then we draw our text colored rect...
+                        oPaint.BlendMode = SKBlendMode.DstOver;
+                        oCanvas.DrawRect(skRect, oPaint);
                     }
                 }
-                // this is a heave duty call when just the bits change but
+                // this is a heavy duty call when just the bits change but
                 // not the size or any other attribute.
                 Raise_ImageUpdated();
             } catch( Exception oEx ) {
