@@ -1104,7 +1104,7 @@ namespace Monitor {
         /// </summary>
         /// <param name="oStream"></param>
         /// <returns></returns>
-        protected bool LoadMemory( Stream oStream, bool fComFile ) {
+        protected bool LoadMemory( Stream oStream, int iCount, bool fComFile ) {
             if( oStream == null )
                 throw new ArgumentNullException();
 
@@ -1112,7 +1112,6 @@ namespace Monitor {
             // see how this turns out. Memory size is still tricky.
             // Well add that to property pages and .asmprg file.
             //byte[] rgRWRam = new byte[64000];
-            int    iCount  = fComFile ? 0x100 : 0x00; 
 
             for( int iByte = oStream.ReadByte();
                  iByte != -1;
@@ -1132,7 +1131,7 @@ namespace Monitor {
             return true;
         }
 
-        protected bool LoadBinaryFile( string strFileName, bool fComFile ) {
+        protected bool LoadBinaryFile( string strFileName, int iAddr, bool fComFile ) {
             if( string.IsNullOrEmpty( strFileName ) )
                 return false;
 
@@ -1140,7 +1139,7 @@ namespace Monitor {
             using FileStream oStream   = oFile.OpenRead();
 
             try {
-                if( !LoadMemory( oStream, fComFile ) ) {
+                if( !LoadMemory( oStream, iAddr, fComFile ) ) {
                     return false;
                 }
 
@@ -1180,11 +1179,6 @@ namespace Monitor {
                 }
                 if( xmlRoot.SelectSingleNode( "binary" ) is XmlElement xmlBinary ) {
                     _fCpm = string.Compare( xmlBinary.GetAttribute( "cpm" ), "true" ) == 0;
-                    if( !LoadBinaryFile( _strBinaryFileName, _fCpm ) ) {
-                        return false;
-                    }
-                    Dissassemble();
-
                     if( _fCpm ) {
                         _usStartAddr = 0x100;
                     } else {
@@ -1199,6 +1193,12 @@ namespace Monitor {
                         }
                     }
                     Cpu.Pc = _usStartAddr;
+
+                    if( !LoadBinaryFile( _strBinaryFileName, _usStartAddr, _fCpm ) ) {
+                        return false;
+                    }
+                    Dissassemble();
+
                 }
 
                 // This is only valid if disassembled the binary first ... :-)
