@@ -79,305 +79,366 @@ namespace Monitor {
         /// <exception cref="ArgumentOutOfRangeException" />
         /// <exception cref="InvalidDataException" />
         public Z80Definitions() { 
-            _rgMain[0x00] = new Z80Instr( "Nop" );
-            _rgMain[0x01] = new Z80Instr( "ld", "bc {nn}" );
-            _rgMain[0x02] = new Z80Instr( "ld", "(bc), a" );
-            _rgMain[0x03] = new Z80Instr( "inc", "bc" );
-            _rgMain[0x04] = new Z80Instr( "inc", "b" );
-            _rgMain[0x05] = new Z80Instr( "dec", "b" );
-            _rgMain[0x06] = new Z80Instr( "ld", "b, {n}" );
-            _rgMain[0x07] = new Z80Instr( "rlca" );
-            _rgMain[0x08] = new Z80Instr( "ex", "af, af" );
-            _rgMain[0x09] = new Z80Instr( "add", "hl, bc" );
-            _rgMain[0x0a] = new Z80Instr( "ld", "a, (bc)" );
-            _rgMain[0x0b] = new Z80Instr( "dec", "bc" );
-            _rgMain[0x0c] = new Z80Instr( "inc", "c" );
-            _rgMain[0x0d] = new Z80Instr( "dec", "c" );
-            _rgMain[0x0e] = new Z80Instr( "ld", "c, {n}" );
-            _rgMain[0x0f] = new Z80Instr( "rrca" );
+            Add( "00", "Nop" );
+            Add( "01", "ld", "bc {nn}" );
+            Add( "02", "ld", "(bc), a" );
+            Add( "03", "inc", "bc" );
+            Add( "04", "inc", "b" );
+            Add( "05", "dec", "b" );
+            Add( "06", "ld", "b, {n}" );
+            Add( "07", "rlca" );
+            Add( "08", "ex", "af, af" );
+            Add( "09", "add", "hl, bc" );
+            Add( "0a", "ld", "a, (bc)" );
+            Add( "0b", "dec", "bc" );
+            Add( "0c", "inc", "c" );
+            Add( "0d", "dec", "c" );
+            Add( "0e", "ld", "c, {n}" );
+            Add( "0f", "rrca" );
 
-            _rgMain[0x10] = new Z80Instr("djnz", "{d}"); // jump to n + pc
-            _rgMain[0x11] = new Z80Instr("ld", "de, {nn}");
-            _rgMain[0x12] = new Z80Instr("ld", "(de), a");
-            _rgMain[0x13] = new Z80Instr("inc", "de");
-            _rgMain[0x14] = new Z80Instr("inc", "d");
-            _rgMain[0x15] = new Z80Instr("dec", "d");
-            _rgMain[0x16] = new Z80Instr("ld", "d, {n}");
-            _rgMain[0x17] = new Z80Instr("rla");
-            _rgMain[0x18] = new Z80Instr("jr", "{d}" );
-            _rgMain[0x19] = new Z80Instr("add", "hl, de");
-            _rgMain[0x1a] = new Z80Instr("ld", "a, (de)");
-            _rgMain[0x1b] = new Z80Instr("dec", "de");
-            _rgMain[0x1c] = new Z80Instr("inc", "e");
-            _rgMain[0x1d] = new Z80Instr("dec", "e");
-            _rgMain[0x1e] = new Z80Instr("ld", "e, {n}");
-            _rgMain[0x1f] = new Z80Instr("rra");
+            Add( "10", "djnz", "{d}"); // jump to n + pc
+            Add( "11", "ld", "de, {nn}");
+            Add( "12", "ld", "(de), a");
+            Add( "13", "inc", "de");
+            Add( "14", "inc", "d");
+            Add( "15", "dec", "d");
+            Add( "16", "ld", "d, {n}");
+            Add( "17", "rla");
+            Add( "18", "jr", "{d}" );
+            Add( "19", "add", "hl, de");
+            Add( "1a", "ld", "a, (de)");
+            Add( "1b", "dec", "de");
+            Add( "1c", "inc", "e");
+            Add( "1d", "dec", "e");
+            Add( "1e", "ld", "e, {n}");
+            Add( "1f", "rra");
 
-            _rgMain[0x20] = new Z80Instr("jr", "nz, d");
-            _rgMain[0x21] = new Z80Instr("ld", "hl, {nn}");
-            _rgMain[0x22] = new Z80Instr("ld", "({nn}), hl");
-            _rgMain[0x23] = new Z80Instr("inc", "hl");
-            _rgMain[0x24] = new Z80Instr("inc", "h");
-            _rgMain[0x25] = new Z80Instr("dec", "h");
-            _rgMain[0x26] = new Z80Instr("ld", "h, {n}");
-            _rgMain[0x27] = new Z80Instr("daa");
-            _rgMain[0x28] = new Z80Instr("jr", "z, {d}");
-            _rgMain[0x29] = new Z80Instr("add", "hl, hl");
-            _rgMain[0x2a] = new Z80Instr("ld", "hl, ({nn})");
-            _rgMain[0x2b] = new Z80Instr("dec", "hl");
-            _rgMain[0x2c] = new Z80Instr("inc", "l");
-            _rgMain[0x2d] = new Z80Instr("dec", "l");
-            _rgMain[0x2e] = new Z80Instr("ld", "l, {n}");
-            _rgMain[0x2f] = new Z80Instr("cpl");
+            Add( "20", "jr", "nz, d");
+            Add( "21", "ld", "hl, {nn}");
+            Add( "22", "ld", "({nn}), hl");
+            Add( "23", "inc", "hl");
+            Add( "24", "inc", "h");
+            Add( "25", "dec", "h");
+            Add( "26", "ld", "h, {n}");
+            Add( "27", "daa");
+            Add( "28", "jr", "z, {d}");
+            Add( "29", "add", "hl, hl");
+            Add( "2a", "ld", "hl, ({nn})");
+            Add( "2b", "dec", "hl");
+            Add( "2c", "inc", "l");
+            Add( "2d", "dec", "l");
+            Add( "2e", "ld", "l, {n}");
+            Add( "2f", "cpl");
 
-            _rgMain[0x30] = new Z80Instr("jr", "nc, {d}" );
-            _rgMain[0x31] = new Z80Instr("ld", "sp, {nn}" );
-            _rgMain[0x32] = new Z80Instr("ld", "({nn}), a");
-            _rgMain[0x33] = new Z80Instr("inc", "sp" );
-            _rgMain[0x34] = new Z80Instr("inc", "(hl)" );
-            _rgMain[0x35] = new Z80Instr("dec", "(hl)" );
-            _rgMain[0x36] = new Z80Instr("ld", "(hl), {n}" );
-            _rgMain[0x37] = new Z80Instr("scf" ); // set c flag
-            _rgMain[0x38] = new Z80Instr("jr", "c, {d}");
-            _rgMain[0x39] = new Z80Instr("add", "hl, sp" );
-            _rgMain[0x3a] = new Z80Instr("ld", "a, ({nn})" );
-            _rgMain[0x3b] = new Z80Instr("dec", "sp" );
-            _rgMain[0x3c] = new Z80Instr("inc", "a" );
-            _rgMain[0x3d] = new Z80Instr("dec", "a" );
-            _rgMain[0x3e] = new Z80Instr("ld", "a, {n}" );
-            _rgMain[0x3f] = new Z80Instr("ccf" ); // invert carry flag
+            Add( "30", "jr", "nc, {d}" );
+            Add( "31", "ld", "sp, {nn}" );
+            Add( "32", "ld", "({nn}), a");
+            Add( "33", "inc", "sp" );
+            Add( "34", "inc", "(hl)" );
+            Add( "35", "dec", "(hl)" );
+            Add( "36", "ld", "(hl), {n}" );
+            Add( "37", "scf" ); // set c flag
+            Add( "38", "jr", "c, {d}");
+            Add( "39", "add", "hl, sp" );
+            Add( "3a", "ld", "a, ({nn})" );
+            Add( "3b", "dec", "sp" );
+            Add( "3c", "inc", "a" );
+            Add( "3d", "dec", "a" );
+            Add( "3e", "ld", "a, {n}" );
+            Add( "3f", "ccf" ); // invert carry flag
 
-            _rgMain[0x40] = new Z80Instr("ld", "b, b" );
-            _rgMain[0x41] = new Z80Instr("ld", "b, c" );
-            _rgMain[0x42] = new Z80Instr("ld", "b, d" );
-            _rgMain[0x43] = new Z80Instr("ld", "b, e" );
-            _rgMain[0x44] = new Z80Instr("ld", "b, h" );
-            _rgMain[0x45] = new Z80Instr("ld", "b, l" );
-            _rgMain[0x46] = new Z80Instr("ld", "b, (hl)" );
-            _rgMain[0x47] = new Z80Instr("ld", "b, a" );
-            _rgMain[0x48] = new Z80Instr("ld", "c, b" );
-            _rgMain[0x49] = new Z80Instr("ld", "c, c" );
-            _rgMain[0x4a] = new Z80Instr("ld", "c, d" );
-            _rgMain[0x4b] = new Z80Instr("ld", "c, e" );
-            _rgMain[0x4c] = new Z80Instr("ld", "c, h" );
-            _rgMain[0x4d] = new Z80Instr("ld", "c, l" );
-            _rgMain[0x4e] = new Z80Instr("ld", "c, (hl)" );
-            _rgMain[0x4f] = new Z80Instr("ld", "c, a" );
+            Add( "40", "ld", "b, b" );
+            Add( "41", "ld", "b, c" );
+            Add( "42", "ld", "b, d" );
+            Add( "43", "ld", "b, e" );
+            Add( "44", "ld", "b, h" );
+            Add( "45", "ld", "b, l" );
+            Add( "46", "ld", "b, (hl)" );
+            Add( "47", "ld", "b, a" );
+            Add( "48", "ld", "c, b" );
+            Add( "49", "ld", "c, c" );
+            Add( "4a", "ld", "c, d" );
+            Add( "4b", "ld", "c, e" );
+            Add( "4c", "ld", "c, h" );
+            Add( "4d", "ld", "c, l" );
+            Add( "4e", "ld", "c, (hl)" );
+            Add( "4f", "ld", "c, a" );
 
-            _rgMain[0x50] = new Z80Instr("ld", "d, b");
-            _rgMain[0x51] = new Z80Instr("ld", "d, c");
-            _rgMain[0x52] = new Z80Instr("ld", "d, d");
-            _rgMain[0x53] = new Z80Instr("ld", "d, e");
-            _rgMain[0x54] = new Z80Instr("ld", "d, h");
-            _rgMain[0x55] = new Z80Instr("ld", "d, l");
-            _rgMain[0x56] = new Z80Instr("ld", "d, (hl)");
-            _rgMain[0x57] = new Z80Instr("ld", "d, a" );
-            _rgMain[0x58] = new Z80Instr("ld", "e, b");
-            _rgMain[0x59] = new Z80Instr("ld", "e, c");
-            _rgMain[0x5a] = new Z80Instr("ld", "e, d");
-            _rgMain[0x5b] = new Z80Instr("ld", "e, e");
-            _rgMain[0x5c] = new Z80Instr("ld", "e, h");
-            _rgMain[0x5d] = new Z80Instr("ld", "e, l");
-            _rgMain[0x5e] = new Z80Instr("ld", "e, (hl)");
-            _rgMain[0x5f] = new Z80Instr("ld", "e, a");
+            Add( "50", "ld", "d, b");
+            Add( "51", "ld", "d, c");
+            Add( "52", "ld", "d, d");
+            Add( "53", "ld", "d, e");
+            Add( "54", "ld", "d, h");
+            Add( "55", "ld", "d, l");
+            Add( "56", "ld", "d, (hl)");
+            Add( "57", "ld", "d, a" );
+            Add( "58", "ld", "e, b");
+            Add( "59", "ld", "e, c");
+            Add( "5a", "ld", "e, d");
+            Add( "5b", "ld", "e, e");
+            Add( "5c", "ld", "e, h");
+            Add( "5d", "ld", "e, l");
+            Add( "5e", "ld", "e, (hl)");
+            Add( "5f", "ld", "e, a");
 
-            _rgMain[0x60] = new Z80Instr("ld", "h, b");
-            _rgMain[0x61] = new Z80Instr("ld", "h, c");
-            _rgMain[0x62] = new Z80Instr("ld", "h, d");
-            _rgMain[0x63] = new Z80Instr("ld", "h, e");
-            _rgMain[0x64] = new Z80Instr("ld", "h, h");
-            _rgMain[0x65] = new Z80Instr("ld", "h, l");
-            _rgMain[0x66] = new Z80Instr("ld", "h, (hl)");
-            _rgMain[0x67] = new Z80Instr("ld", "h, a");
-            _rgMain[0x68] = new Z80Instr("ld", "l, b");
-            _rgMain[0x69] = new Z80Instr("ld", "l, c");
-            _rgMain[0x6a] = new Z80Instr("ld", "l, d");
-            _rgMain[0x6b] = new Z80Instr("ld", "l, e");
-            _rgMain[0x6c] = new Z80Instr("ld", "l, h");
-            _rgMain[0x6d] = new Z80Instr("ld", "l, l");
-            _rgMain[0x6e] = new Z80Instr("ld", "l, (hl)");
-            _rgMain[0x6f] = new Z80Instr("ld", "l, a");
+            Add( "60", "ld", "h, b");
+            Add( "61", "ld", "h, c");
+            Add( "62", "ld", "h, d");
+            Add( "63", "ld", "h, e");
+            Add( "64", "ld", "h, h");
+            Add( "65", "ld", "h, l");
+            Add( "66", "ld", "h, (hl)");
+            Add( "67", "ld", "h, a");
+            Add( "68", "ld", "l, b");
+            Add( "69", "ld", "l, c");
+            Add( "6a", "ld", "l, d");
+            Add( "6b", "ld", "l, e");
+            Add( "6c", "ld", "l, h");
+            Add( "6d", "ld", "l, l");
+            Add( "6e", "ld", "l, (hl)");
+            Add( "6f", "ld", "l, a");
 
-            _rgMain[0x70] = new Z80Instr("ld", "(hl), b");
-            _rgMain[0x71] = new Z80Instr("ld", "(hl), c");
-            _rgMain[0x72] = new Z80Instr("ld", "(hl), d");
-            _rgMain[0x73] = new Z80Instr("ld", "(hl), e");
-            _rgMain[0x74] = new Z80Instr("ld", "(hl), h");
-            _rgMain[0x75] = new Z80Instr("ld", "(hl), l");
-            _rgMain[0x76] = new Z80Instr("halt");
-            _rgMain[0x77] = new Z80Instr("ld", "(hl), a");
-            _rgMain[0x78] = new Z80Instr("ld", "a, b");
-            _rgMain[0x79] = new Z80Instr("ld", "a, c");
-            _rgMain[0x7a] = new Z80Instr("ld", "a, d");
-            _rgMain[0x7b] = new Z80Instr("ld", "a, e");
-            _rgMain[0x7c] = new Z80Instr("ld", "a, h");
-            _rgMain[0x7d] = new Z80Instr("ld", "a, l");
-            _rgMain[0x7e] = new Z80Instr("ld", "a, (hl)");
-            _rgMain[0x7f] = new Z80Instr("ld", "a, a");
+            Add( "70", "ld", "(hl), b");
+            Add( "71", "ld", "(hl), c");
+            Add( "72", "ld", "(hl), d");
+            Add( "73", "ld", "(hl), e");
+            Add( "74", "ld", "(hl), h");
+            Add( "75", "ld", "(hl), l");
+            Add( "76", "halt");
+            Add( "77", "ld", "(hl), a");
+            Add( "78", "ld", "a, b");
+            Add( "79", "ld", "a, c");
+            Add( "7a", "ld", "a, d");
+            Add( "7b", "ld", "a, e");
+            Add( "7c", "ld", "a, h");
+            Add( "7d", "ld", "a, l");
+            Add( "7e", "ld", "a, (hl)");
+            Add( "7f", "ld", "a, a");
 
-            _rgMain[0x80] = new Z80Instr("add", "a, b");
-            _rgMain[0x81] = new Z80Instr("add", "a, c");
-            _rgMain[0x82] = new Z80Instr("add", "a, d");
-            _rgMain[0x83] = new Z80Instr("add", "a, e");
-            _rgMain[0x84] = new Z80Instr("add", "a, h");
-            _rgMain[0x85] = new Z80Instr("add", "a, l");
-            _rgMain[0x86] = new Z80Instr("add", "a, (hl)");
-            _rgMain[0x87] = new Z80Instr("add", "a, a" );
-            _rgMain[0x88] = new Z80Instr("adc", "a, b");
-            _rgMain[0x89] = new Z80Instr("adc", "a, c");
-            _rgMain[0x8a] = new Z80Instr("adc", "a, d");
-            _rgMain[0x8b] = new Z80Instr("adc", "a, e");
-            _rgMain[0x8c] = new Z80Instr("adc", "a, h");
-            _rgMain[0x8d] = new Z80Instr("adc", "a, l");
-            _rgMain[0x8e] = new Z80Instr("adc", "a, (hl)");
-            _rgMain[0x8f] = new Z80Instr("adc", "a, a");
+            Add( "80", "add", "a, b");
+            Add( "81", "add", "a, c");
+            Add( "82", "add", "a, d");
+            Add( "83", "add", "a, e");
+            Add( "84", "add", "a, h");
+            Add( "85", "add", "a, l");
+            Add( "86", "add", "a, (hl)");
+            Add( "87", "add", "a, a" );
+            Add( "88", "adc", "a, b");
+            Add( "89", "adc", "a, c");
+            Add( "8a", "adc", "a, d");
+            Add( "8b", "adc", "a, e");
+            Add( "8c", "adc", "a, h");
+            Add( "8d", "adc", "a, l");
+            Add( "8e", "adc", "a, (hl)");
+            Add( "8f", "adc", "a, a");
 
-            _rgMain[0x90] = new Z80Instr("sub", "b");
-            _rgMain[0x91] = new Z80Instr("sub", "c");
-            _rgMain[0x92] = new Z80Instr("sub", "d");
-            _rgMain[0x93] = new Z80Instr("sub", "e");
-            _rgMain[0x94] = new Z80Instr("sub", "h");
-            _rgMain[0x95] = new Z80Instr("sub", "l");
-            _rgMain[0x96] = new Z80Instr("sub", "(hl)");
-            _rgMain[0x97] = new Z80Instr("sub", "a");
-            _rgMain[0x98] = new Z80Instr("sbc", "a, b");
-            _rgMain[0x99] = new Z80Instr("sbc", "a, c");
-            _rgMain[0x9a] = new Z80Instr("sbc", "a, d");
-            _rgMain[0x9b] = new Z80Instr("sbc", "a, e");
-            _rgMain[0x9c] = new Z80Instr("sbc", "a, h");
-            _rgMain[0x9d] = new Z80Instr("sbc", "a, l");
-            _rgMain[0x9e] = new Z80Instr("sbc", "a, (hl)");
-            _rgMain[0x9f] = new Z80Instr("sbc", "a, a");
+            Add( "90", "sub", "b");
+            Add( "91", "sub", "c");
+            Add( "92", "sub", "d");
+            Add( "93", "sub", "e");
+            Add( "94", "sub", "h");
+            Add( "95", "sub", "l");
+            Add( "96", "sub", "(hl)");
+            Add( "97", "sub", "a");
+            Add( "98", "sbc", "a, b");
+            Add( "99", "sbc", "a, c");
+            Add( "9a", "sbc", "a, d");
+            Add( "9b", "sbc", "a, e");
+            Add( "9c", "sbc", "a, h");
+            Add( "9d", "sbc", "a, l");
+            Add( "9e", "sbc", "a, (hl)");
+            Add( "9f", "sbc", "a, a");
 
-            _rgMain[0xa0] = new Z80Instr("and", "b");
-            _rgMain[0xa1] = new Z80Instr("and", "c");
-            _rgMain[0xa2] = new Z80Instr("and", "d");
-            _rgMain[0xa3] = new Z80Instr("and", "e");
-            _rgMain[0xa4] = new Z80Instr("and", "h");
-            _rgMain[0xa5] = new Z80Instr("and", "l");
-            _rgMain[0xa6] = new Z80Instr("and", "(hl)");
-            _rgMain[0xa7] = new Z80Instr("and", "a");
-            _rgMain[0xa8] = new Z80Instr("xor", "b");
-            _rgMain[0xa9] = new Z80Instr("xor", "c");
-            _rgMain[0xaa] = new Z80Instr("xor", "d");
-            _rgMain[0xab] = new Z80Instr("xor", "e");
-            _rgMain[0xac] = new Z80Instr("xor", "h");
-            _rgMain[0xad] = new Z80Instr("xor", "l");
-            _rgMain[0xae] = new Z80Instr("xor", "(hl)");
-            _rgMain[0xaf] = new Z80Instr("xor", "a");
+            Add( "a0", "and", "b");
+            Add( "a1", "and", "c");
+            Add( "a2", "and", "d");
+            Add( "a3", "and", "e");
+            Add( "a4", "and", "h");
+            Add( "a5", "and", "l");
+            Add( "a6", "and", "(hl)");
+            Add( "a7", "and", "a");
+            Add( "a8", "xor", "b");
+            Add( "a9", "xor", "c");
+            Add( "aa", "xor", "d");
+            Add( "ab", "xor", "e");
+            Add( "ac", "xor", "h");
+            Add( "ad", "xor", "l");
+            Add( "ae", "xor", "(hl)");
+            Add( "af", "xor", "a");
 
-            _rgMain[0xb0] = new Z80Instr("or", "b");
-            _rgMain[0xb1] = new Z80Instr("or", "c");
-            _rgMain[0xb2] = new Z80Instr("or", "d");
-            _rgMain[0xb3] = new Z80Instr("or", "e");
-            _rgMain[0xb4] = new Z80Instr("or", "h");
-            _rgMain[0xb5] = new Z80Instr("or", "l");
-            _rgMain[0xb6] = new Z80Instr("or", "(hl)");
-            _rgMain[0xb7] = new Z80Instr("or", "a");
-            _rgMain[0xb8] = new Z80Instr("cp", "b");
-            _rgMain[0xb9] = new Z80Instr("cp", "c");
-            _rgMain[0xba] = new Z80Instr("cp", "d");
-            _rgMain[0xbb] = new Z80Instr("cp", "e");
-            _rgMain[0xbc] = new Z80Instr("cp", "h");
-            _rgMain[0xbd] = new Z80Instr("cp", "l");
-            _rgMain[0xbe] = new Z80Instr("cp", "(hl)");
-            _rgMain[0xbf] = new Z80Instr("cp", "a");
+            Add( "b0", "or", "b");
+            Add( "b1", "or", "c");
+            Add( "b2", "or", "d");
+            Add( "b3", "or", "e");
+            Add( "b4", "or", "h");
+            Add( "b5", "or", "l");
+            Add( "b6", "or", "(hl)");
+            Add( "b7", "or", "a");
+            Add( "b8", "cp", "b");
+            Add( "b9", "cp", "c");
+            Add( "ba", "cp", "d");
+            Add( "bb", "cp", "e");
+            Add( "bc", "cp", "h");
+            Add( "bd", "cp", "l");
+            Add( "be", "cp", "(hl)");
+            Add( "bf", "cp", "a");
 
-            _rgMain[0xc0] = new Z80Instr("ret", "nz" );
-            _rgMain[0xc1] = new Z80Instr("pop", "bc" );
-            _rgMain[0xc2] = new Z80Instr("jp", "nz, {nn}" );
-            _rgMain[0xc3] = new Z80Instr("jp", "{nn}" );
-            _rgMain[0xc4] = new Z80Instr("call", "nz, {nn}" );
-            _rgMain[0xc5] = new Z80Instr("push", "bc" );
-            _rgMain[0xc6] = new Z80Instr("add", "a, {n}" );
-            _rgMain[0xc7] = new Z80Instr("rst", "00" ); // hex value
-            _rgMain[0xc8] = new Z80Instr("ret", "z" );
-            _rgMain[0xc9] = new Z80Instr("ret" );
-            _rgMain[0xca] = new Z80Instr("jp", "z, {nn}" );
-            _rgMain[0xcb] = new Z80Instr("Bit" );
-            _rgMain[0xcc] = new Z80Instr("call", "z, {nn}" );
-            _rgMain[0xcd] = new Z80Instr("call", "{nn}" );
-            _rgMain[0xce] = new Z80Instr("adc", "a, {n}" );
-            _rgMain[0xcf] = new Z80Instr("rst", "08" );
+            Add( "c0", "ret", "nz" );
+            Add( "c1", "pop", "bc" );
+            Add( "c2", "jp", "nz, {nn}" );
+            Add( "c3", "jp", "{nn}" );
+            Add( "c4", "call", "nz, {nn}" );
+            Add( "c5", "push", "bc" );
+            Add( "c6", "add", "a, {n}" );
+            Add( "c7", "rst", "00" ); // hex value
+            Add( "c8", "ret", "z" );
+            Add( "c9", "ret" );
+            Add( "ca", "jp", "z, {nn}" );
+            Add( "cb", "Bit" );
+            Add( "cc", "call", "z, {nn}" );
+            Add( "cd", "call", "{nn}" );
+            Add( "ce", "adc", "a, {n}" );
+            Add( "cf", "rst", "08" );
 
-            _rgMain[0xd0] = new Z80Instr("ret", "nc" );
-            _rgMain[0xd1] = new Z80Instr("pop", "de" );
-            _rgMain[0xd2] = new Z80Instr("jp", "nc, {nn}" );
-            _rgMain[0xd3] = new Z80Instr("out", "port({n}), a" );
-            _rgMain[0xd4] = new Z80Instr("call", "nc, {nn}" );
-            _rgMain[0xd5] = new Z80Instr("push", "de" );
-            _rgMain[0xd6] = new Z80Instr("sub", "{n}" );
-            _rgMain[0xd7] = new Z80Instr("rst", "10" );
-            _rgMain[0xd8] = new Z80Instr("ret", "c" );
-            _rgMain[0xd9] = new Z80Instr("exx" );
-            _rgMain[0xda] = new Z80Instr("jp", "c, {nn}" );
-            _rgMain[0xdb] = new Z80Instr("in", "a, port({n})" );
-            _rgMain[0xdc] = new Z80Instr("call", "c, {nn}" );
-            _rgMain[0xdd] = new Z80Instr("->ix" ); // not supported as yet...
-            _rgMain[0xde] = new Z80Instr("sbc", "a, {n}" );
-            _rgMain[0xdf] = new Z80Instr("rst", "18" );
+            Add( "d0", "ret", "nc" );
+            Add( "d1", "pop", "de" );
+            Add( "d2", "jp", "nc, {nn}" );
+            Add( "d3", "out", "port({n}), a" );
+            Add( "d4", "call", "nc, {nn}" );
+            Add( "d5", "push", "de" );
+            Add( "d6", "sub", "{n}" );
+            Add( "d7", "rst", "10" );
+            Add( "d8", "ret", "c" );
+            Add( "d9", "exx" );
+            Add( "da", "jp", "c, {nn}" );
+            Add( "db", "in", "a, port({n})" );
+            Add( "dc", "call", "c, {nn}" );
+            Add( "dd", "->ix" ); // not supported as yet...
+            Add( "de", "sbc", "a, {n}" );
+            Add( "df", "rst", "18" );
 
-            _rgMain[0xe0] = new Z80Instr("ret po unset" );
-            _rgMain[0xe1] = new Z80Instr("pop", "hl" );
-            _rgMain[0xe2] = new Z80Instr("jp po unset", "{nn}" );
-            _rgMain[0xe3] = new Z80Instr("ex", "(sp), hl" );
-            _rgMain[0xe4] = new Z80Instr("call po unset", "{nn}" );
-            _rgMain[0xe5] = new Z80Instr("push", "hl" );
-            _rgMain[0xe6] = new Z80Instr("and", "{n}" );
-            _rgMain[0xe7] = new Z80Instr("rst", "20" );
-            _rgMain[0xe8] = new Z80Instr("ret", "pe" );
-            _rgMain[0xe9] = new Z80Instr("jp", "(hl)" );
-            _rgMain[0xea] = new Z80Instr("jp pe set", "{nn}" );
-            _rgMain[0xeb] = new Z80Instr("ex", "de, hl" );
-            _rgMain[0xec] = new Z80Instr("call pe", "{nn}" );
-            _rgMain[0xed] = new Z80Instr("Misc." );
-            _rgMain[0xee] = new Z80Instr("xor", "{n}" );
-            _rgMain[0xef] = new Z80Instr("rst", "28" );
+            Add( "e0", "ret po unset" );
+            Add( "e1", "pop", "hl" );
+            Add( "e2", "jp po unset", "{nn}" );
+            Add( "e3", "ex", "(sp), hl" );
+            Add( "e4", "call po unset", "{nn}" );
+            Add( "e5", "push", "hl" );
+            Add( "e6", "and", "{n}" );
+            Add( "e7", "rst", "20" );
+            Add( "e8", "ret", "pe" );
+            Add( "e9", "jp", "(hl)" );
+            Add( "ea", "jp pe set", "{nn}" );
+            Add( "eb", "ex", "de, hl" );
+            Add( "ec", "call pe", "{nn}" );
+            Add( "ed", "Misc." );
+            Add( "ee", "xor", "{n}" );
+            Add( "ef", "rst", "28" );
 
-            _rgMain[0xf0] = new Z80Instr("ret p");
-            _rgMain[0xf1] = new Z80Instr("pop", "af");
-            _rgMain[0xf2] = new Z80Instr("jp", "pc, {nn}");
-            _rgMain[0xf3] = new Z80Instr("di");
-            _rgMain[0xf4] = new Z80Instr("call pc", "{nn}");
-            _rgMain[0xf5] = new Z80Instr("push", "af");
-            _rgMain[0xf6] = new Z80Instr("or", "{n}");
-            _rgMain[0xf7] = new Z80Instr("rst", "30");
-            _rgMain[0xf8] = new Z80Instr("ret", "m");
-            _rgMain[0xf9] = new Z80Instr("ld", "sp, hl");
-            _rgMain[0xfa] = new Z80Instr("jp", "m, {nn}");
-            _rgMain[0xfb] = new Z80Instr("ei");
-            _rgMain[0xfc] = new Z80Instr("call m", "{nn}");
-            _rgMain[0xfd] = new Z80Instr("IY");
-            _rgMain[0xfe] = new Z80Instr("cp", "{n}");
-            _rgMain[0xff] = new Z80Instr("rst", "38");
+            Add( "f0", "ret p");
+            Add( "f1", "pop", "af");
+            Add( "f2", "jp", "pc, {nn}");
+            Add( "f3", "di");
+            Add( "f4", "call pc", "{nn}");
+            Add( "f5", "push", "af");
+            Add( "f6", "or", "{n}");
+            Add( "f7", "rst", "30");
+            Add( "f8", "ret", "m");
+            Add( "f9", "ld", "sp, hl");
+            Add( "fa", "jp", "m, {nn}");
+            Add( "fb", "ei");
+            Add( "fc", "call m", "{nn}");
+            Add( "fd", "IY");
+            Add( "fe", "cp", "{n}");
+            Add( "ff", "rst", "38");
 
-            _rgMisc[0x42] = new Z80Instr( "sbc", "hl, bc" ) { InstrExt = 0xED };
-            _rgMisc[0x52] = new Z80Instr( "sbc", "hl, de" ) { InstrExt = 0xED };
-            _rgMisc[0x62] = new Z80Instr( "sbc", "hl, hl" ) { InstrExt = 0xED }; // weird but there is is.
-            _rgMisc[0x72] = new Z80Instr( "sbc", "hl, sp" ) { InstrExt = 0xED };
+            Add( "ed42", "sbc", "hl, bc" );
+            Add( "ed52", "sbc", "hl, de" );
+            Add( "ed62", "sbc", "hl, hl" );
+            Add( "ed72", "sbc", "hl, sp" );
+            Add( "edb0", "ldir" );
+            Add( "edb1", "cpir" );
+            Add( "edb2", "inir" );
+            Add( "edb2", "otir" );
+            Add( "edb8", "lddr" );
+            Add( "edb9", "cpdr" );
+            Add( "edba", "intr" );
+            Add( "edbb", "ottr" );
 
-            _rgBitI[0x24] = new Z80Instr( "sla", "h"   ) { InstrExt = 0xCB };
+            Add( "CB24", "sla", "h" );
 
-            _rgExDD[0x24] = new Z80Instr( "inc", "ixh" ) { InstrExt = 0xDD };
-            _rgExDD[0x2C] = new Z80Instr( "inc", "ixl" ) { InstrExt = 0xDD };
-            _rgExDD[0x25] = new Z80Instr( "dec", "ixh" ) { InstrExt = 0xDD };
-            _rgExDD[0x2d] = new Z80Instr( "dec", "ixl" ) { InstrExt = 0xDD };
-            _rgExDD[0x09] = new Z80Instr( "add", "ix, bc" ) { InstrExt = 0xdd };
-            _rgExDD[0x94] = new Z80Instr( "sub", "a, IXH" ) { InstrExt = 0xdd };
-            _rgExDD[0x84] = new Z80Instr( "add", "a, ixh" ) { InstrExt = 0xdd };
-            _rgExDD[0x26] = new Z80Instr( "ld" , "ixh, n" ) { InstrExt = 0xdd, Length = 3 }; //11T
-            _rgExDD[0x2E] = new Z80Instr( "ld" , "ixl, n" ) { InstrExt = 0xdd, Length = 3 }; //11T
+            Add( "DD24", "inc", "ixh" );
+            Add( "DD2C", "inc", "ixl" );
+            Add( "DD25", "dec", "ixh" );
+            Add( "DD2d", "dec", "ixl" );
+            Add( "DD09", "add", "ix, bc" );
+            Add( "DD94", "sub", "a, IXH" );
+            Add( "DD84", "add", "a, ixh" );
+            Add( "DD26nn", "ld" , "ixh, n" );
+            Add( "DD2Enn", "ld" , "ixl, n" );
 
-            _rgExFD[0x24] = new Z80Instr( "inc", "iyh" ) { InstrExt = 0xFD };
-            _rgExFD[0x2c] = new Z80Instr( "inc", "iyl" ) { InstrExt = 0xFD };
-            _rgExFD[0x25] = new Z80Instr( "dec", "iyh" ) { InstrExt = 0xFD };
-            _rgExFD[0x2d] = new Z80Instr( "dec", "iyl" ) { InstrExt = 0xFD };
-            _rgExFD[0xb6] = new Z80Instr( "or" , "(iy+d)" ) { InstrExt = 0xfd, Length = 3 };
-            _rgExFD[0X09] = new Z80Instr( "add", "iy, bc" ) { InstrExt = 0xfd };
-            _rgExFD[0x26] = new Z80Instr( "ld" , "iyh, n" ) { InstrExt = 0xfd, Length = 3 }; //11T
-            _rgExFD[0x2E] = new Z80Instr( "ld" , "iyl, n" ) { InstrExt = 0xfd, Length = 3 }; //11T
+            Add( "fd24",   "inc", "iyh" );
+            Add( "FD2c",   "inc", "iyl" );
+            Add( "FD25",   "dec", "iyh" );
+            Add( "FD2d",   "dec", "iyl" );
+            Add( "FDb6nn", "or" , "(iy+d)" );
+            Add( "FD09",   "add", "iy, bc" );
+            Add( "FD26nn", "ld" , "iyh, n" ); //11T
+            Add( "FD2Enn", "ld" , "iyl, n" ); //11T
 
             InitNew();
+        }
+
+        protected void Add( string strByteCode, string strName, string? strParams = null ) {
+            try {
+                int  iLen  = strByteCode.Length >> 1; // 1, 2, 3 result.
+                byte bExtn = 0;
+                byte bBase = Convert.ToByte( strByteCode[0..2], 16 );
+
+                // Two byte instruction. Leading is the extn.
+                // unless it takes an numerical argument.
+                if( iLen > 1 && strByteCode[2] != 'n' ) {
+                    bExtn = bBase;
+                    bBase = Convert.ToByte( strByteCode[2..4], 16 );
+                }
+
+                Z80Instr oInstr = new ( strName, strParams ) { Length = iLen };
+
+                if( bExtn != 0 ) {
+                    oInstr.InstrExt = bExtn;
+                }
+
+                switch( bExtn ) {
+                    case 0:
+                        _rgMain[bBase] = oInstr;
+                        break;
+                    case 0xfd:
+                        _rgExFD[bBase] = oInstr;
+                        break;
+                    case 0xdd:
+                        _rgExDD[bBase] = oInstr;
+                        break;
+                    case 0xcb:
+                        _rgBitI[bBase] = oInstr;
+                        break;
+                    case 0xed:
+                        _rgMisc[bBase] = oInstr;
+                        break;
+                    default:
+                        throw new NotSupportedException();
+                }
+            } catch( Exception oEx ) {
+                Type[] rgErrors = [ typeof( ArgumentException ),
+                                    typeof( ArgumentNullException ),
+                                    typeof( FormatException ),
+                                    typeof( OverflowException ) ];
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                // throw this exception so the shell knows it's safe enough
+                // to abort the load but continue execution. You know, I
+                // should probably create a new exception for "module" failure...
+                throw new ApplicationException( "Problem loading Z80 Defs", oEx );
+            }
         }
 
         /// <summary>
@@ -1060,7 +1121,10 @@ namespace Monitor {
                 if( iCount + 1 > Memory.Length )
                     return false;
 
-                Memory[iCount++] = (byte)iByte;
+                // Do this to avoid any cpu write traps
+                // that may exist on the memory.
+                Memory.RawMemory[iCount++] = ((byte)iByte);
+                //Memory[iCount++] = (byte)iByte;
             }
 
             Memory.Reset( Memory.RawMemory, (ushort)iCount, fComFile );
