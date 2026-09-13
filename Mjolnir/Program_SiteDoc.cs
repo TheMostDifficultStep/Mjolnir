@@ -188,7 +188,7 @@ namespace Mjolnir {
                     return false;
                 }
 
-                IDisposable oDoc;
+                IDisposable? oDoc;
                 try {
                     oDoc  = _oController.CreateDocument( this, _strFileExt );
                 } catch( Exception oEx ) {
@@ -234,7 +234,7 @@ namespace Mjolnir {
             /// READONLY links to the client site, tho' it does make it a bit more difficult for hosts. 
             /// But I don't mind the difficulty on the host side since we only have to write it once.
             /// </summary>
-            protected virtual void GuestSet( IDisposable oGuest ) {
+            protected virtual void GuestSet( IDisposable? oGuest ) {
                 _oGuestDispose = oGuest ?? throw new ArgumentNullException();
             }
 
