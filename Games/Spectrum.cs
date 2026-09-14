@@ -40,15 +40,39 @@ namespace Play.Spectrum {
         }
     }
 
+    /// <summary>
+    /// In Skia, the SKBlendMode.Xor operation does not perform a bitwise XOR (^) 
+    /// on the underlying pixel integers. Instead, it executes the classic 
+    /// Porter-Duff XOR algebraic compositing operator. 
+    /// [1] (https://stackoverflow.com/questions/8951679/drawing-with-xor-in-quartz), 
+    /// [2] (https://groups.google.com/g/skia-discuss/c/EPLuQbg64Kc/m/2uDXFIGhAwAJ), 
+    /// [3] (https://learn.microsoft.com/en-us/dotnet/api/skiasharp.skblendmode?view=skiasharp)
+    /// For a BGRA_8888 color type surface, Skia internally abstracts the 
+    /// 8-bit channels into standardized floating-point ranges from 0.0 to 1.0 
+    /// and computes the blend using premultiplied alpha values. 
+    /// [1] (https://skia.org/docs/user/api/skblendmode_overview/), 
+    /// [2] (https://api.skia.org/SkBlendMode_8h.html), 
+    /// [3] (https://skia.org/docs/user/color/)
+    /// The Mathematical FormulaThe final color component (r) and final 
+    /// alpha channel (ra) are determined by the following unified 
+    /// Porter-Duff formula: [1] (https://api.skia.org/SkBlendMode_8h.html)
+    /// r=s * (1-da)+d * (1-sa)
+    /// Where:
+    ///  s = Source color component (premultiplied Red, Green, or Blue)
+    ///  d = Destination color component (premultiplied Red, Green, or Blue)
+    /// sa = Source Alpha componentda = Destination Alpha component 
+    /// [1] (https://api.skia.org/SkBlendMode_8h.html)
+    /// </summary>
+
     public class SpectrumGraphics :
         DocSurfaceBase,
         IPgLoad
     {
-        public Attribs[,] Attribs  { get; } // Speccy 32,24 ascii display.
-        public SKImage     [] Images  { get; } // Our constructed UDG's
-        public Attribs        Attr    { get;set; } = new Attribs(0);
-        public bool           Over    { get; set; } = false;
-        public SKSurface      Mask    { get; protected set; }
+        public Attribs[,] Attribs { get; } // Speccy 32,24 'ascii' display.
+        public SKImage[]  Images  { get; } // Our constructed UDG's
+        public Attribs    Attr    { get;set; } = new Attribs(0);
+        public bool       Over    { get; set; } = false;
+        public SKSurface  Mask    { get; protected set; }
 
         public SpectrumGraphics( IPgBaseSite oSite, string strMode ) : base( oSite ) {
             if( string.Compare( strMode, "std" ) != 0 ) {
@@ -57,7 +81,7 @@ namespace Play.Spectrum {
             Attribs = new Attribs[32,24];
             Images  = new SKImage[256];
             Surface = SKSurface.Create( new SKImageInfo( 256, 192, SKColorType.Bgra8888 ) );
-            Mask    = SKSurface.Create( new SKImageInfo( 256, 192, SKColorType.Bgra8888 ) );
+            Mask    = SKSurface.Create( new SKImageInfo( 256, 192, SKColorType.Alpha8 ) ); // was bgra8888
         }
 
         public void LogError( string strMessage ) {
@@ -211,9 +235,8 @@ namespace Play.Spectrum {
             try {
                 for( int iY = 0; iY<Attribs.GetLength(1); ++iY ) {
                     for( int iX = 0; iX <Attribs.GetLength(0); ++iX ) {
-                        SKPoint        pntLoc = new( iX*8, iY*8 );
+                        SKPoint pntLoc = new( iX*8, iY*8 );
                         Attribs oAttr  = Attribs[iX, iY];
-
                         SKRect skRect  = new SKRect( pntLoc.X, pntLoc.Y, 
                                                      pntLoc.X + 8,
                                                      pntLoc.Y + 8 );
@@ -223,7 +246,7 @@ namespace Play.Spectrum {
                         oPaint .Color     = DecodeColor( oAttr._fBright, oAttr._bPaper );
                         oCanvas.DrawRect( skRect, oPaint );
 
-                        // So XOR only works with alpha channel,
+                        // So see the new class summary.
                         oPaint .BlendMode = SKBlendMode.Xor; 
                         oPaint .Color     = DecodeColor( oAttr._fBright, oAttr._bInk );
                         oCanvas.DrawImage( oMask, skRect, skRect, oOptions, oPaint );
