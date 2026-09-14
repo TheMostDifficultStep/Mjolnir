@@ -257,21 +257,16 @@ namespace Mjolnir {
                             return SKImage.FromBitmap( skTemp );
                         }
 
-                      //SKBitmap skBitmap = new SKBitmap( ftBitmap.pitch, ftBitmap.rows, SKColorType.Gray8, SKAlphaType.Opaque );
-                      //SKBitmap skBitmap = new SKBitmap( ftBitmap.pitch, ftBitmap.rows, SKColorType.Rgba8888, SKAlphaType.Unpremul );
                         using SKBitmap skBitmap = new SKBitmap( ftBitmap.width, ftBitmap.rows, SKColorType.Alpha8, SKAlphaType.Opaque );
-                        IntPtr   ipPixels = skBitmap.GetPixels();
-
-                        byte* pPixel = (byte*)ftBitmap.bits.ToPointer();
+                        byte* pPixels = (byte*)ftBitmap.bits.ToPointer();
 
                         switch( (FTPixel_Mode)ftBitmap.pixel_mode ) {
                             case FTPixel_Mode.FT_PIXEL_MODE_GRAY:
                                 for( int iY = 0; iY < skBitmap.Height; ++iY ) {
-                                    byte* pRow = pPixel + (ftBitmap.pitch * iY);
+                                    byte* pRow = pPixels + (ftBitmap.pitch * iY);
                                     for( int iX = 0; iX < skBitmap.Width; ++iX ) {
                                         byte bAlpha    = *(pRow + iX);
-                                      //byte bNotAlpha = (byte)~bAlpha; // reversed value.
-                                        byte bNotAlpha = (byte)(255 - bAlpha);
+                                      //byte bNotAlpha = (byte)(255 - bAlpha);
 
                                         //byte bGammaCorrectNa  = GammaTable[bNotAlpha];
                                         //byte bGammaCorrectNa2 = (byte)~GammaTable[bAlpha];
@@ -285,7 +280,7 @@ namespace Mjolnir {
                             case FTPixel_Mode.FT_PIXEL_MODE_MONO:
                                 // Monochrome on bit per pixel! but promoted to 8 bit mono.
                                 for( int iY = 0; iY < skBitmap.Height; ++iY ) {
-                                    byte* pRow = pPixel + (ftBitmap.pitch * iY);
+                                    byte* pRow = pPixels + (ftBitmap.pitch * iY);
                                     for( int iX = 0; iX < skBitmap.Width; ++iX ) {
                                         int  iByteIndex = iX / 8;
                                         int  iBitIndex  = 7 - ( iX % 8 ); // since we are a "bit" map.

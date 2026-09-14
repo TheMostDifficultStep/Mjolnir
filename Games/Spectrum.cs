@@ -144,10 +144,14 @@ namespace Play.Spectrum {
         }
 
         /// <summary>
-        /// This set's our 1 bit pixel image to a color display.
+        /// Set up an 8x8 image from the byte data given. 
         /// </summary>
         /// <param name="i"></param>
         /// <param name="rgUdg"></param>
+        /// <seealso cref="FTFace.GlyphCopyCurrent"/> // Program_FontSupport.cs
+        /// <seealso cref="Refresh" />
+        /// <remarks>Not for the EditWindow2, the surface there is a bgra8888, premul
+        /// opacity. This is probably the root of my confusion.</remarks>
         public void SetGraphic2( int i, byte[] rgUdg ) {
             using SKBitmap skBitmap = new SKBitmap( 8, 8, SKColorType.Alpha8, SKAlphaType.Opaque );
 
@@ -157,7 +161,11 @@ namespace Play.Spectrum {
                     // Highest bit is the lowest X value...
                     byte bAlpha = ( bRow & 1<<(7-iX) ) == 0 ? (byte)0 : (byte)255; 
 
-                    skBitmap.SetPixel( iX, iY, new SKColor( 0, 0, 0, bAlpha ));
+                    // Doesn't seem to care of rgb are 0 or the Alpha. 
+                    // so let's just set it to alpha. EVEN THO FTFace.GlyphCopyCurrent()
+                    // MUST set the rgb to the alpha or it won't show in our
+                    // resulting image. Weird. :-/
+                    skBitmap.SetPixel( iX, iY, new SKColor( bAlpha, bAlpha, bAlpha, bAlpha ));
                 }
             }
             Images[i] = SKImage.FromBitmap( skBitmap );
