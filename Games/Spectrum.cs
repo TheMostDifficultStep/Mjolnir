@@ -199,33 +199,6 @@ namespace Play.Spectrum {
         }
 
         /// <summary>
-        /// The image must be an Alpha8 with the bits 1 to show and the
-        /// alpha channel 1 to show 0 not to show.
-        /// </summary>
-        /// <param name="oCanvas"></param>
-        /// <param name="oPaint">Set color attribute you want for the image.</param>
-        /// <param name="oRect">X, Y position of image. W&H s/b same as the image.</param>
-        /// <param name="oImage">the image to draw.</param>
-        protected virtual void DrawImage( 
-            SKCanvas oCanvas, 
-            SKPaint  oPaint, 
-            SKRect   oRect, 
-            SKImage  oImage
-        ) {
-            SKSamplingOptions oOptions = new SKSamplingOptions( SKFilterMode.Linear );
-
-            // So XOR only works with alpha, which explains why my
-            // Alpha8 bitmap works with this.
-            oPaint .BlendMode = SKBlendMode.Xor;
-            oCanvas.DrawImage( oImage, oRect.Left, oRect.Top, oOptions, oPaint );
-
-            // So the BG is already the color we wanted, it get's XOR'd and
-            // has a transparency set, then we draw our text colored rect...
-            oPaint .BlendMode = SKBlendMode.DstOver;
-            oCanvas.DrawRect( oRect, oPaint );
-        }
-
-        /// <summary>
         /// So now we have a true "1 bit" display with backing 32x24 attribs.
         /// We blit in 8x8 chunks so we'll get proper color clash! ^_^;;
         /// </summary>
@@ -250,11 +223,9 @@ namespace Play.Spectrum {
                         oPaint .Color     = DecodeColor( oAttr._fBright, oAttr._bPaper );
                         oCanvas.DrawRect( skRect, oPaint );
 
-                        oPaint .Color = DecodeColor( oAttr._fBright, oAttr._bInk );
-
-                        // So XOR only works with alpha, which explains why my
-                        // Alpha8 bitmap works with this.
-                        oPaint .BlendMode = SKBlendMode.Xor;  // xor
+                        // So XOR only works with alpha channel,
+                        oPaint .BlendMode = SKBlendMode.Xor; 
+                        oPaint .Color     = DecodeColor( oAttr._fBright, oAttr._bInk );
                         oCanvas.DrawImage( oMask, skRect, skRect, oOptions, oPaint );
 
                         // So the BG is already the color we wanted, it get's XOR'd and

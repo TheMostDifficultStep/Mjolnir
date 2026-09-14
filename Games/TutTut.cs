@@ -5,10 +5,11 @@ using Play.Interfaces.Embedding;
 using Play.Spectrum;
 
 using SkiaSharp;
-
+using SkiaSharp.Views.Desktop;
 using System.Reflection;
 using System.Windows.Forms;
 using System.Xml;
+using static System.Windows.Forms.Design.AxImporter;
 
 namespace Play.Games {
 
@@ -128,7 +129,7 @@ namespace Play.Games {
             }
 
             // Sort of overkill, using to generate the numbers at present.
-            _uiFont = _oStdUI.FontCacheNew  ( _oStdUI.StdFaceAt( StdUIFaces.Text ), 6, new SKPoint( 96, 96 ) );
+            _uiFont = _oStdUI.FontCacheNew  ( _oStdUI.StdFaceAt( StdUIFaces.Retro ), 6, new SKPoint( 96, 96 ) );
             Font    = _oStdUI.FontRendererAt( _uiFont );
         }
 
@@ -162,7 +163,7 @@ namespace Play.Games {
             LoadFont  ();
             LoadUDG645();  // We override some of the font chars.
 
-            LoadGrid (0);
+            LoadGrid(0);
             LoadKandM(0);
             LoadStuff(0);
             LoadExplorer(0);
@@ -185,24 +186,23 @@ namespace Play.Games {
         /// missing. Haven't checked.
         /// </summary>
         /// <remarks>
-        /// This doesn't seem to work with my new spectrum screen emulation.
+        /// Very odd I have to convert in this manner when the drawing
+        /// algorithm is based on my standard blitting method where the
+        /// rgb are all zero, with only alpha set, yet it shows in
+        /// that case.
         /// </remarks>
         protected bool LoadFont() {
-            using SKSurface oSurface = SKSurface.Create( new SKImageInfo( 8, 8, SKColorType.Bgra8888 ) );
-            using SKPaint   oPaint   = new SKPaint() { Color = new SKColor( 0, 0, 0, 0 ) };
-
-            SKCanvas oCanvas = oSurface.Canvas;
-
             for( uint uI = 0x30; uI < 0x3a; ++uI ) {
                 IPgGlyph oGlyph = Font.GetGlyph( uI );
+                //SKBitmap oBmp   = SKBitmap.FromImage( oGlyph.Image );
 
-                oPaint.BlendMode = SKBlendMode.Src;
-                oCanvas.DrawRect ( new SKRect( 0, 0, 8, 8 ), oPaint ); // clear spot.
-
-                oPaint.BlendMode = SKBlendMode.Src;
-                oCanvas.DrawImage( oGlyph.Image, 0, 7 - oGlyph.Image.Height + 1, oPaint );
-
-                Speccy.Images[uI] = oSurface.Snapshot();
+                //for( int y = 0; y < oBmp.Height; ++y ) {
+                //    for( int x = 0; x < oBmp.Width; ++x ) {
+                //        SKColor oColor = oBmp.GetPixel( x, y );
+                //        oBmp.SetPixel( x, y, new SKColor( oColor.Alpha, oColor.Alpha, oColor.Alpha, oColor.Alpha ) );
+                //    }
+                //}
+                Speccy.Images[uI] = oGlyph.Image;
             }
 
             return true;
@@ -531,7 +531,7 @@ namespace Play.Games {
         /// Let's take a look at all the UDG's.
         /// </summary>
         public void TestGrid() {
-            Attr = new Attribs( 0x71 );
+            Attr = new Attribs( 0x31 );
 
             //for( int iRow=0; iRow<24; ++iRow ) {
             //    for( int iCol=0; iCol<32; ++iCol ) {
@@ -540,9 +540,16 @@ namespace Play.Games {
             //}
             for( int iRow=0; iRow<24; ++iRow ) {
                 for( int iCol=0; iCol<32; ++iCol ) {
-                    Speccy.PutChrOn( iRow, iCol, (char)( 0x30+iCol ) );
+                    Speccy.PutChrOn( iRow, iCol, (char)( 0x30+(iCol%10) ) );
                 }
             }
+            SKColor oColor = new SKColor( 255, 255, 255, 0 );
+            SKPaint oPaint = new() { Color = oColor, BlendMode=SKBlendMode.Src };
+            Speccy.Mask.Canvas.DrawLine( 0, 0, 256, 192, oPaint );
+
+            //oPaint.BlendMode=SKBlendMode.Xor;
+            //oPaint.Color = new SKColor( 0, 0, 0, 255 ); // A:255 clears line, A:0 sets it.
+            //Speccy.Mask.Canvas.DrawLine( 0, 0, 256, 192, oPaint );
 
             Speccy.Refresh();
         }

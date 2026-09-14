@@ -30,6 +30,24 @@ namespace Mjolnir {
         public IntPtr  bits;
     }
 
+    public enum FTPixel_Mode : byte {
+        FT_PIXEL_MODE_MONO  = 1, // 1-bit monochrome (black and white). Stored in MSB
+                                 // (most-significant bit) order: the leftmost pixel in a byte maps to bit value 128.
+        FT_PIXEL_MODE_GRAY  = 2, // 8-bit grayscale (anti-aliased). Each pixel is exactly
+                                 // 1 byte representing an alpha/coverage value. The
+                                 // number of levels is specified by num_grays (usually 256).
+        FT_PIXEL_MODE_GRAY2 = 3, //2-bit per pixel anti-aliased bitmap. Primarily used for embedded
+                                 //bitmaps inside OpenType font variants.
+        FT_PIXEL_MODE_GRAY4 = 4, // 4-bit per pixel anti-aliased bitmap.
+        FT_PIXEL_MODE_LCD   = 5, // 8-bit horizontal subpixel grid for LCD screens. The buffer width
+                                 // is 3 times the actual pixel width (arranged as RGB/BGR color channels).
+        FT_PIXEL_MODE_LCD_V = 6, // 8-bit vertical subpixel grid. The buffer height is 3
+                                 // times the actual pixel height.
+        FT_PIXEL_MODE_BGRA  = 7, // 32-bit color channel format. Used when rendering color
+                                 // emoji or pre-colored bitmap layers (e.g., Apple sbix
+                                 // or Google CBDT tables).
+    }
+
     unsafe public class FreeType2API {
         const string _dllLocation = @"FontManager.dll";
 
@@ -246,8 +264,8 @@ namespace Mjolnir {
 
                         byte* pPixel = (byte*)ftBitmap.bits.ToPointer();
 
-                        switch( ftBitmap.pixel_mode ) {
-                            case 2:
+                        switch( (FTPixel_Mode)ftBitmap.pixel_mode ) {
+                            case FTPixel_Mode.FT_PIXEL_MODE_GRAY:
                                 for( int iY = 0; iY < skBitmap.Height; ++iY ) {
                                     byte* pRow = pPixel + (ftBitmap.pitch * iY);
                                     for( int iX = 0; iX < skBitmap.Width; ++iX ) {
@@ -257,13 +275,14 @@ namespace Mjolnir {
 
                                         //byte bGammaCorrectNa  = GammaTable[bNotAlpha];
                                         //byte bGammaCorrectNa2 = (byte)~GammaTable[bAlpha];
-
-                                        skBitmap.SetPixel( iX, iY, new SKColor( 255,255,255, bAlpha ));
+                                        // rgb used to be 255,255,255, but if I change to the alpha
+                                        // then it works with my spectrum display code.
+                                        skBitmap.SetPixel( iX, iY, new SKColor( red:bAlpha, green:bAlpha, blue:bAlpha, bAlpha ));
                                     }
                                 }
                                 break;
 
-                            case 1:
+                            case FTPixel_Mode.FT_PIXEL_MODE_MONO:
                                 // Monochrome on bit per pixel! but promoted to 8 bit mono.
                                 for( int iY = 0; iY < skBitmap.Height; ++iY ) {
                                     byte* pRow = pPixel + (ftBitmap.pitch * iY);
