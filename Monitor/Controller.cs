@@ -130,6 +130,7 @@ namespace Monitor {
     public class NewMonitorController : Controller {
         public NewMonitorController() {
             _rgExtensions.Add( ".com" );
+            _rgExtensions.Add( ".bin" );
         }
         public override IDisposable CreateDocument(IPgBaseSite oSite, string strExtension) {
             return new DocumentMonitor( oSite );

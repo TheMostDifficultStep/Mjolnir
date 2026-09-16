@@ -1192,7 +1192,8 @@ namespace Monitor {
                             LogError( "Symbols", "Couldn't find start address! Defaulting to 0." );
                         }
                     }
-                    Cpu.Pc = _usStartAddr;
+                    Cpu.Pc        = _usStartAddr;
+                    Cpu._fFakeCpm = _fCpm;
 
                     if( !LoadBinaryFile( _strBinaryFileName, _usStartAddr, _fCpm ) ) {
                         return false;
@@ -1241,18 +1242,38 @@ namespace Monitor {
             }
         }
 
-        protected void LoadSymbols() {
+        protected bool LoadSymbols() {
             try {
                 FileInfo         oFile   = new FileInfo( FileNameForSymbols );
                 using FileStream oStream = oFile.OpenRead();
 
                 LoadSymbols( oStream );
+                return true;
 			} catch( Exception oEx ) {
 				if( _rgFileErrors.IsUnhandled( oEx ) )
 					throw;
 
-                LogError( "asmprg", "Died trying to symbol file : " + FileNameForSymbols );
+                LogError( "asmprg", "Died trying to read symbol file : " + FileNameForSymbols );
             }
+            // this is the case where we don't have an asmprg file and we're straight
+            // up loading a binary using the std tinybasic ports.
+            try {
+                Cpu.Pc = 0;
+                Cpu._fFakeCpm = _fCpm = false;
+
+                if( !LoadBinaryFile( _strBinaryFileName, _usStartAddr, _fCpm ) ) {
+                    return false;
+                }
+                Dissassemble();
+                return true;
+            } catch( Exception oEx ) {
+				if( _rgFileErrors.IsUnhandled( oEx ) )
+					throw;
+
+                LogError( "asmprg", "Died trying to load binary: " + FileNameForSymbols );
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -1284,8 +1305,9 @@ namespace Monitor {
 				_strBinaryFileName = oFile.FullName; 
                 FileName           = oFile.Name;
 
-                LoadSymbols  ();
-                PatchUpLabels( _rgLabels );
+                if( LoadSymbols() ) {
+                    PatchUpLabels( _rgLabels );
+                }
                 StatusUpdate ();
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( IOException ),
@@ -1453,7 +1475,19 @@ namespace Monitor {
                         yield break;
                     }
 
-                    if( Cpu.Halt ) {
+                    if( Cpu.Stat == Z80.HaltStates.Running )
+                        continue;
+
+                    if( Cpu.Stat == Z80.HaltStates.Waiting ) {
+                        if( Doc_Terminal.Buffer.TryDequeue( out byte bVar ) ) {
+                            Cpu.registers[Z80.E] = bVar;
+                            Cpu.Stat = Z80.HaltStates.Running;
+                        } else {
+                            // slowing down will effect interrupts... :-/
+                            yield return 250; // slow down...
+                        }
+                    }
+                    if( Cpu.Stat == Z80.HaltStates.Stopped ) {
                         StatusUpdate();
                         yield break;
                     }
