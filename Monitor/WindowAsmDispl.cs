@@ -81,9 +81,11 @@ namespace Monitor {
 
     public class PropertyWindow2 : WindowStandardProperties {
         readonly DocumentMonitor _oMonDoc;
-        public PropertyWindow2( IPgViewSite oViewSite, DocumentMonitor oMonDoc ) : 
+        readonly ViewDisassembly _oOwner;
+        public PropertyWindow2( IPgViewSite oViewSite, ViewDisassembly oOwner, DocumentMonitor oMonDoc ) : 
             base( oViewSite, oMonDoc.Doc_Props ) 
         {
+            _oOwner  = oOwner  ?? throw new ArgumentNullException( "Prop Win needs owner." );
             _oMonDoc = oMonDoc;
         }
 
@@ -104,6 +106,24 @@ namespace Monitor {
             }
             base.OnKeyDown(e);
         }  
+
+        protected override bool Initialize() {
+            if( !base.Initialize() )
+                return false;
+
+            // use this for jumping to the PC instr
+            HyperLinks.Add( "CpuJump", OnCpuJump );
+            // we'll need a different kind of jump for SP since
+            // that's more of a memory dump.
+
+            return true;
+        }
+
+        private void OnCpuJump(Row oRow, int iColumn, IPgWordRange oRange) {
+            ReadOnlySpan<char> strAddr = oRow[iColumn].Slice( oRange.Offset, oRange.Length );
+
+            _oOwner.TryCpuJump( strAddr );
+        }
     }
 
     /// <summary>
@@ -112,7 +132,7 @@ namespace Monitor {
     /// </summary>
     /// <seealso cref="AsmEditor"/>
     /// <seealso cref="AsmRow"/>
-    internal class ViewDisassembly : 
+    public class ViewDisassembly : 
         WindowMultiColumn,
         IPgCommandView,
         IReadableBag<Row>
@@ -240,9 +260,9 @@ namespace Monitor {
                             _rgHistory.RemoveLast();
                         }
 
-                        // Jump to column 1. It will have a value even if it
-                        // is a data line.
-                        if( !_oCacheMan.SetCaretPositionAndScroll( oTry.At, 1, 0, 0 ) )
+                        // We don't have separate 'DATA' display. so use the
+                        // instruction column.
+                        if( !_oCacheMan.SetCaretPositionAndScroll( oTry.At, AsmRow.ColumnInstr, 0, 0 ) )
                             LogError( "Couldn't jump to desired location. :-/" );
                         break;
                     }
@@ -299,7 +319,7 @@ namespace Monitor {
                 return new ViewOutline( oBaseSite, this, fReadOnly:true );
             }
             if( sGuid == GlobalDecor.Properties ) {
-                return new PropertyWindow2( oBaseSite, _oMonDoc );
+                return new PropertyWindow2( oBaseSite, this, _oMonDoc );
             }
             return null;
         }

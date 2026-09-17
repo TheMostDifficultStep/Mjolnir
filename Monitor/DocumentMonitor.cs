@@ -850,6 +850,14 @@ namespace Monitor {
 			    return true;
             }
 
+            protected void AddAddrHyperlink( Labels eRow, ColorRange oLink ) {
+                _rgRows[(int)eRow][PropertyRow.ColumnValue].Formatting.Add( oLink );
+            }
+
+            protected void ClrAddrHyperlink( Labels eRow ) {
+                _rgRows[(int)eRow][PropertyRow.ColumnValue].Formatting.Clear();
+            }
+
             public void Update( DocumentMonitor oMon ) {
                 using Manipulator oBulk = new Manipulator( oMon.Doc_Props );
                 StringBuilder sbFlags = new();
@@ -878,6 +886,11 @@ namespace Monitor {
                 oBulk.SetValue( (int)Labels.IY,    oMon.Cpu.Iy.ToString( "X4" ) );
                 oBulk.SetValue( (int)Labels.Halt,  oMon.Cpu.Halt ? "yes" : "no" );
               //oBulk.SetValue( (int)Labels.Caret, oMon.Z80Memory[oMon._cpuZ80.Pc].ToString( "X4" ) );
+
+                // If I set the hyper link when the property is empty, it then
+                // keeps growing every time edited. So just clear it and reset for now.
+                ClrAddrHyperlink( Labels.PC );
+                AddAddrHyperlink( Labels.PC, new HyperLinkCpuJump( 0, 4, 1 ) );
             }
 
             public void Blank() {
