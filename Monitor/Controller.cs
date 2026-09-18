@@ -144,7 +144,7 @@ namespace Monitor {
                     if( guidViewType == ViewDazzleDisplay.GUID )
                         return new ViewDazzleDisplay( oViewSite, oMonitorDoc );
                     if( guidViewType == ViewTerminal.GUID )
-                        return new ViewTerminal( oViewSite, oMonitorDoc.Doc_Terminal );
+                        return new ViewRealTerminal( oViewSite, oMonitorDoc.Doc_Terminal );
 
                     // Service the GUID.Empty case too.
                     return new ViewDisassembly( oViewSite, oMonitorDoc );

@@ -1168,6 +1168,7 @@ namespace Play.Edit {
             }
         }
 
+
         /// <summary>
         /// We can get the focus even before we've painted for the first time.
         /// </summary>

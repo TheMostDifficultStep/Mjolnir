@@ -792,7 +792,7 @@ namespace Monitor {
         public Editor            Doc_Outl    { get; } // Call address list.
         public DazzleDisplay     Doc_Display { get; }
         public MonitorProperties Doc_Props   { get; }
-        public DocTerminal       Doc_Terminal{ get; }
+        public TerminalDocument  Doc_Terminal{ get; }
 
         protected List<int>? _rgLabels;
 

@@ -2,8 +2,10 @@
 using Play.Interfaces.Embedding;
 using Play.Parse;
 using Play.Rectangles;
+
 using SkiaSharp;
 using SkiaSharp.Views.Desktop;
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -13,7 +15,6 @@ using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
 using System.Xml;
-using static System.ComponentModel.Design.ObjectSelectorEditor;
 
 
 namespace Play.Edit {
