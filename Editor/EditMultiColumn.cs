@@ -296,12 +296,16 @@ namespace Play.Edit {
         /// <summary>
         /// Parse everthing all in one go. This is not handed to the scheduler.
         /// </summary>
-		public virtual MemoryState<char> Parse() {
+		public virtual MemoryState<char> Parse( OnProduction<char> dProduction = null ) {
 			try {
 				MemoryState<char>   oMStart = new MemoryState<char>( new ProdState<char>( _oStart ), null );
 				ParseIterator<char> oParser = new ParseIterator<char>( _oStream, this, oMStart );
 
-				while( oParser.MoveNext() );
+                if( dProduction is not null ) {
+                    oParser.ProductionEvent += dProduction;
+                }
+
+                while( oParser.MoveNext() );
 			    return oMStart;
 			} catch( NullReferenceException ) {
                 LogError( "Couldn't parse text column." );
@@ -670,7 +674,11 @@ namespace Play.Edit {
             }
         }
 
-        public MemoryState<char> ParseColumn( int iColumn, Grammer<char> oGrammar) {
+        public MemoryState<char> ParseColumn( 
+            int                iColumn, 
+            Grammer<char>      oGrammar, 
+            OnProduction<char> oProdEvent = null
+        ) {
             try {
                 RowStream        oStream       = CreateColumnStream( iColumn );
                 ParseColumnText  oParseHandler = new ParseColumnText( oStream, oGrammar, LogError );
@@ -679,7 +687,7 @@ namespace Play.Edit {
                     oRow[iColumn].Formatting.Clear();
                 }
 
-                return oParseHandler.Parse();
+                return oParseHandler.Parse( oProdEvent );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( InvalidCastException ),
                                     typeof( ArgumentOutOfRangeException ),

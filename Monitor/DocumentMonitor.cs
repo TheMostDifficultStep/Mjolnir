@@ -689,6 +689,10 @@ namespace Monitor {
         }
     }
 
+    /// <summary>
+    /// Turns out we are implementing the cpu-ville's ports for it's
+    /// z80 computer.
+    /// </summary>
     public class PortsTinyBasic : IPorts {
         DocumentMonitor Mon { get; }
 

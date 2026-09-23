@@ -114,7 +114,7 @@ namespace Monitor {
         public BBCBasicTextController() {
             _rgExtensions.Add( ".btx"   ); // bbc basic
             _rgExtensions.Add( ".tbtxt" ); // tiny basic
-            _rgExtensions.Add( ".bobtx" ); // boreal basic
+            _rgExtensions.Add( ".bobtx" ); // boriel basic
         }
 
         public override PgDocDescr Suitability(string strExtension) {

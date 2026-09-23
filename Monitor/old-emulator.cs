@@ -891,8 +891,8 @@ namespace Monitor {
             _oBaseSite = oBaseSite ?? throw new ArgumentNullException();
             _oFileSite = (IPgFileSite)oBaseSite;
 
-            BasicDoc     = new BasicEditor  ( new FileSlot( this ), strExtn );
-            DumpDocument = new Editor       ( new DocSlot ( this ) );
+            BasicDoc     = new BasicEditor( new FileSlot( this ), strExtn );
+            DumpDocument = new Editor     ( new DocSlot ( this ) );
         }
 
         public void Dispose() {

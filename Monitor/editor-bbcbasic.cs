@@ -1,9 +1,9 @@
-﻿using System.Collections;
-
+﻿using Play.Edit; 
 using Play.Interfaces.Embedding;
-using Play.Edit; 
 using Play.Parse;
 using Play.Parse.Impl;
+
+using System.Collections;
 
 namespace Monitor {
     public class BasicRow : Row {
@@ -37,6 +37,7 @@ namespace Monitor {
         protected          bool              _fIsDirty = false;
         protected readonly IPgRoundRobinWork _oWorkPlace; 
         protected readonly Grammer<char>     _oBasicGrammer;
+        public             Editor            DocProd { get; protected set; }
         public override bool IsDirty => _fIsDirty;
 
         public class BasicManipulator : IDisposable {
@@ -70,6 +71,26 @@ namespace Monitor {
             }
         }
 
+		public class DocSlot:
+			IPgBaseSite
+		{
+			protected BasicEditor _oHost;
+
+			public DocSlot( BasicEditor oHost ) {
+				_oHost = oHost ?? throw new ArgumentNullException();
+			}
+
+			public IPgParent Host => _oHost;
+
+            public void LogError(string strMessage, string strDetails, bool fShow=true) {
+				_oHost._oSiteBase.LogError( strMessage, strDetails, fShow );
+			}
+
+			public void Notify( ShellNotify eEvent ) {
+			}
+        } // End class
+
+
         /// <summary>
         /// I'd like to use this same object for multiple types of basics
         /// But to do that I need to load the different grammar dialects.
@@ -82,6 +103,8 @@ namespace Monitor {
 
             IPgScheduler oSchedular = (IPgScheduler)Services;
             IPgGrammers  oGServ     = (IPgGrammers)Services;
+
+            DocProd        = new Editor( new DocSlot( this ) );
 
             _oWorkPlace    = oSchedular.CreateWorkPlace() ?? throw new InvalidOperationException( "Need the scheduler service in order to work. ^_^;" );
             _oBasicGrammer = (Grammer<char>)oGServ.GetGrammerByExtn( strExtn );
@@ -407,19 +430,38 @@ namespace Monitor {
 
             return rgErrors.IsUnhandled( oEx );
         }
+
+        /// <summary>
+        /// Of course, I could parse all in one go here but I want
+        /// to wait 2 seconds before I attempt to do anything.
+        /// </summary>
         public override void DoParse() {
             _oWorkPlace.Queue( GetParseEnum(), iWaitMS:2000 );
         }
 
         public IEnumerator<int> GetParseEnum() {
             RenumberAndSumate();
+            DocProd.Clear    ();
 
-            ParseColumn( BasicRow.ColumnText, _oBasicGrammer );
+            ParseColumn( BasicRow.ColumnText, _oBasicGrammer /*, OnProduction */ );
 
             Raise_DocFormatted();
 
             yield return 0;
         }
+
+        public void OnProduction( Production<char> oProd, int iStart ) {
+            if( true ) {
+				try {
+					string strMessage = iStart.ToString() 
+										+ " " 
+										+ oProd.ToString();
+					DocProd.LineAppend( strMessage );
+				} catch( NullReferenceException ) {
+				}
+            }
+        }
+
         public void Test() {
             BbcBasic5 oBasic = new BbcBasic5();
             oBasic.Test( _oSiteBase );
@@ -674,7 +716,7 @@ namespace Monitor {
             if( IsState( oNode, "start" ) ) {
                 oNode = oNode.Children;
                 while( oNode != null ) {
-                    if( IsState( oNode, "basic" ) ) {
+                    if( IsState( oNode, "bbcbasic" ) ) {
                         oNode = oNode.Children;
                         if( IsState( oNode, "let" ) ) {
                             WalkLet( oNode );
@@ -795,7 +837,7 @@ namespace Monitor {
             CheckState( oNode, "assign" );
             oNode = oNode.Children;
             MemoryElem<char> oVar = oNode;
-            CheckState( oVar, "var" );
+            CheckState( oVar, "vdecl" );
 
             string strVar = GetValue( oVar );
             if( _rgVariables.ContainsKey( strVar ) )
@@ -804,8 +846,12 @@ namespace Monitor {
             _rgVariables.Add( strVar, _iVAddr );
             _iVAddr += 2; // 16 bit addr.
 
-            MemoryElem<char> oType = oVar.Children.Next;
-            string strType = GetValue( oType ); // currently unused.
+            if( oVar.Children is not null && 
+                oVar.Children.Next is not null ) 
+            {
+                MemoryElem<char> oType = oVar.Children.Next;
+                string strType = GetValue( oType ); // currently unused.
+            }
 
             oNode = oNode.Next.Next;
             CheckValue( oNode, "=" );

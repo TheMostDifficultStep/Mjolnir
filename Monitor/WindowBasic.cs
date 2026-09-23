@@ -191,6 +191,9 @@ namespace Monitor {
         }
 
         public object? Decorate(IPgViewSite oBaseSite, Guid sGuid) {
+            if( sGuid == GlobalDecor.Productions ) { 
+                return new EditWindow2( oBaseSite, DocMain.BasicDoc.DocProd );
+            }
             return null;
         }
     }
