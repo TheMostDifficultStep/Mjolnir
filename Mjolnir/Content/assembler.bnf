@@ -84,7 +84,7 @@
                 <nont state="asm" />
             </production>
             <production>
-                <nont state="commentline" />
+                <nont state="commentline" id="commentline" />
                 <nont state="asm" />
             </production>
             <production>
@@ -112,6 +112,11 @@
             </capture>
             <production>
                 <term class="mytoken" value="//" id="delim" />
+                <nont state="incomment" id="ctext" />
+                <term class="mycr" />
+            </production>
+            <production>
+                <term class="mytoken" value=";" id="delim" />
                 <nont state="incomment" id="ctext" />
                 <term class="mycr" />
             </production>
@@ -143,15 +148,37 @@
             </production>
         </state>
 
-		<state name="trailing" >
+
+		<state name="ptype" >
+			<production lookahead="2" >
+				<!-- Hex immediate -->
+				<term class="mytoken" value="#" id="immed" />
+				<term class="mytoken" value="$" id="hex" />
+				<term class="myanyof" value="0123456789abcdefABCDEF" id="value" />
+			</production>
 			<production >
-				<!--<term class="mytoken" value=";" /> -->
-				<nont state="commentline" id="comment" />
-				<term class="mycr" />
-			</production >
+				<!-- Decimal immediate -->
+				<term class="mytoken" value="#" id="immed" />
+				<term class="mynumber" id="value" />
+			</production>
 			<production >
-				<term class="mycr" />
-			</production >
+				<!-- Hex -->
+				<term class="mytoken" value="$" id="hex" />
+				<term class="myanyof" value="0123456789abcdefABCDEF" id="value" />
+			</production>
+			<production >
+				<!-- register or jump label -->
+				<term class="myliteral" id="value" />
+			</production>
+			<production >
+				<!-- register or jump label -->
+				<term class="mytoken" value="." />
+				<term class="myliteral" id="value" />
+			</production>
+			<production >
+				<!-- Decimal -->
+				<term class="mynumber" id="value" />
+			</production>
 		</state>
 
 		<state name="param" >
@@ -160,34 +187,18 @@
 				<binding id="hex"   color="gray" />
 				<binding id="value" color="purple" />
             </capture>
-			<production lookahead="3" >
-				<!-- Hex immediate -->
+
+			<production >
+				<term class="mytoken" value="(" id="indirect" />
 				<nont state="space" />
-				<term class="mytoken" value="#" id="immed" />
-				<term class="mytoken" value="$" id="hex" />
-				<term class="myanyof" value="0123456789abcdefABCDEF" id="value" />
+				<nont state="ptype" id="value" />
+				<nont state="space" />
+				<term class="mytoken" value=")" id="indirect" />
+				<nont state="space" />
 			</production>
-			<production lookahead="2" >
-				<!-- Decimal immediate -->
+			<production >
+				<nont state="ptype" id="value" />
 				<nont state="space" />
-				<term class="mytoken" value="#" id="immed" />
-				<term class="mynumber" id="value" />
-			</production>
-			<production lookahead="2" >
-				<!-- Hex -->
-				<nont state="space" />
-				<term class="mytoken" value="$" id="hex" />
-				<term class="myanyof" value="0123456789abcdefABCDEF" id="value" />
-			</production>
-			<production lookahead="2" >
-				<!-- Label -->
-				<nont state="space" />
-				<term class="myliteral" id="value" />
-			</production>
-			<production lookahead="2" >
-				<!-- Decimal -->
-				<nont state="space" />
-				<term class="mynumber" id="value" />
 			</production>
 		</state>
 
@@ -196,59 +207,99 @@
 		<state name="params" >
 			<production>
 				<nont state="param" id="params" />
+				<nont state="space" />
 				<nont state="params" />
 			</production>
+			<production>
+				<term class="mytoken" value="," />
+				<nont state="space" />
+				<nont state="param" id="params" />
+				<nont state="space" />
+			</production>
 			<production >
+				<!-- no params is ok too -->
 				<term class="myEmpty" />
 			</production >
 		</state> 
-
-		<!-- special case for the jmp instruction -->
-		<state name="jparam" >
-            <capture>
-				<binding id="immed" color="gray" />
-				<binding id="hex"   color="gray" />
-				<binding id="value" color="purple" />
-            </capture>
-			<production lookahead="2" >
-				<!-- Decimal -->
-				<nont state="space" />
-				<term class="mynumber" id="value" />
-			</production>
-			<production lookahead="2" >
-				<!-- Hex -->
-				<nont state="space" />
-				<term class="mytoken" value="$" id="hex" />
-				<term class="myanyof" value="0123456789abcdefABCDEF" id="value" />
-			</production>
-		</state>
 
 		<state name="instr" >
             <capture>
 				<binding id="indirect" color="gray" />
             </capture>
-			<production lookahead="2" >
-				<nont state="space" />
-				<term class="mytoken" value="jmp" id="instr" />
-				
-				<nont state="space" />
-				<term class="mytoken" value="(" id="indirect" />
-				<nont state="space" />
-				<nont state="jparam" id="value" />
-				<nont state="space" />
-				<term class="mytoken" value=")" id="indirect" />
-				<nont state="space" />
-				<nont state="trailing" />
-			</production>
+
 			<production lookahead="2" >
 				<nont state="space" />
 				<term class="myliteral" id="instr" />
-				
-				<nont state="params"  />
-
 				<nont state="space" />
+				<nont state="params"  />
+				<nont state="space" />
+			</production>
+		</state>
+
+		<state name="label" >
+			<production lookahead="4" >
+				<nont state="space" />
+				<nont state="label-first" id="label" />
+				<nont state="space" />
+				<term class="mytoken" value=":" />
+			</production>
+			<production >
+				<nont state="space" />
+				<term class="myEmpty" />
+			</production>
+		</state>
+
+		<state name="label-first" >
+			<production >
+				<term class="myliteral" />
+				<nont state="label-ext" />
+			</production>
+			<production>
+				<term class="myanyof" value="_." />
+				<nont state="label-ext" />
+			</production>
+		</state>
+
+		<state name="label-ext" >
+			<production >
+				<term class="myliteral" />
+				<nont state="label-ext" />
+			</production>
+			<production >
+				<term class="mynumber" />
+				<nont state="label-ext" />
+			</production>
+			<production>
+				<term class="myanyof" value="_." />
+				<nont state="label-ext" />
+			</production>
+			<production>
+				<term class="myEmpty" />
+			</production>
+		</state>
+
+		<state name="trailing" >
+			<production lookahead="2" >
+				<nont state="space" />
+				<nont state="commentline" id="comment" />
+			</production >
+			<production >
+				<nont state="space" />
+				<term class="mycr" />
+			</production >
+		</state>
+
+		<state name="statement-cont" >
+			<production lookahead="2">
+				<nont state="space" />
+				<term class="mycr" />
+				<nont state="statement-cont" />
+			</production>
+			<production lookahead="2" >
+				<nont state="instr" id="instr" />
 				<nont state="trailing" />
 			</production>
+
 		</state>
 
 		<state name="statement" >
@@ -258,17 +309,11 @@
                 <binding id="params"  array="true"  color = "purple" />
                 <binding id="comment" array="false" color = "green" />
             </capture>
-			<production lookahead="4" >
-				<nont state="space" />
-				<term class="myliteral" id="label" />
-				<nont state="space" />
-				<term class="mytoken" value=":" />
+			<production >
+				<nont state="label" id="label"/>
+				<nont state="statement-cont" />
+			</production>
 
-				<nont state="instr" />
-			</production>
-			<production>
-				<nont state="instr" />
-			</production>
 		</state>
 
     </bnftable>
