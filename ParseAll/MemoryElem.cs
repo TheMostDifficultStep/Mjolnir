@@ -342,6 +342,24 @@ namespace Play.Parse.Impl
             return GetValue( iBinding );
         }
 
+        /// <summary>
+        /// Usually you know if the binding is an array or not
+        /// and ask accordingly. So I'll throw exceptions if
+        /// you make a mistake.
+        /// </summary>
+        /// <returns>If the binding is an array, we count then elements.</returns>
+        /// <exception cref="NullReferenceException" />
+        /// <exception cref="InvalidCastException" />
+        public int CountAt( int iBinding ) {
+            if( _oState.Bindings.Values[iBinding].IsArray ) {
+                if( _rgValues == null )
+                    throw new NullReferenceException( "No binding for request" );
+                ArrayList rgList = (ArrayList)_rgValues[iBinding];
+                return rgList.Count;
+            }
+            throw new InvalidCastException( "The Binding is not an Array." );
+        }
+
         /// <param name="iBinding">Which binding you wish to access.</param>
         /// <param name="iIndex">Index of binding if an array.</param>
         /// <returns></returns>

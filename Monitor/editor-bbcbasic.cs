@@ -478,7 +478,9 @@ namespace Monitor {
         /// </summary>
         /// <remarks>I seem to recall I used to "assemble" some assembler
         /// in that input param. But when I changed this to work on basic
-        /// that makes this whole thing weird.</remarks>
+        /// that makes this whole thing weird.
+        /// TODO: Kind of weird I'm not just using the colorized parse
+        /// </remarks>
         public void Compile() {
             try {
                 RenumberAndSumate();
@@ -493,6 +495,7 @@ namespace Monitor {
                 BasicCompiler oCompiler = new BasicCompiler( oStream );
 
                 oCompiler.Walk( oParse.MStart );
+                oCompiler.Save( _oSiteFile.FilePath );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( ArgumentOutOfRangeException ),
@@ -630,82 +633,79 @@ namespace Monitor {
     /// </summary>
     public class BasicCompiler 
     {
+
+        /// <summary>
+        /// Right now assume patches are all 2 bytes...
+        /// </summary>
+        public abstract class Patch {
+            public readonly int    iPotHole; // The addr that must be patched
+            public readonly string strLabel; // The referenced label
+            public Patch( int p_iPotHole, string p_strLabel ) {
+                iPotHole = p_iPotHole; 
+                strLabel = p_strLabel;
+            }
+
+            public abstract void Apply( List<byte> rgProgram, int iAddr );
+        }
+
+        public class PatchAbs : Patch {
+            public PatchAbs(int p_iPotHole, string p_strLabel) : 
+                base(p_iPotHole, p_strLabel) {
+            }
+
+            public override void Apply( List<byte> rgProgram, int iAddr) {
+                rgProgram[iPotHole  ] = (byte) iAddr;
+                rgProgram[iPotHole+1] = (byte)(iAddr >> 8);
+            }
+        }
+
+        public class PatchRel : Patch {
+            public PatchRel(int p_iPotHole, string p_strLabel) : 
+                base(p_iPotHole, p_strLabel) {
+            }
+
+            public override void Apply( List<byte> rgProgram, int iAddr) {
+                int iOffset = iPotHole - iAddr;
+
+                if( int.Abs( iOffset ) > 128 )
+                    throw new InvalidProgramException("Offset must be less than 128");
+
+                rgProgram[iPotHole] = (byte)iOffset;
+            }
+        }
+
         DataStream<char>          _oStream;
-        Dictionary< string, int > _rgVariables = new ();
-        List<byte>                _rgProgram   = new();
-        Dictionary< string, int > _rgLabels    = new (); // global jumps
+        Dictionary< string, int > _rgVariables = []; // addresses.
+        List<byte>                _rgProgram   = [];
+        List< Patch >             _rgPatches   = [];
+        Dictionary< string, int > _rgLabels    = [];
         int                       _iStackAddr  = 1000;
+        int                       _iVarsAddr   = 1001;
         int                       _iVAddr; // Start at the stack and go down.
         Z80Definitions            _rgZ80Definitions;
 
-        class LabelManager : IDisposable {
-            string        _strMethodName; // for referencing the entry point of proc.
-            BasicCompiler _oCompiler;
-            int           _iStartAddr;
-
-            Dictionary< string, int > _rgLocalLabels = new (); // addr to jump to.
-            Dictionary< string, int > _rgLocalJumps  = new (); // jumps needing label binding.
-
-            /// <summary>
-            /// Use this object to patch up the the jump labels at
-            /// the end of loading a passage of assembly.
-            /// </summary>
-            /// <param name="oCompiler"></param>
-            /// <param name="strMethod"></param>
-            /// <exception cref="ArgumentNullException"></exception>
-            /// <exception cref="ArgumentException>">Method name already in system.</exception>
-            public LabelManager( BasicCompiler oCompiler, string strMethod ) {
-                _strMethodName = strMethod ?? throw new ArgumentNullException();
-                _oCompiler     = oCompiler ?? throw new ArgumentNullException();
-
-                _iStartAddr    = oCompiler._rgProgram.Count;
-
-                _oCompiler._rgLabels.Add( strMethod, _iStartAddr );
-            }
-            public void Dispose() {
-                List<byte> rgProgram = _oCompiler._rgProgram;
-
-                foreach( KeyValuePair< string, int > oJump in _rgLocalJumps ) {
-                    Z80Instr oInstr = _oCompiler.FindInst( oJump.Value );
-                    int      iParam = _rgLocalLabels[ oJump.Key ];
-                    int      iStart = rgProgram[ oJump.Value ] + 1;
-
-                    if( oInstr.InstrExt != 0 )
-                        iStart += 1;
-
-                    for( int i = iStart; i< oInstr.Length; ++i ) {
-                        rgProgram[i] = (byte)(iParam & 0xFF);
-                        iParam >>= 8;
-                    }
-                }
-            }
-            public void AddJump( int iIndex, string strLabel ) {
-                if( _rgLocalLabels.TryGetValue( strLabel, out int iTarget ) ) {
-                    _oCompiler.AddMain( iIndex, iTarget );
-                } else {
-                    // bind later.
-                    _rgLocalJumps.Add( strLabel, _oCompiler._rgProgram.Count );
-                    _oCompiler.AddMain( iIndex, 0 );
-                }
-            }
-
-            /// <summary>
-            /// Bind an address to a label. Should only be able to do once
-            /// for a local instance.
-            /// </summary>
-            /// <exception cref="ArgumentException">Label is already used.</exception>
-            public void AddLabel( string strLabel ) {
-                if( !_rgLocalLabels.TryAdd( strLabel, 
-                                           _oCompiler._rgProgram.Count ) )
-                    throw new ArgumentException( "label exists" );
-            }
-
-        }
-
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="oStream">The basic program to be compiled.</param>
+        /// <exception cref="ArgumentNullException"></exception>
         public BasicCompiler( DataStream<char> oStream ) {
             _oStream = oStream ?? throw new ArgumentNullException();
             _iVAddr = _iStackAddr;
             _rgZ80Definitions = new Z80Definitions();
+        }
+
+        public bool Save( string strFilePath ) {
+            string strBinaryFile = Path.ChangeExtension( strFilePath, "bin" );
+
+            using FileStream   oBinaryStream = File.OpenWrite( strBinaryFile );
+            using BinaryWriter oWriter       = new BinaryWriter( oBinaryStream );
+
+            foreach( byte bValue in _rgProgram ) {
+                oWriter.Write( bValue );
+            }
+            oWriter.Flush();
+            return true;
         }
 
         public void Walk( MemoryState<char> oStart ) {
@@ -740,74 +740,72 @@ namespace Monitor {
                 throw new InvalidDataException( "Variable not defined" );
         }
 
-        protected void AddMain( int iIndex, int? iParam = null ) {
-            Z80Instr sInstr = _rgZ80Definitions[iIndex];
-            _rgProgram.Add( sInstr.Instr );
-            if( iParam != null ) {
-                for( int i =0; i< sInstr.Length; ++i ) {
-                    _rgProgram.Add( (byte)(iParam.Value & 0xFF) );
-                    iParam >>= 8;
-                }
-                if( iParam > 0 )
-                    throw new InvalidDataException();
-            }
+        protected void AddVari( string strVariable, byte bValue ) {
+            _rgProgram[_iVarsAddr] = bValue;
+            _rgVariables.Add( strVariable, _iVarsAddr-- );
         }
 
         /// <summary>
-        /// Use this when you have a branch to a label.
+        /// Copy the variable's address to the program
         /// </summary>
-        /// <param name="iIndex">instruction</param>
-        /// <param name="strLabel">name of the label.</param>
-        /// <exception cref="InvalidDataException"></exception>
-        /// <remarks>Check to see if the label exists. If not adds
-        /// it to the dictionary.</remarks>
-        protected void AddMain( int iIndex, string strLabel ) {
-            Z80Instr sInstr = _rgZ80Definitions[iIndex];
-            int      iStart = 1;
+        /// <param name="strVariable"></param>
+        protected void MemAddr( string strVariable ) {
+            int iAddr = _rgVariables[strVariable];
 
-            if( sInstr.InstrExt != 0 ) {
-                _rgProgram.Add( sInstr.InstrExt );
-                iStart += 1;
-            }
-            _rgProgram.Add( sInstr.Instr );
-
-            // Try to get the label value if in dictionary.
-            if( !_rgLabels.TryGetValue( strLabel, out int iParam ) ) {
-                iParam = 0;
-                AddLabel( strLabel ); // First reference of label, add it.
-            }
-            // In either case set the value or set zero.
-            for( int i = iStart; i< sInstr.Length; ++i ) {
-                _rgProgram.Add( (byte)(iParam & 0xFF) );
-                iParam >>= 8;
-            }
-            //if( iParam > 0 )
-            //    throw new InvalidDataException();
-        }
-
-        /// <summary>General instruction add no params, or uninited param.</summary>
-        /// <remarks>TODO: This won't work for 2 byte instructions... :-/</remarks>
-        /// <seealso cref="AddBit"/>
-        protected void AddMain( int iIndex ) {
-            Z80Instr sInstr = _rgZ80Definitions[iIndex];
-            _rgProgram.Add( sInstr.Instr );
-            for( int i =0; i < sInstr.Length; ++i ) {
-                _rgProgram.Add( 0 );
-            }
+            _rgProgram.Add( (byte)iAddr );
+            _rgProgram.Add( (byte)(iAddr >> 8 ) );
         }
 
         /// <summary>
-        /// Use this for the target of a jump instruction. Basically
-        /// where you see the label defined in the asm.
+        /// Identify a portion of memory with a label.
         /// </summary>
-        /// <param name="strLabel"></param>
-        protected void AddLabel( string strLabel ) {
+        protected void AddLabl( string strLabel ) {
             _rgLabels.Add( strLabel, _rgProgram.Count );
         }
 
-        protected void AddBitI( int iIndex ) {
-            Z80Instr sInstr = _rgZ80Definitions.BitI( iIndex );
-            _rgProgram.Add( sInstr.Instr );
+        /// <summary>
+        /// Add an area in the program that will need to
+        /// be patched in a second pass.
+        /// </summary>
+        /// <param name="strLabel">Name of the patch,
+        /// NOTE: It might NOT be defined yet! So at this
+        /// point, there is a possibility, you have patch
+        /// requesnts that cannot be satisfied.</param>
+        protected void UseLabl( string strLabel ) {
+            _rgPatches.Add( new PatchAbs( _rgProgram.Count, strLabel ) );
+            _rgProgram.Add( 0x00 );
+            _rgProgram.Add( 0x00 );
+        }
+
+        /// <summary>
+        /// I think I'll need another patch type...
+        /// </summary>
+        /// <param name="strLabel"></param>
+        protected void JumpRel( string strLabel ) {
+            _rgPatches.Add( new PatchRel( _rgProgram.Count, strLabel ) );
+            _rgProgram.Add( 0x00 );
+        }
+
+        /// <summary>Add a byte, it's up to caller to make
+        /// sure added values are proper instructions!! </summary>
+        protected void AddMain( byte bValue ) {
+            _rgProgram.Add( bValue );
+        }
+        protected void AddMain( byte bVal1, byte bVal2 ) {
+            _rgProgram.Add( bVal1 );
+            _rgProgram.Add( bVal2 );
+        }
+        protected void AddMain( byte bVal1, byte bVal2, byte bVal3 ) {
+            _rgProgram.Add( bVal1 );
+            _rgProgram.Add( bVal2 );
+            _rgProgram.Add( bVal3 );
+        }
+
+        public void ApplyPatches() {
+            foreach( Patch oPatch in _rgPatches ) {
+                int iAddr = _rgLabels[oPatch.strLabel];
+                oPatch.Apply( _rgProgram, iAddr );
+            }
         }
 
         /// <see cref="Z80Definitions.FindInst(z80.Z80Memory, int)" />
@@ -858,10 +856,17 @@ namespace Monitor {
             oNode = oNode.Next.Next;
             WalkExpression( oNode );
 
-            AddMain( 0xe1 );                       // Pop HL
-            AddMain( 0x22, _rgVariables[strVar] ); // LD [ADDR], HL
+            AddMain( 0xe1 );                               // Pop HL
+            AddMain( 0x22, 
+                     (byte) _rgVariables[strVar], 
+                     (byte)(_rgVariables[strVar] >> 8 ) ); // LD (ADDR), HL
         }
 
+        /// <summary>
+        /// Walk the expression generating code that will
+        /// put the result in HL.
+        /// </summary>
+        /// <exception cref="InvalidDataException"></exception>
         protected void WalkExpression( MemoryElem<char> oNode ) {
             int iPathID = oNode.PathID;
 
@@ -904,7 +909,7 @@ namespace Monitor {
         /// <summary>
         /// http://z80-heaven.wikidot.com/advanced-math
         /// </summary>
-        protected void H_times_E2() {
+        protected void H_times_E() {
             // Inputs:
             //   H and E
             // Outputs:
@@ -914,22 +919,144 @@ namespace Monitor {
             //   A,E,C are preserved
             // 12 bytes
 
-            using LabelManager oBind = new LabelManager( this, "H_timesE2" );
+            AddLabl( "H_times_E" );
 
             AddMain( 0x16, 0 ); // ld d,0
             AddMain( 0x6a );    // ld l,d (smaller instr than "ld l, 0" !)
             AddMain( 0x06, 8 ); // ld b,8
 
-            oBind.AddLabel( "H_Loop" );
+            AddLabl( "H_Loop" );
 
-            AddMain( 0x29 );    // add hl,hl
-            AddMain( 0x18, 3 ); // jr nc,$+3
-            AddMain( 0x19 );    // add hl,de
+            AddMain( 0x29 );    // add hl,hl (like shift left)
+            AddMain( 0x18, 3 ); // jr nc,$+3 (on to the next)
+            AddMain( 0x19 );    // add hl,de (carry was set, add e)
 
-            oBind.AddJump( 0x10, "H_Loop" );   // 0x10 djnz iLoop (rel jump. loop on b)
-            AddMain( 0xc9 );      
+            AddMain( 0x10 );
+            UseLabl( "H_Loop" );   // 0x10 djnz iLoop (rel jump. loop on b)
+            AddMain( 0xc9 );    // ret
         }
 
+        protected void Asm( string _ ) {
+        }
+
+        public class FuncMaker : IDisposable {
+            readonly State<char> _oStatement;
+            readonly int _iBindLabel;
+            readonly int _iBindInstr;
+            readonly int _iBindParam;
+
+            readonly State<char> _oParam;
+            readonly int _iBindHex;
+            readonly int _iBindValue;
+            readonly int _iBindIndir;
+
+            public FuncMaker( string strName, Grammer<char> oGrammar ) {
+			    _oStatement = oGrammar.FindState( "statement" );
+                _iBindLabel = _oStatement.Bindings.IndexOfKey( "label" );
+                _iBindInstr = _oStatement.Bindings.IndexOfKey( "instr" );
+                _iBindParam = _oStatement.Bindings.IndexOfKey( "params" );
+
+                _oParam     = oGrammar.FindState( "param" );
+                _iBindHex   = _oStatement.Bindings.IndexOfKey( "hex" );
+                _iBindIndir = _oStatement.Bindings.IndexOfKey( "indir" );
+                _iBindValue = _oStatement.Bindings.IndexOfKey( "value" );
+            }
+
+            public void Dispose() {
+            }
+
+            public static string GetStringBinding( 
+                DataStream<char>  rgTextStream,
+                MemoryState<char> oMemState, 
+                int               iBindIndex 
+            ) {
+                try {
+                    // Only the memory element has the stream offset. IColorRange is a line offset.
+                    if( oMemState.GetValue( iBindIndex ) is MemoryElem<char> oMemory )
+                        return rgTextStream.SubString( oMemory.Start, oMemory.Length );
+                } catch( Exception oEx ) {
+                    Type[] rgErrors = { typeof( NullReferenceException ),
+                                        typeof( ArgumentOutOfRangeException ),
+                                        typeof( InvalidProgramException ),
+                                        typeof( InvalidCastException ) };
+                    if( rgErrors.IsUnhandled( oEx ) )
+                        throw;
+                }
+                return string.Empty;
+            }
+        
+            public struct ParamType {
+                public bool   fIndirect;
+                public string strValue;
+                public bool   fHex;
+            }
+
+            public void Asm( string strValue ) {
+                TestCharStream      oStream = new ( strValue );
+                MemoryState<char>   oMStart = new ( new ProdState<char>( _oStatement ), null );
+                Parser2             oParse  = new ( _oStatement, oStream );
+
+                foreach( int iProgress in oParse ) {
+                }
+
+                string strLabel = GetStringBinding( oStream, oMStart, _iBindLabel );
+                string strInstr = GetStringBinding( oStream, oMStart, _iBindInstr );
+
+                List<ParamType> rgParms = [];
+
+                foreach( MemoryState<char> oParam in oMStart.EnumValues( _iBindParam ) ) {
+                    ParamType oType = new();
+
+                    oType.fHex      = oParam.GetValue( _iBindHex   ) is not null;
+                    oType.fIndirect = oParam.GetValue( _iBindIndir ) is not null;
+                    oType.strValue  = GetStringBinding( oStream, oParam, _iBindValue );
+
+                    rgParms.Add( oType );
+                }
+            }
+
+            public void Label( string strValue ) {
+            }
+
+            public void DB( string strLabel, byte bValue ) {
+            }
+
+        }
+
+        protected void Rnd255() {
+            AddLabl( "Rnd255" );
+
+            AddVari( "seed", 0x42 );
+
+            AddMain( 0x3a );       // ld a, (seed)
+            MemAddr( "seed" );
+            AddMain( 0xa7 );       // and a
+            AddMain( 0x28 );       // jr z, .fix
+            JumpRel( ".fix" );
+
+            AddMain( 0xcb, 0x3f ); // srl a
+            AddMain( 0x30 );
+            JumpRel( ".save" );
+            AddMain( 0xee, 0xb8 ); // XOR with the polynomial 
+
+            AddLabl( ".seed" );
+            AddMain( 0x32 );       // ld (seed), a
+            MemAddr( "seed" );
+            AddMain( 0xc9 );       // ret
+
+            AddLabl( ".fix" );
+            AddMain( 0xdd, 0x3e, 0x01 ); // ld a, 1
+            AddMain( 0x32 );             // ld (seed), a
+            MemAddr( "seed" );
+            AddMain( 0xc9 );             // ret
+        }
+
+        /// <summary>
+        /// Factors (+-) always end up on the left,
+        /// Terms   (*/) always end up on the right.
+        /// </summary>
+        /// <param name="oNode"></param>
+        /// <exception cref="InvalidDataException"></exception>
         protected void WalkTerm( MemoryElem<char> oNode ) {
             int iPathID = oNode.PathID;
             oNode = oNode.Children.Next;
@@ -943,16 +1070,17 @@ namespace Monitor {
                     WalkTerm( oNode ); // right side.
 
                     if( strOp.Equals( "*" ) ) {
-                        // Pop  values.
-                        // Call Mult
-                        // Push HL
+                        AddMain( 0xe1 ); // Pop into HL
+                        AddMain( 0xd1 ); // Pop into DE
+                        H_times_E();
+                        AddMain( 0xe5 ); // Push HL
                     }
                     if( strOp.Equals( "/" ) ) {
                         // stack     = recent expr result
                         // stack + 2 = older  expr result
-                        // Pop values.
+                        AddMain( 0xe1 ); // Pop HL
                         // Call Div
-                        // Push HL
+                        AddMain( 0xe5 ); // Push HL
                     }
                     break;
                 case 1:
@@ -963,9 +1091,16 @@ namespace Monitor {
             }
         }
 
+        /// <summary>
+        /// Get the factor and push the result into HL
+        /// </summary>
+        /// <param name="oNode"></param>
         protected void WalkFactor( MemoryElem<char> oNode ) {
             int iPathID = oNode.PathID;
             CheckState( oNode, "factor" );
+            oNode = oNode.Children;
+            iPathID = oNode.PathID;
+            CheckState( oNode, "primaryfactor" );
             oNode = oNode.Children;
 
             switch( iPathID ) {
@@ -974,24 +1109,51 @@ namespace Monitor {
                     oNode = oNode.Next;
                     WalkExpression( oNode );
                     break;
-                case 1:
-                    string strNumber = GetValue( oNode );
+                case 1: {
+                    string strVar = GetValue( oNode );
+                    int iValue = int.Parse( strVar );
 
-                    AddMain( 0x21, int.Parse( strNumber ) ); // ld hd, nn
-                    AddMain( 0xe5 );                         // push hl
+                    AddMain( 0x21, 
+                             (byte)(iValue & 0xff ), 
+                             (byte)(iValue >> 8 ) ); // ld hl, nn
+                    AddMain( 0xe5 );         // push hl
+                    } 
                     break;
-                case 2:
-                    CheckState( oNode, "var" );
-                    string strVar = GetValue( oNode.Children );
-                    int    iAddr  = _rgVariables[strVar];
+                case 3 : {    
+                    string strVar = GetValue( oNode );
+                    int iAddr = _rgVariables[strVar];
 
-                    AddMain( 0x2a, iAddr ); // ld hl, (nn)
+                    AddMain( 0x2a, 
+                             (byte)_rgVariables[strVar],
+                             (byte)(_rgVariables[strVar] >> 8 ) ); // ld hl, (nn)
                     AddMain( 0xe5 );        // push hl
+                    }
                     break;
-                case 3:
-                    CheckState( oNode, "built-in-function-call" );
+                case 4:
+                    WalkBuiltInFunction( oNode.Children );
                     break;
             }
+        } // end method
+
+        public void WalkBuiltInFunction( MemoryElem<char> oNode ) {
+            CheckState( oNode, "built-in-function-call" );
+            oNode = oNode.Children;
+
+            string strValue = GetValue( oNode ); // built in name...
+
+            oNode = oNode.Next.Next.Next.Next;
+            CheckState( oNode, "param-first" );
+            oNode = oNode.Children;
+            oNode = oNode.Next;
+
+            // BUG: Walk actual expression, but now
+            // just simple number, variable or built in.
+            CheckState( oNode, "expression" );
+            string strParam = GetValue( oNode );
+            int    iParam   = int.Parse( strParam );
+
+            AddMain( 0xcd );   // call nn
+            UseLabl( "Rnd255" );
         }
 
         /// <remarks>Assumes the element does NOT span multiple lines. :-( </remarks>
