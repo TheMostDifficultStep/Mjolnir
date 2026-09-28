@@ -668,4 +668,79 @@ namespace Play.Drawing {
 			return( l_oChart );
 		}
 	} // End Histogram.
+
+    public class LevelsAdjust() {
+        protected double GammaCorrection;
+
+        public byte ShadowValue    = 0x00;
+        public byte MidTones       = 0x80;
+        public byte HighlightValue = 0xff;
+        public byte OutLowValue    = 0x00; // outshadowvalue
+        public byte OutHighValue   = 0xff;
+
+        public static double CalcGammaCorrection( byte bMidTones ) {
+            double Gamma = 1;
+            double MidtoneNormal = bMidTones / 255;
+
+            if( bMidTones < 128 ) {
+                MidtoneNormal = MidtoneNormal * 2;
+                Gamma = 1 + ( 9 * ( 1 - MidtoneNormal ) );
+                Gamma = double.Min( Gamma, 9.99 );
+            } else {
+                if( bMidTones > 128 ) {
+                    MidtoneNormal = ( MidtoneNormal * 2 ) - 1;
+                    Gamma = 1 - MidtoneNormal;
+                    Gamma = double.Max( Gamma, 0.01 );
+                }
+            }
+
+            return 1 / Gamma; // GammaCorrection
+        }
+
+        public byte Clamp( double dblValue ) {
+            if( dblValue > 255 )
+                return 255;
+            if( dblValue < 0 )
+                return 0;
+
+            return Convert.ToByte( dblValue );
+        }
+
+        /// <summary>
+        /// </summary>
+        /// <seealso href="https://stackoverflow.com/questions/39510072/algorithm-for-adjustment-of-image-levels"/>
+        public byte Apply( byte ChannelValue ) {
+            ChannelValue = Clamp(255 * ( 
+                (double)( ChannelValue   - ShadowValue ) / 
+                (double)( HighlightValue - ShadowValue ) )
+            );
+                        
+            if( MidTones != 128 ) {
+                ChannelValue = Clamp(255 * double.Pow( ChannelValue / (double)255, GammaCorrection ) );
+            }
+
+            ChannelValue = Clamp(
+                ( ChannelValue / (double)255 ) *
+                ( OutHighValue - OutLowValue ) + 
+                  OutLowValue );
+
+            return ChannelValue;
+        }
+
+        public void CalcLevels( SKBitmap oBmp ) {
+            GammaCorrection = CalcGammaCorrection( MidTones );
+
+            for( int iY = 0; iY < oBmp.Height; iY++ ) {
+                for( int iX = 0; iX < oBmp.Width; iX++ ) {
+                    SKColor oColor = oBmp.GetPixel( iX, iY );
+
+                    byte bRed = Apply( oColor.Red );
+                    byte bGrn = Apply( oColor.Green );
+                    byte bBlu = Apply( oColor.Blue );
+
+                    oBmp.SetPixel( iX, iY, new SKColor( bRed, bGrn, bBlu, 255 ) );
+                }
+            }
+        }
+    }
 }

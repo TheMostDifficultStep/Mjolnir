@@ -113,7 +113,8 @@ namespace Play.ImageViewer {
 		public enum Tools : int {
 			Select = 0,
 			Navigate,
-			ColorPik
+			ColorPik,
+			Levels
 		}
 
 		protected readonly IPgShellSite _oSiteShell;
@@ -543,7 +544,7 @@ namespace Play.ImageViewer {
 
             _rgLeft  = [ _rctLeft, _rctBottomLeft, _rctTopLeft ];
             _rgRight = [ _rctRight, _rctBottomRight, _rctTopRight ];
-			_rgTools = [ "Select" ,"Navigate", "Color Picker" ];
+			_rgTools = [ "Select" ,"Navigate", "Color Picker", "Levels" ];
 
 			_eToolCurrent = Tools.Navigate;
         }
@@ -778,6 +779,10 @@ namespace Play.ImageViewer {
                     break;
 
 				case Keys.Return:
+					if( ToolSelect == (int)Tools.Levels ) {
+						_oDocWalker.Levels();
+						return;
+					}
 					_oDocWalker.PlayStart();
 					break;
 				case Keys.Escape:

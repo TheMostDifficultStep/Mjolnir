@@ -399,6 +399,19 @@ namespace Play.ImageViewer {
 
             e.Graphics.DrawImage( oCopy, rctDest.Rect, rctSource.Rect, GraphicsUnit.Pixel );
         }
+
+        public void Levels() {
+            using SKBitmap oCopy = SKBitmap.FromImage( Image );
+
+            LevelsAdjust oLevels = new LevelsAdjust() { 
+                ShadowValue=0, MidTones=180, HighlightValue=255, 
+                OutLowValue=0, OutHighValue=255 
+            };
+
+            oLevels.CalcLevels( oCopy );
+
+            Image = SKImage.FromBitmap( oCopy );
+        }
 	}
  
     public delegate void ImagesUpdatedEvent();
