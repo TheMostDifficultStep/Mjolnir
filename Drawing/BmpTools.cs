@@ -669,15 +669,38 @@ namespace Play.Drawing {
 		}
 	} // End Histogram.
 
+    /// <summary>
+    /// Adjust the image levels like in photoshop!
+    /// </summary>
+    /// <seealso href="https://stackoverflow.com/questions/39510072/algorithm-for-adjustment-of-image-levels"/>
     public class LevelsAdjust() {
-        protected double GammaCorrection;
+        protected byte   _bMidTones = 0x80;
+        protected double GammaCorrection = 1;
+
+        /// <summary>
+        /// When MidTones are 128 (0x80) then the GammaCorrection
+        /// is 1. So we don't need to calc gamma. But if we decide
+        /// to change that we'll need a constructor to set first value;
+        /// </summary>
+        public byte MidTones { 
+            get { return _bMidTones; } 
+            set { _bMidTones      = value; 
+                  GammaCorrection = CalcGammaCorrection( value ); } 
+        }
 
         public byte ShadowValue    = 0x00;
-        public byte MidTones       = 0x80;
         public byte HighlightValue = 0xff;
         public byte OutLowValue    = 0x00; // outshadowvalue
         public byte OutHighValue   = 0xff;
 
+        /// <summary>
+        /// For a more accurate simulation of Photoshop, you 
+        /// can use a non-linear interpolation curve if 
+        /// Midtones < 128. Photoshop also chops off the 
+        /// darkest and lightest 0.1% of the values by default.
+        /// </summary>
+        /// <param name="bMidTones"></param>
+        /// <returns></returns>
         public static double CalcGammaCorrection( byte bMidTones ) {
             double Gamma = 1;
             double MidtoneNormal = bMidTones / 255;
@@ -706,17 +729,20 @@ namespace Play.Drawing {
             return Convert.ToByte( dblValue );
         }
 
-        /// <summary>
-        /// </summary>
-        /// <seealso href="https://stackoverflow.com/questions/39510072/algorithm-for-adjustment-of-image-levels"/>
-        public byte Apply( byte ChannelValue ) {
+        /// <remarks>
+        /// It's very important to to cast the divisors to
+        /// double (or float I suppose) else it does integer byte
+        /// division and you get garbage results.
+        /// </remarks>
+        public byte Level( byte ChannelValue ) {
             ChannelValue = Clamp(255 * ( 
                 (double)( ChannelValue   - ShadowValue ) / 
                 (double)( HighlightValue - ShadowValue ) )
             );
-                        
+            
             if( MidTones != 128 ) {
-                ChannelValue = Clamp(255 * double.Pow( ChannelValue / (double)255, GammaCorrection ) );
+                ChannelValue = Clamp(255 * double.Pow( ChannelValue / (double)255, 
+                                                       GammaCorrection ) );
             }
 
             ChannelValue = Clamp(
@@ -727,16 +753,19 @@ namespace Play.Drawing {
             return ChannelValue;
         }
 
-        public void CalcLevels( SKBitmap oBmp ) {
-            GammaCorrection = CalcGammaCorrection( MidTones );
-
+        /// <summary>
+        /// At present I don't let you modify individual
+        /// or groups of the channels. Just everything.
+        /// </summary>
+        /// <param name="oBmp"></param>
+        public void Level( SKBitmap oBmp ) {
             for( int iY = 0; iY < oBmp.Height; iY++ ) {
                 for( int iX = 0; iX < oBmp.Width; iX++ ) {
                     SKColor oColor = oBmp.GetPixel( iX, iY );
 
-                    byte bRed = Apply( oColor.Red );
-                    byte bGrn = Apply( oColor.Green );
-                    byte bBlu = Apply( oColor.Blue );
+                    byte bRed = Level( oColor.Red );
+                    byte bGrn = Level( oColor.Green );
+                    byte bBlu = Level( oColor.Blue );
 
                     oBmp.SetPixel( iX, iY, new SKColor( bRed, bGrn, bBlu, 255 ) );
                 }

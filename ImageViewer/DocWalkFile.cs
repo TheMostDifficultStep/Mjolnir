@@ -400,15 +400,22 @@ namespace Play.ImageViewer {
             e.Graphics.DrawImage( oCopy, rctDest.Rect, rctSource.Rect, GraphicsUnit.Pixel );
         }
 
+        /// <summary>
+        /// New levels tool! I've just hard coded the values
+        /// but I'll need sliders in the future so these values
+        /// can be adjusted on the fly. If you execute this
+        /// function, you should get exactly the same return
+        /// image.
+        /// </summary>
         public void Levels() {
             using SKBitmap oCopy = SKBitmap.FromImage( Image );
 
             LevelsAdjust oLevels = new LevelsAdjust() { 
-                ShadowValue=0, MidTones=180, HighlightValue=255, 
+                ShadowValue=0, MidTones=128, HighlightValue=255, 
                 OutLowValue=0, OutHighValue=255 
             };
 
-            oLevels.CalcLevels( oCopy );
+            oLevels.Level( oCopy );
 
             Image = SKImage.FromBitmap( oCopy );
         }
