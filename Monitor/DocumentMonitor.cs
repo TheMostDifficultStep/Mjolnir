@@ -375,6 +375,7 @@ namespace Monitor {
             Add( "DD84", "add", "a, ixh" );
             Add( "DD26nn", "ld" , "ixh, n" );
             Add( "DD2Enn", "ld" , "ixl, n" );
+            Add( "DD1Enn", "ld" , "e, n" );
 
             Add( "fd24",   "inc", "iyh" );
             Add( "FD2c",   "inc", "iyl" );

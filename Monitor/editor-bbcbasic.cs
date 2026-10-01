@@ -494,7 +494,8 @@ namespace Monitor {
 
                 BasicCompiler oCompiler = new BasicCompiler( oStream );
 
-                oCompiler.Walk( oParse.MStart );
+                //oCompiler.Walk( oParse.MStart );
+                oCompiler.Test();
                 oCompiler.Save( _oSiteFile.FilePath );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
@@ -665,7 +666,7 @@ namespace Monitor {
             }
 
             public override void Apply( List<byte> rgProgram, int iAddr) {
-                int iOffset = iPotHole - iAddr;
+                int iOffset = iAddr - iPotHole;
 
                 if( int.Abs( iOffset ) > 128 )
                     throw new InvalidProgramException("Offset must be less than 128");
@@ -706,6 +707,17 @@ namespace Monitor {
             }
             oWriter.Flush();
             return true;
+        }
+
+        public void Test() {
+            AddMain( 0x26, 0x08 );      // ld h, 8
+            AddMain( 0xdd, 0x1e, 0x7 ); // ld e, 7
+            AddMain( 0xcd );            // call
+            UseLabl( "H_times_E" );
+            AddMain( 0x76 );            // halt
+            H_times_E();
+
+            ApplyPatches();
         }
 
         public void Walk( MemoryState<char> oStart ) {
@@ -928,11 +940,11 @@ namespace Monitor {
             AddLabl( "H_Loop" );
 
             AddMain( 0x29 );    // add hl,hl (like shift left)
-            AddMain( 0x18, 3 ); // jr nc,$+3 (on to the next)
+            AddMain( 0x30, 3 ); // jr nc,$+3 (on to the next)
             AddMain( 0x19 );    // add hl,de (carry was set, add e)
 
-            AddMain( 0x10 );
-            UseLabl( "H_Loop" );   // 0x10 djnz iLoop (rel jump. loop on b)
+            AddMain( 0x10 );    // 0x10 djnz iLoop (rel jump. loop on b)
+            JumpRel( "H_Loop" );
             AddMain( 0xc9 );    // ret
         }
 
