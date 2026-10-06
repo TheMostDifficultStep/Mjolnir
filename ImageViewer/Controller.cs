@@ -1,7 +1,6 @@
-﻿using System;
+﻿using Play.Interfaces.Embedding; 
+using System;
 using System.Collections.Generic;
-
-using Play.Interfaces.Embedding; 
 
 namespace Play.ImageViewer {
     public class ControllerFactory : 
@@ -67,9 +66,10 @@ namespace Play.ImageViewer {
 					return new ViewImageIconsMain( oBaseSite, oDocImageBrowser );
 				if( guidViewType == ViewImageText.Guid )
 					return new ViewImageText     ( oBaseSite, oDocImageBrowser );
-				if( guidViewType == ViewSnipDialog.Guid ) {
-					return new ViewSnipDialog    ( oBaseSite, oDocImageBrowser ) ;
-                }
+				if( guidViewType == ViewSnipDialog.Guid )
+					return new ViewSnipDialog    ( oBaseSite, oDocImageBrowser );
+                if( guidViewType == ViewLevels.Guid )
+                    return new ViewLevels        ( oBaseSite, new ImageLevelsDoc(new ImageWalkerDoc.ImageWalkerDocSlot( oDocImageBrowser )) );
 
 				return( new WindowSoloImageNav( oBaseSite, oDocImageBrowser ) );
             } catch( Exception oEx ) {
@@ -87,9 +87,10 @@ namespace Play.ImageViewer {
         public override IEnumerator<IPgViewType> GetEnumerator() {
             // TODO: Move the guid to the view's class at least.
  	        yield return new ViewType( "Image", _guidViewImage );
- 	        yield return new ViewType( "Icons", ViewImageIconsMain.Guid );
- 	        yield return new ViewType( "Text",  ViewImageText.Guid  );
-			yield return new ViewType( "Snip",  ViewSnipDialog.Guid );
+ 	        yield return new ViewType( "Icons",  ViewImageIconsMain.Guid );
+ 	        yield return new ViewType( "Text",   ViewImageText     .Guid  );
+			yield return new ViewType( "Snip",   ViewSnipDialog    .Guid );
+            yield return new ViewType( "Levels", ViewLevels        .Guid );
         }
     }
 
