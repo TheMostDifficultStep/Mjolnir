@@ -83,7 +83,7 @@ namespace Play.ImageViewer {
         IPgSaveUrl
     {
         public LevelProperties Properties { get; protected set; }
-        protected LevelsAdjust Levels     { get; set; }
+        protected LevelAdjuster Levels     { get; set; }
 
         public bool   IsDirty { get; protected set; }
         public string Moniker { get; protected set; }
@@ -112,9 +112,9 @@ namespace Play.ImageViewer {
 
         public DocImageLevels(IPgBaseSite oSiteBase) : base(oSiteBase) {
             Properties = new LevelProperties( new ImageLevelsSlot( this ) );
-            Levels     = new LevelsAdjust() { 
-                ShadowValue=0, MidTones=128, HighlightValue=255, 
-                OutLowValue=0, OutHighValue=200
+            Levels     = new LevelAdjuster  () { 
+                ShadowValue=0, MidTones=110, HighlightValue=255, 
+                OutLowValue=0, OutHighValue=255
             };
         }
 

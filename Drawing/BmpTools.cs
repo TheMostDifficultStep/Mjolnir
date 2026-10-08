@@ -675,7 +675,7 @@ namespace Play.Drawing {
     /// Adjust the image levels like in photoshop!
     /// </summary>
     /// <seealso href="https://stackoverflow.com/questions/39510072/algorithm-for-adjustment-of-image-levels"/>
-    public class LevelsAdjust() {
+    public class LevelAdjuster() {
         protected byte   _bMidTones = 0x80;
         protected double GammaCorrection = 1;
 
@@ -705,7 +705,7 @@ namespace Play.Drawing {
         /// <returns></returns>
         public static double CalcGammaCorrection( byte bMidTones ) {
             double Gamma = 1;
-            double MidtoneNormal = bMidTones / 255;
+            double MidtoneNormal = bMidTones / (double)255;
 
             if( bMidTones < 128 ) {
                 MidtoneNormal = MidtoneNormal * 2;
@@ -773,7 +773,7 @@ namespace Play.Drawing {
                     byte bGrn = Level( oColor.Green );
                     byte bBlu = Level( oColor.Blue );
 
-                    bmpTarget.SetPixel( iX, iY, new SKColor( bRed, bGrn, bBlu, 255 ) );
+                    bmpTarget.SetPixel( iX, iY, new SKColor( bRed, bGrn, bBlu, oColor.Alpha ) );
                 }
             }
         }
