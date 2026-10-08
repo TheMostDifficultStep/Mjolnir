@@ -400,25 +400,6 @@ namespace Play.ImageViewer {
             e.Graphics.DrawImage( oCopy, rctDest.Rect, rctSource.Rect, GraphicsUnit.Pixel );
         }
 
-        /// <summary>
-        /// New levels tool! I've just hard coded the values
-        /// but I'll need sliders in the future so these values
-        /// can be adjusted on the fly. If you execute this
-        /// function, you should get exactly the same return
-        /// image.
-        /// </summary>
-        public void Levels() {
-            using SKBitmap oCopy = SKBitmap.FromImage( Image );
-
-            LevelsAdjust oLevels = new LevelsAdjust() { 
-                ShadowValue=0, MidTones=128, HighlightValue=255, 
-                OutLowValue=0, OutHighValue=255 
-            };
-
-            oLevels.Level( oCopy );
-
-            Image = SKImage.FromBitmap( oCopy );
-        }
 	}
  
     public delegate void ImagesUpdatedEvent();
@@ -1064,6 +1045,24 @@ namespace Play.ImageViewer {
             return false;
         }
 
+        /// <summary>
+        /// Create a levels editing document.
+        /// </summary>
+        /// <remarks>It's best to simply make a duplicate of the image so that I
+        /// can save the original and have all the scratch pad data I need to
+        /// set the levels. 
+        /// TODO: Probably a good idea to put the update image callback in the
+        /// Slot for our Levels document.</remarks>
+        public DocImageLevels CreateLevelsDoc() {
+            DocImageLevels oDocLevels = new ( new ImageWalkerDocSlot( this ) );
+            if( !oDocLevels.Load( FullPathFromLine( _oDisplayLine ) ) ) {
+                LogError( "Couldn't create image copy" );
+                oDocLevels.Dispose();
+                return null;
+            }
+
+            return oDocLevels;
+        }
         protected Line GetNextIndex( int p_iDir ) {
             if( p_iDir > 1 )
                 p_iDir = 1;

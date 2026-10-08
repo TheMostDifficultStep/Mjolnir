@@ -69,7 +69,7 @@ namespace Play.ImageViewer {
 				if( guidViewType == ViewSnipDialog.Guid )
 					return new ViewSnipDialog    ( oBaseSite, oDocImageBrowser );
                 if( guidViewType == ViewLevels.Guid )
-                    return new ViewLevels        ( oBaseSite, new ImageLevelsDoc(new ImageWalkerDoc.ImageWalkerDocSlot( oDocImageBrowser )) );
+                    return new ViewLevels        ( oBaseSite, oDocImageBrowser.CreateLevelsDoc() );
 
 				return( new WindowSoloImageNav( oBaseSite, oDocImageBrowser ) );
             } catch( Exception oEx ) {

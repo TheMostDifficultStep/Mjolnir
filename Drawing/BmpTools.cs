@@ -199,6 +199,7 @@ namespace Play.Drawing {
 
     }
 
+    /// <seealso cref="DocImageBase" />
     public class DocSurfaceBase : ImageContainer {
         SKSurface _oSurface;
         public SKSurface Surface { 
@@ -232,6 +233,7 @@ namespace Play.Drawing {
         }
     }
 
+    /// <seealso cref="DocSurfaceBase" />
     public class DocImageBase :	ImageContainer,
         IPgLoad
 	{
@@ -757,17 +759,21 @@ namespace Play.Drawing {
         /// At present I don't let you modify individual
         /// or groups of the channels. Just everything.
         /// </summary>
-        /// <param name="oBmp"></param>
-        public void Level( SKBitmap oBmp ) {
-            for( int iY = 0; iY < oBmp.Height; iY++ ) {
-                for( int iX = 0; iX < oBmp.Width; iX++ ) {
-                    SKColor oColor = oBmp.GetPixel( iX, iY );
+        public void Level( SKBitmap bmpSource, SKBitmap bmpTarget ) {
+            if( bmpSource.Width != bmpTarget.Width )
+                throw new ArgumentOutOfRangeException( "Source and target width do not match" );
+            if( bmpSource.Height != bmpTarget.Height )
+                throw new ArgumentOutOfRangeException( "Source and target height do not match" );
+
+            for( int iY = 0; iY < bmpSource.Height; iY++ ) {
+                for( int iX = 0; iX < bmpSource.Width; iX++ ) {
+                    SKColor oColor = bmpSource.GetPixel( iX, iY );
 
                     byte bRed = Level( oColor.Red );
                     byte bGrn = Level( oColor.Green );
                     byte bBlu = Level( oColor.Blue );
 
-                    oBmp.SetPixel( iX, iY, new SKColor( bRed, bGrn, bBlu, 255 ) );
+                    bmpTarget.SetPixel( iX, iY, new SKColor( bRed, bGrn, bBlu, 255 ) );
                 }
             }
         }

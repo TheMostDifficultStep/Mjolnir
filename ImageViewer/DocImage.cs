@@ -1,14 +1,14 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Drawing;
+﻿using Play.Drawing;
+using Play.Edit;
+using Play.Interfaces.Embedding;
+using Play.Rectangles;
 
 using SkiaSharp;
 
-using Play.Interfaces.Embedding;
-using Play.Rectangles;
-using Play.Edit;
-using Play.Drawing;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Drawing;
 
 namespace Play.ImageViewer {
 

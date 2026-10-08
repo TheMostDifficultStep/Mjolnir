@@ -779,10 +779,6 @@ namespace Play.ImageViewer {
                     break;
 
 				case Keys.Return:
-					if( ToolSelect == (int)Tools.Levels ) {
-						_oDocWalker.Levels();
-						return;
-					}
 					_oDocWalker.PlayStart();
 					break;
 				case Keys.Escape:
