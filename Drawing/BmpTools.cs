@@ -702,7 +702,11 @@ namespace Play.Drawing {
         /// darkest and lightest 0.1% of the values by default.
         /// </summary>
         /// <param name="bMidTones"></param>
-        /// <returns></returns>
+        /// <returns>        
+        /// The following roughly simulates Photoshop's technique, 
+        /// which applies gamma 9.99-1.00 for midtone values 
+        /// 0-128, and 1.00-0.01 for 128-255.
+        /// </returns>
         public static double CalcGammaCorrection( byte bMidTones ) {
             double Gamma = 1;
             double MidtoneNormal = bMidTones / (double)255;
