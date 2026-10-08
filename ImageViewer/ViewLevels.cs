@@ -113,7 +113,7 @@ namespace Play.ImageViewer {
         public DocImageLevels(IPgBaseSite oSiteBase) : base(oSiteBase) {
             Properties = new LevelProperties( new ImageLevelsSlot( this ) );
             Levels     = new LevelAdjuster  () { 
-                ShadowValue=0, MidTones=110, HighlightValue=255, 
+                ShadowValue=0, MidTones    =110, HighlightValue=255, 
                 OutLowValue=0, OutHighValue=255
             };
         }
