@@ -140,6 +140,7 @@ namespace Play.ImageViewer {
 
         public bool Load( string strFileName ) {
             //Image = SKImage.FromEncodedData( oStream );
+            Initialize();
 
             try {
                 if( File.Exists( strFileName ) ) {
