@@ -113,8 +113,7 @@ namespace Play.ImageViewer {
 		public enum Tools : int {
 			Select = 0,
 			Navigate,
-			ColorPik,
-			Levels
+			ColorPik
 		}
 
 		protected readonly IPgShellSite _oSiteShell;
@@ -544,7 +543,7 @@ namespace Play.ImageViewer {
 
             _rgLeft  = [ _rctLeft, _rctBottomLeft, _rctTopLeft ];
             _rgRight = [ _rctRight, _rctBottomRight, _rctTopRight ];
-			_rgTools = [ "Select" ,"Navigate", "Color Picker", "Levels" ];
+			_rgTools = [ "Select" ,"Navigate", "Color Picker" ];
 
 			_eToolCurrent = Tools.Navigate;
         }

@@ -13,6 +13,7 @@ using System.Xml.XPath;
 
 namespace Play.FileManager {
     using static Play.FileManager.FileFavorites;
+    using static System.Net.WebRequestMethods;
     using DClmn = FileManager.FMRow.DCol;
 
     public class FileProperties :
@@ -349,6 +350,8 @@ namespace Play.FileManager {
         /// </summary>
         public string? CurrentURL => _strDirectory;
 
+        public Func< FileSystemInfo, bool > IsShow = FileManager.IsShowNormal;
+
         /// <summary>
         /// This will go to the main program eventually.
         /// </summary>
@@ -463,7 +466,6 @@ namespace Play.FileManager {
             return true;
         }
 
-
         public bool Save(XmlNode oXmlFrag) {
             if( oXmlFrag.OwnerDocument is not XmlDocument oXmlOwner ) 
                 return false;
@@ -575,6 +577,16 @@ namespace Play.FileManager {
 			return rgErrors.IsUnhandled( oEx );
         }
 
+        protected static bool IsShowNormal( FileSystemInfo oInfo ) {
+            // some of my normal files are set as archive. Seems weird, it's
+            // probably some sort of one drive thing.
+            return ( oInfo.Attributes & ( FileAttributes.Hidden | FileAttributes.System ) ) == 0;
+        }
+
+        protected static bool IsShowAll( FileSystemInfo oInfo ) {
+            return true;
+        }
+
         protected bool ReadDir( DirectoryInfo oDir ) {
             try {
                 Clear();
@@ -585,7 +597,8 @@ namespace Play.FileManager {
                 // bg thread. Start up will be quicker.
                 List<FileInfo> rgFiles = new List<FileInfo>();
                 foreach( FileInfo oFile in oDir.GetFiles( "*.*", SearchOption.TopDirectoryOnly ) ) {
-					rgFiles.Add( oFile );
+                    if( IsShow( oFile ) )
+					    rgFiles.Add( oFile );
                 }
 
                 // Insert the directories first so they are at the top. Sort with NaturalCompare
@@ -594,8 +607,10 @@ namespace Play.FileManager {
                 rgDirList.Sort((x,y) => FindStuff<string>.NaturalCompare( x.Name, y.Name ) );
 
                 foreach( DirectoryInfo oDirChild in rgDirList ) {
-                    FMRow oRow = new FMRow( oDirChild );
-                    _rgRows.Add( oRow );
+                    if( IsShow( oDirChild ) ) {
+                        FMRow oRow = new FMRow( oDirChild );
+                        _rgRows.Add( oRow );
+                    }
                 }
 
                 // Sort so newest files are at the top. Hence the "negative sign"

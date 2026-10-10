@@ -675,9 +675,20 @@ namespace Play.Drawing {
     /// Adjust the image levels like in photoshop!
     /// </summary>
     /// <seealso href="https://stackoverflow.com/questions/39510072/algorithm-for-adjustment-of-image-levels"/>
-    public class LevelAdjuster() {
+    public class LevelAdjuster {
         protected byte   _bMidTones = 0x80;
         protected double GammaCorrection = 1;
+
+        public enum Names : int {
+            Low     = 0,
+            High    = 1,
+            Mid     = 2,
+            OutLow  = 3,
+            OutHigh = 4,
+            Max     = 5
+        }
+
+        public byte[] Levels { get; protected set; } = new byte[(int)Names.Max];
 
         /// <summary>
         /// When MidTones are 128 (0x80) then the GammaCorrection
@@ -685,15 +696,19 @@ namespace Play.Drawing {
         /// to change that we'll need a constructor to set first value;
         /// </summary>
         public byte MidTones { 
-            get { return _bMidTones; } 
-            set { _bMidTones      = value; 
-                  GammaCorrection = CalcGammaCorrection( value ); } 
+            get { return Levels[(int)Names.Mid]; } 
+            set { Levels[(int)Names.Mid] = value; 
+                  GammaCorrection  = CalcGammaCorrection( value ); } 
         }
 
-        public byte ShadowValue    = 0x00;
-        public byte HighlightValue = 0xff;
-        public byte OutLowValue    = 0x00; // outshadowvalue
-        public byte OutHighValue   = 0xff;
+        public LevelAdjuster( byte midTones = 128 ) {
+            Levels[(int)Names.Low]     = 0x00;
+            Levels[(int)Names.High]    = 0xff;
+            Levels[(int)Names.OutLow]  = 0x00; // outshadowvalue
+            Levels[(int)Names.OutHigh] = 0xff;
+
+            MidTones = midTones;
+        }
 
         /// <summary>
         /// For a more accurate simulation of Photoshop, you 
@@ -742,8 +757,8 @@ namespace Play.Drawing {
         /// </remarks>
         public byte Level( byte ChannelValue ) {
             ChannelValue = Clamp(255 * ( 
-                (double)( ChannelValue   - ShadowValue ) / 
-                (double)( HighlightValue - ShadowValue ) )
+                (double)( ChannelValue            - Levels[(int)Names.Low] ) / 
+                (double)( Levels[(int)Names.High] - Levels[(int)Names.Low] ) )
             );
             
             if( MidTones != 128 ) {
@@ -753,8 +768,8 @@ namespace Play.Drawing {
 
             ChannelValue = Clamp(
                 ( ChannelValue / (double)255 ) *
-                ( OutHighValue - OutLowValue ) + 
-                  OutLowValue );
+                ( Levels[(int)Names.OutHigh] - Levels[(int)Names.OutLow] ) + 
+                  Levels[(int)Names.OutLow] );
 
             return ChannelValue;
         }

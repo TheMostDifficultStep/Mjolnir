@@ -7,6 +7,7 @@ using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Windows.Forms;
 using System.Xml;
 
 namespace Play.ImageViewer {
@@ -83,7 +84,8 @@ namespace Play.ImageViewer {
         IPgSaveUrl
     {
         public LevelProperties Properties { get; protected set; }
-        protected LevelAdjuster Levels     { get; set; }
+        protected LevelAdjuster LevelAdj     { get; set; }
+        protected readonly Dictionary<int, LevelAdjuster.Names > _rgMapper = [];
 
         public bool   IsDirty { get; protected set; }
         public string Moniker { get; protected set; }
@@ -112,10 +114,29 @@ namespace Play.ImageViewer {
 
         public DocImageLevels(IPgBaseSite oSiteBase) : base(oSiteBase) {
             Properties = new LevelProperties( new ImageLevelsSlot( this ) );
-            Levels     = new LevelAdjuster  () { 
-                ShadowValue=0, MidTones    =110, HighlightValue=255, 
-                OutLowValue=0, OutHighValue=255
-            };
+            LevelAdj   = new LevelAdjuster  ( midTones:110 );
+
+            _rgMapper.Add( (int)LevelProperties.Names.Input_Low,    LevelAdjuster.Names.Low );
+            _rgMapper.Add( (int)LevelProperties.Names.Input_Medium, LevelAdjuster.Names.Mid );
+            _rgMapper.Add( (int)LevelProperties.Names.Input_High,   LevelAdjuster.Names.High );
+            _rgMapper.Add( (int)LevelProperties.Names.Output_Low,   LevelAdjuster.Names.OutLow );
+            _rgMapper.Add( (int)LevelProperties.Names.Output_High,  LevelAdjuster.Names.OutHigh );
+        }
+
+        /// <summary>
+        /// Copy the byte values out of the Adjuster to the Property page document.
+        /// </summary>
+        public void MoveAdjusterToProps() {
+            using DocProperties.Manipulator oProperties = Properties.CreateManipulator();
+            foreach( KeyValuePair< int, LevelAdjuster.Names > oPair in _rgMapper ) {
+                oProperties.SetValue( oPair.Key, LevelAdj.Levels[(int)oPair.Value].ToString() );
+            }
+        }
+
+        public void MovePropsToAdjuster() {
+            foreach( KeyValuePair< int, LevelAdjuster.Names > oPair in _rgMapper ) {
+                LevelAdj.Levels[(int)oPair.Value] = (byte)Properties.ValueAsInt( oPair.Key );
+            }
         }
 
         protected override bool Initialize() {
@@ -125,14 +146,16 @@ namespace Play.ImageViewer {
             if( !Properties.InitNew() ) 
                 return false;
 
+            MoveAdjusterToProps();
+
             Properties.SubmitEvent += SubmitEvent_Properties;
 
             return true;
         }
 
         private void SubmitEvent_Properties(int[] obj) {
-            // Convert the levels strings to Levels values then...
-            Levels.Level( _bmpSource, _bmpTarget );
+            MovePropsToAdjuster();
+            LevelAdj.Level( _bmpSource, _bmpTarget );
             Image = SKImage.FromBitmap(_bmpTarget );
             Raise_ImageUpdated();
             IsDirty = true;
@@ -149,7 +172,7 @@ namespace Play.ImageViewer {
                     _bmpSource = SKBitmap.Decode( oStream );
                     _bmpTarget = new SKBitmap( _bmpSource.Info );
 
-                    Levels.Level( _bmpSource, _bmpTarget );
+                    LevelAdj.Level( _bmpSource, _bmpTarget );
 
                     Image = SKImage.FromBitmap( _bmpTarget );
 				    return true;
@@ -170,6 +193,23 @@ namespace Play.ImageViewer {
             // property...
             return false;
         }
+
+    }
+
+    public class ViewLevelsProperties : WindowStandardProperties {
+        public ViewLevelsProperties(IPgViewSite oSiteView, DocProperties oDocument) : 
+            base(oSiteView, oDocument) 
+        {
+        }
+
+        protected override void OnKeyDown(KeyEventArgs e) {
+            if( e.KeyCode == Keys.Enter ) {
+                Document.Raise_Submit();
+                e.Handled = true;
+            }
+            base.OnKeyDown(e);
+        }  
+
     }
 
     public class ViewLevels : 
@@ -203,13 +243,22 @@ namespace Play.ImageViewer {
 
         object IPgCommandView.Decorate(IPgViewSite oBaseSite, Guid sGuid) {
             if( sGuid.Equals( GlobalDecor.Properties ) ) {
-                return new WindowStandardProperties( oBaseSite, DocLevels.Properties );
+                return new ViewLevelsProperties( oBaseSite, DocLevels.Properties );
             }
             return null;
         }
 
+        /// <summary>
+        /// I've never used this feature. I might add it to the standard properties
+        /// window later...
+        /// </summary>
         bool IPgCommandBase.Execute(Guid sGuid) {
             if( sGuid == GlobalCommands.Save ) {
+                return true;
+            }
+            // Just testing. Cr should trigger on prop page...
+            if( sGuid == GlobalCommands.Play ) {
+                DocLevels.Properties.Raise_Submit();
                 return true;
             }
 
