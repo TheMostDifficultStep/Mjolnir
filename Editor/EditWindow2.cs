@@ -212,6 +212,8 @@ namespace Play.Edit {
         ushort        FaceCacheNew  ( string strFilePath ); // Enter the requested face
         uint          FontCacheNew  ( ushort usFaceID, uint uiHeightInPoints, SKPoint skResolution );
         IPgFontRender FontRendererAt( uint   uiFontID );
+
+      //string        FManSettings { get; }
     }
 
     public abstract class DataStream2<T> : DataStream<T> {

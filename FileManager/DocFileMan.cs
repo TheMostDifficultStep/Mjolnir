@@ -415,6 +415,12 @@ namespace Play.FileManager {
             }
         }
         
+        /// <summary>
+        /// This is a little of a misnomer. We're basicaly loading the file settings and
+        /// not a directory in the file system... 
+        /// Also note that these might be local values from the session versus the global
+        /// values from the user's app data! Probably a bad idea, but it's done.
+        /// </summary>
         public bool Load(XmlNode oXmlRoot ) {
             if( !Initialize() )
                 return false;
@@ -492,9 +498,9 @@ namespace Play.FileManager {
 
             oXmlCurr.InnerText = Moniker;
 
-            oXmlFrag .AppendChild( oXmlRoot );
-            oXmlRoot .AppendChild( oXmlFavs );
-            oXmlRoot .AppendChild( oXmlCurr );
+            oXmlFrag.AppendChild( oXmlRoot );
+            oXmlRoot.AppendChild( oXmlFavs );
+            oXmlRoot.AppendChild( oXmlCurr );
 
             return true;
         }
