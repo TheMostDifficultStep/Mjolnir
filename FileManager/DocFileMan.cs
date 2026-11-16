@@ -468,9 +468,9 @@ namespace Play.FileManager {
             }
 
             try {
-                FileInfo oFile = new FileInfo( oStdUI.FManSettings );
-
+                FileInfo   oFile       = new FileInfo( oStdUI.FManSettings );
                 FileStream oByteStream = oFile.OpenRead(); // by default StreamReader closes the stream.
+
                 using( StreamReader oReader = new StreamReader( oByteStream ) ) {
                     XmlDocument oXmlDoc = new XmlDocument();
                     oXmlDoc.Load( oReader );
@@ -485,23 +485,56 @@ namespace Play.FileManager {
             }
         }
 
+        /// <summary>
+        /// SaveURL has a Save() with no params. THe more obvious reasion is that the
+        /// url is a full file name. But our case it's a path. So we can't save the
+        /// current path like if we are embedded. But we can save any changes to the 
+        /// Favorites (shortcuts). NOTE: this code has not been tested.
+        /// This is not being called by by the shell, since it'll only save the
+        /// filemanager instance if it's embedded.
+        /// </summary>
+        /// <remarks>The only down side here, is that if you have TWO different sessions
+        /// open, it's a race case to see who saves the file settings last. :-/
+        /// The alternative is to never save the Settings. And for any editor on the
+        /// settings, it should lock the file. Also :-/
+        /// TODO: I could check that the file wasn't modified from the version I have.
+        /// </remarks>
         public bool Save() {
-            return true;
+            if( _oSiteBase.Host is not IPgStandardUI2 oStdUI ) {
+                LogError( "Fileman host does not support IPgStandardUI2" );
+                return false;
+            }
+            try {
+
+                if( DocFavs.IsDirty ) {
+                    FileInfo   oFile       = new FileInfo( oStdUI.FManSettings );
+                    using FileStream oByteStream = oFile.OpenWrite();
+
+                    XmlDocument oXmlDoc = new XmlDocument();
+                    SaveSettings( oXmlDoc );
+
+                    oXmlDoc.Save( oByteStream );
+                }
+                return true;
+            } catch( Exception oEx ) {
+				if( IsUnhandled( oEx ) )
+					throw;
+
+                LogError( "Died trying to save Fileman Settings : " + oStdUI.FManSettings );
+                return false;
+            }
         }
 
-        public void SaveSettings( XmlNode oXmlFrag ) {
-            if( oXmlFrag.OwnerDocument is not XmlDocument oXmlOwner ) 
-                return;
-
-            XmlNode    oXmlRoot = oXmlOwner.CreateElement( "fileman" );
-            XmlElement oXmlFavs = oXmlOwner.CreateElement( "favorites" );
+        public void SaveSettings( XmlDocument oXmlDoc ) {
+            XmlNode    oXmlFMan = oXmlDoc.CreateElement( "fileman" );
+            XmlElement oXmlFavs = oXmlDoc.CreateElement( "favorites" );
 
             foreach( Row oRow in DocFavs ) {
                 if( oRow is DRow oRowFM ) {
                     string? strFilePath = oRowFM.ColumnToString( DRow.Col.Path );
 
                     if( !string.IsNullOrEmpty( strFilePath ) ) {
-                        XmlElement oXmlDir = oXmlOwner.CreateElement( "dir" );
+                        XmlElement oXmlDir = oXmlDoc.CreateElement( "dir" );
 
                         oXmlDir.SetAttribute( "emoji", oRowFM.ColumnToString( DRow.Col.Emoji ) );
                         oXmlDir.SetAttribute( "name",  oRowFM.ColumnToString( DRow.Col.Name ));
@@ -512,8 +545,8 @@ namespace Play.FileManager {
                 }
             }
 
-            oXmlFrag.AppendChild( oXmlRoot );
-            oXmlRoot.AppendChild( oXmlFavs );
+            oXmlDoc .AppendChild( oXmlFMan );
+            oXmlFMan.AppendChild( oXmlFavs );
         }
 
         public bool Save(XmlNode oXmlFrag) {
@@ -527,6 +560,8 @@ namespace Play.FileManager {
 
             oXmlFrag.AppendChild( oXmlRoot );
             oXmlRoot.AppendChild( oXmlCurr );
+
+            Save();
 
             return true;
         }
