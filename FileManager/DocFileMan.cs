@@ -6,6 +6,7 @@ using Play.Interfaces.Embedding;
 using SkiaSharp;
 
 using System.Reflection;
+using System.Text;
 using System.Web;
 using System.Xml;
 using System.Xml.XPath;
@@ -13,8 +14,6 @@ using System.Xml.XPath;
 
 namespace Play.FileManager {
     using static Play.FileManager.FileFavorites;
-    using static System.Net.WebRequestMethods;
-    using DClmn = FileManager.FMRow.DCol;
 
     public class FileProperties :
         DocProperties 
@@ -425,39 +424,16 @@ namespace Play.FileManager {
             if( !Initialize() )
                 return false;
 
+            LoadSettings();
+
             ArgumentNullException.ThrowIfNull(oXmlRoot);
 
             try {
-                string strDirFirst = string.Empty;
-                if( oXmlRoot.SelectNodes("fileman/favorites/dir") is XmlNodeList oList ) {
-                    foreach( XmlNode xmlNode in oList ) {
-                        if( xmlNode is XmlElement oXmlDir ) {
-                            string        strDir = HttpUtility.HtmlDecode( oXmlDir.InnerText );
-                            DirectoryInfo oDir   = new( strDir );
-
-                            // Pick off the first one as home.
-                            if( string.IsNullOrEmpty( strDirFirst ) && oDir.Exists ) {
-                                strDirFirst = strDir;
-                            }
-
-                            if( !string.IsNullOrEmpty( strDir ) ) {
-                                DocFavs.Append( oXmlDir.GetAttribute( "emoji" ),
-                                                oXmlDir.GetAttribute( "name"  ),
-                                                strDir );
-                            }
-                        }
-                    }
-                }
                 if( oXmlRoot.SelectSingleNode( "fileman/current" ) is XmlNode oCurr ) {
-                    strDirFirst = oCurr.InnerText;
-                }
-
-                if( string.IsNullOrEmpty( strDirFirst ) ) {
-                    LogError( "No Starting Directory Found, trying Home." );
+                    return ReadDir( oCurr.InnerText );
+                } else {
                     return ReadDir( GetHomeURL() );
                 }
-
-                return ReadDir( strDirFirst );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( XPathException ),
                                     typeof( NullReferenceException ) };
@@ -468,17 +444,57 @@ namespace Play.FileManager {
             }
         }
 
+        public void LoadSettings(XmlNode oXmlRoot ) {
+            if( oXmlRoot.SelectNodes("fileman/favorites/dir") is XmlNodeList oList ) {
+                foreach( XmlNode xmlNode in oList ) {
+                    if( xmlNode is XmlElement oXmlDir ) {
+                        string        strDir = HttpUtility.HtmlDecode( oXmlDir.InnerText );
+                        DirectoryInfo oDir   = new( strDir );
+
+                        if( !string.IsNullOrEmpty( strDir ) ) {
+                            DocFavs.Append( oXmlDir.GetAttribute( "emoji" ),
+                                            oXmlDir.GetAttribute( "name"  ),
+                                            strDir );
+                        }
+                    }
+                }
+            }
+        }
+
+        public void LoadSettings() {
+            if( _oSiteBase.Host is not IPgStandardUI2 oStdUI ) {
+                LogError( "Fileman host does not support IPgStandardUI2" );
+                return;
+            }
+
+            try {
+                FileInfo oFile = new FileInfo( oStdUI.FManSettings );
+
+                FileStream oByteStream = oFile.OpenRead(); // by default StreamReader closes the stream.
+                using( StreamReader oReader = new StreamReader( oByteStream ) ) {
+                    XmlDocument oXmlDoc = new XmlDocument();
+                    oXmlDoc.Load( oReader );
+                    LoadSettings( oXmlDoc );
+                }
+            } catch( Exception oEx ) {
+				if( IsUnhandled( oEx ) )
+					throw;
+
+                LogError( "Died trying to load Fileman Settings : " + oStdUI.FManSettings );
+                return;
+            }
+        }
+
         public bool Save() {
             return true;
         }
 
-        public bool Save(XmlNode oXmlFrag) {
+        public void SaveSettings( XmlNode oXmlFrag ) {
             if( oXmlFrag.OwnerDocument is not XmlDocument oXmlOwner ) 
-                return false;
+                return;
 
             XmlNode    oXmlRoot = oXmlOwner.CreateElement( "fileman" );
             XmlElement oXmlFavs = oXmlOwner.CreateElement( "favorites" );
-            XmlElement oXmlCurr = oXmlOwner.CreateElement( "current" );
 
             foreach( Row oRow in DocFavs ) {
                 if( oRow is DRow oRowFM ) {
@@ -496,10 +512,20 @@ namespace Play.FileManager {
                 }
             }
 
+            oXmlFrag.AppendChild( oXmlRoot );
+            oXmlRoot.AppendChild( oXmlFavs );
+        }
+
+        public bool Save(XmlNode oXmlFrag) {
+            if( oXmlFrag.OwnerDocument is not XmlDocument oXmlOwner ) 
+                return false;
+
+            XmlNode    oXmlRoot = oXmlOwner.CreateElement( "fileman" );
+            XmlElement oXmlCurr = oXmlOwner.CreateElement( "current" );
+
             oXmlCurr.InnerText = Moniker;
 
             oXmlFrag.AppendChild( oXmlRoot );
-            oXmlRoot.AppendChild( oXmlFavs );
             oXmlRoot.AppendChild( oXmlCurr );
 
             return true;

@@ -213,7 +213,7 @@ namespace Play.Edit {
         uint          FontCacheNew  ( ushort usFaceID, uint uiHeightInPoints, SKPoint skResolution );
         IPgFontRender FontRendererAt( uint   uiFontID );
 
-      //string        FManSettings { get; }
+        string        FManSettings { get; }
     }
 
     public abstract class DataStream2<T> : DataStream<T> {
